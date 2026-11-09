@@ -62,12 +62,14 @@ redirects are refused.
 
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, REST via HTTP
 actions, scheduled jobs, file storage). The MCP server is a small local stdio
-process over the REST API. The web app comes in step 2.
+process over the REST API. The web app is Vite, React, TanStack Router and
+shadcn/ui (Base UI). Until there are user accounts, it signs in with an API token
+kept in the browser.
 
 ## Build order
 
 1. ✅ Convex data model, the intake and the MCP server.
-2. Tier board web app.
+2. ✅ Tier board web app.
 3. Criteria and match scores, then notes and pros/cons.
 4. Chrome extension.
 5. Re-checks and the price history view.
@@ -80,6 +82,7 @@ Requires Node 24+ (the MCP server runs as TypeScript directly) and pnpm.
 ```sh
 pnpm install
 pnpm dev          # Convex dev deployment; writes CONVEX_URL / CONVEX_SITE_URL to .env.local
+pnpm dev:web      # web app on :5173, also reachable over Tailscale at http://homelab:5173
 pnpm test
 pnpm typecheck
 ```

@@ -1,0 +1,106 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/archivo/wdth.css";
+
+/* Dark mode follows the system setting. */
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/* Pit-wall palette: concrete ground, asphalt ink, pit-board slabs, one signal yellow.
+   shadcn components read the standard tokens; slab and signal are ours. */
+:root {
+  --background: #e4e5e0;
+  --foreground: #23272b;
+  --card: #f6f6f3;
+  --card-foreground: #23272b;
+  --popover: #f6f6f3;
+  --popover-foreground: #23272b;
+  --primary: #23272b;
+  --primary-foreground: #f6f6f3;
+  --secondary: #d6d8d1;
+  --secondary-foreground: #23272b;
+  --muted: #d6d8d1;
+  --muted-foreground: #5f656b;
+  --accent: #d6d8d1;
+  --accent-foreground: #23272b;
+  --destructive: #b3261e;
+  --border: #c8cac3;
+  --input: #b9bcb4;
+  --ring: #f4be1a;
+  --slab: #23272b;
+  --slab-foreground: #f6f6f3;
+  --signal: #f4be1a;
+  --signal-foreground: #23272b;
+  --radius: 0.375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1d2023;
+    --foreground: #ebece8;
+    --card: #292d31;
+    --card-foreground: #ebece8;
+    --popover: #292d31;
+    --popover-foreground: #ebece8;
+    --primary: #ebece8;
+    --primary-foreground: #1d2023;
+    --secondary: #343a3f;
+    --secondary-foreground: #ebece8;
+    --muted: #343a3f;
+    --muted-foreground: #a2a8ad;
+    --accent: #343a3f;
+    --accent-foreground: #ebece8;
+    --destructive: #f2867e;
+    --border: #3b4146;
+    --input: #4a5157;
+    --slab: #ebece8;
+    --slab-foreground: #1d2023;
+  }
+}
+
+@theme inline {
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-slab: var(--slab);
+  --color-slab-foreground: var(--slab-foreground);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@utility condensed {
+  font-stretch: 68%;
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
