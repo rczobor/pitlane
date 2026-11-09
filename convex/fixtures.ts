@@ -12,22 +12,10 @@ import type { ListingData } from "../shared/listing";
 export const fixtureToken = `pit_${"f".repeat(64)}`;
 export const emptyBoardToken = `pit_${"e".repeat(64)}`;
 
-const photo = (path: string) => `https://img.classistatic.de/api/v1/mo-prod/images/${path}?rule=mo-1600.jpg`;
-const photos = [
-  photo("00/00000000-0000-4000-8000-000000000001"),
-  photo("00/00000000-0000-4000-8000-000000000002"),
-  photo("00/00000000-0000-4000-8000-000000000003"),
-  photo("00/00000000-0000-4000-8000-000000000004"),
-  photo("00/00000000-0000-4000-8000-000000000005"),
-  photo("00/00000000-0000-4000-8000-000000000006"),
-  photo("00/00000000-0000-4000-8000-000000000007"),
-  photo("00/00000000-0000-4000-8000-000000000008"),
-  photo("00/00000000-0000-4000-8000-000000000009"),
-  photo("00/00000000-0000-4000-8000-000000000010"),
-  photo("00/00000000-0000-4000-8000-000000000011"),
-  photo("00/00000000-0000-4000-8000-000000000012"),
-];
-const photoSet = (start: number, count = 4) => Array.from({ length: count }, (_, i) => photos[(start + i) % photos.length]);
+// Photos are not part of the repository: `scripts/dev-design.sh` passes listing photo
+// URLs from a local file (PITLANE_FIXTURE_PHOTOS). Without them every car shows the
+// "No photo saved" panel. Each car takes `count` photos starting at slot `from`.
+type PhotoSlots = { from: number; count?: number };
 
 type FixtureCar = {
   id: string;
@@ -37,7 +25,8 @@ type FixtureCar = {
   removed?: boolean;
   // The user's own key-spec values; anything else comes from the listing text or stays unknown.
   specs?: Record<string, string>;
-  data: Omit<ListingData, "price" | "seller" | "details"> & {
+  data: Omit<ListingData, "price" | "seller" | "details" | "photoUrls"> & {
+    photos?: PhotoSlots;
     price?: Partial<ListingData["price"]>;
     seller?: Partial<ListingData["seller"]>;
     details: Partial<Extract<ListingData["details"], { category: "car" }>> & { model: string; mileageKm: number };
@@ -79,7 +68,7 @@ const cars: FixtureCar[] = [
       seller: { name: "Kurvenreich Automobile", location: "80331 München" },
       details: { model: "911 GT3", firstRegistration: "2018-03", mileageKm: 39_500, gearbox: "manual", powerKw: 368, color: "GT Silver Metallic", options: [...options, "LED headlights incl. PDLS+", "Front axle lift", "Clubsport package"] },
       description: "Porsche Approved warranty until 09.2027. New brakes and tyres at the last service.\n\nViewing by appointment only.",
-      photoUrls: photoSet(0, 12),
+      photos: { from: 0, count: 12 },
     },
   },
   {
@@ -92,7 +81,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 718 Cayman GT4 RS Weissach package, PDK",
       seller: { name: "Sportwagenzentrum Hamburg", location: "20095 Hamburg" },
       details: { model: "718 Cayman GT4 RS", firstRegistration: "2022-09", mileageKm: 8_900, gearbox: "automatic", powerKw: 368, color: "Python Green", options: [...options, "Weissach package", "Roll cage"] },
-      photoUrls: photoSet(1),
+      photos: { from: 1 },
     },
   },
   {
@@ -105,7 +94,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 992 GT3 manual, Clubsport, PDLS+",
       seller: { name: "Sportwagenzentrum Köln", location: "50667 Köln" },
       details: { model: "911 GT3", firstRegistration: "2022-04", mileageKm: 14_200, gearbox: "manual", powerKw: 375, color: "Shark Blue", options },
-      photoUrls: photoSet(2),
+      photos: { from: 2 },
     },
   },
   {
@@ -117,7 +106,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 911 GT3 RS (991.2), PDK, Guards Red",
       seller: { name: "Autohaus Schikane", location: "70173 Stuttgart" },
       details: { model: "911 GT3 RS", firstRegistration: "2019-02", mileageKm: 21_000, gearbox: "automatic", powerKw: 383, color: "Guards Red", options },
-      photoUrls: photoSet(3),
+      photos: { from: 3 },
     },
   },
   {
@@ -130,7 +119,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 718 Cayman GT4 PDK, Chalk",
       seller: { name: "Sportwagenzentrum Leipzig", location: "04109 Leipzig" },
       details: { model: "718 Cayman GT4", firstRegistration: "2021-03", mileageKm: 18_300, gearbox: "automatic", powerKw: 309, color: "Chalk", options: [...options, "PDK"] },
-      photoUrls: photoSet(4),
+      photos: { from: 4 },
     },
   },
   {
@@ -142,7 +131,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 992 GT3 Touring, manual, leather package",
       seller: { type: "private", location: "80331 München" },
       details: { model: "911 GT3 Touring", firstRegistration: "2022-07", mileageKm: 9_400, gearbox: "manual", powerKw: 375, color: "Black", options: [...options, "LED headlights incl. PDLS+"] },
-      photoUrls: photoSet(5),
+      photos: { from: 5 },
     },
   },
   {
@@ -156,7 +145,6 @@ const cars: FixtureCar[] = [
       seller: { name: "Sportwagenzentrum Frankfurt", location: "60311 Frankfurt am Main" },
       details: { model: "911 GT3", firstRegistration: "2017-11", mileageKm: 33_800, gearbox: "automatic", powerKw: 368, options },
       // No photos: shows how a listing without them looks.
-      photoUrls: [],
     },
   },
   {
@@ -170,7 +158,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 911 GT3 Touring (991.2), manual",
       seller: { type: "private", location: "28195 Bremen" },
       details: { model: "911 GT3 Touring", firstRegistration: "2018-07", mileageKm: 58_000, gearbox: "manual", powerKw: 368, previousOwners: 3, options },
-      photoUrls: photoSet(6),
+      photos: { from: 6 },
     },
   },
   {
@@ -183,21 +171,25 @@ const cars: FixtureCar[] = [
       title: "Porsche 718 Cayman GT4 manual, one owner",
       seller: { name: "Sportwagenzentrum Nürnberg", location: "90402 Nürnberg" },
       details: { model: "718 Cayman GT4", firstRegistration: "2020-05", mileageKm: 46_500, gearbox: "manual", powerKw: 309, options },
-      photoUrls: photoSet(7),
+      photos: { from: 7 },
     },
   },
 ];
 
-const toListing = (car: FixtureCar, amount: number): ListingData => ({
-  ...car.data,
-  price: { currency: "EUR", ...car.data.price, amount },
-  seller: { type: "dealer", ...car.data.seller },
-  details: { category: "car", make: "Porsche", fuel: "petrol", gearbox: "automatic", options, ...car.data.details },
+const toListing = ({ data: { photos, ...data } }: FixtureCar, amount: number, photoUrls: string[]): ListingData => ({
+  ...data,
+  photoUrls:
+    photos && photoUrls.length > 0
+      ? Array.from({ length: photos.count ?? 4 }, (_, i) => photoUrls[(photos.from + i) % photoUrls.length])
+      : [],
+  price: { currency: "EUR", ...data.price, amount },
+  seller: { type: "dealer", ...data.seller },
+  details: { category: "car", make: "Porsche", fuel: "petrol", gearbox: "automatic", options, ...data.details },
 });
 
 export const seed = internalAction({
-  args: {},
-  handler: async (ctx) => {
+  args: { photoUrls: v.optional(v.array(v.string())) },
+  handler: async (ctx, { photoUrls = [] }) => {
     if (!process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) {
       throw new Error("Fixtures only seed a local deployment");
     }
@@ -210,7 +202,7 @@ export const seed = internalAction({
       const url = `https://listings.example/fahrzeuge/details.html?id=${car.id}`;
       let listingId: Id<"listings"> | undefined;
       for (const amount of car.prices) {
-        const data = toListing(car, amount);
+        const data = toListing(car, amount, photoUrls);
         ({ listingId } = await ctx.runMutation(internal.listings.save, { boardId, capturedBy: "fixtures", url, data }));
       }
       if (car.removed) await ctx.runMutation(internal.listings.markRemoved, { boardId, capturedBy: "fixtures", url });
