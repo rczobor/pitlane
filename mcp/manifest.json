@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "pitlane",
   "display_name": "Pitlane",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Save, re-check and read car listings on your Pitlane watchlist.",
   "author": { "name": "Robi" },
   "server": {

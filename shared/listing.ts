@@ -46,10 +46,26 @@ export const listingDetails = z.discriminatedUnion("category", [carDetails]);
 
 export const listingData = z.object({
   title: text(300).describe("Listing headline as shown."),
-  price: z.object({
-    amount: z.number().int().positive().max(100_000_000).describe("Asking price, whole units."),
-    currency: z.string().regex(/^[A-Z]{3}$/).describe('ISO 4217 code, e.g. "EUR".'),
-  }),
+  price: z
+    .object({
+      amount: z.number().int().positive().max(100_000_000).describe("Asking price incl. VAT, whole units."),
+      currency: z.string().regex(/^[A-Z]{3}$/).describe('ISO 4217 code, e.g. "EUR".'),
+      vatDeductible: z
+        .boolean()
+        .optional()
+        .describe('true when the listing shows VAT as reclaimable (a net price, "19% VAT"); false when it says it is not.'),
+      netAmount: z
+        .number()
+        .int()
+        .positive()
+        .max(100_000_000)
+        .optional()
+        .describe("Net price excl. VAT, only when the listing shows one."),
+    })
+    .refine((price) => price.netAmount === undefined || price.netAmount <= price.amount, {
+      message: "netAmount cannot exceed the gross amount",
+      path: ["netAmount"],
+    }),
   seller: z.object({
     type: z.enum(["dealer", "private"]),
     name: text(200).optional(),

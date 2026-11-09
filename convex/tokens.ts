@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalAction, internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, type ActionCtx, type QueryCtx } from "./_generated/server";
+
+const tokenPattern = /^pit_[0-9a-f]{64}$/;
 
 // Run from the CLI; prints the token once:
 //   pnpm convex run tokens:create '{"name": "claude-desktop"}'
@@ -36,8 +38,20 @@ export const byHash = internalQuery({
 });
 
 export async function authenticate(ctx: ActionCtx, request: Request) {
-  const token = request.headers.get("authorization")?.match(/^Bearer (pit_[0-9a-f]{64})$/)?.[1];
-  return token ? ctx.runQuery(internal.tokens.byHash, { tokenHash: await sha256(token) }) : null;
+  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
+  return token && tokenPattern.test(token)
+    ? ctx.runQuery(internal.tokens.byHash, { tokenHash: await sha256(token) })
+    : null;
+}
+
+// For public queries and mutations, which receive the token as an argument.
+export async function tokenAccess(ctx: QueryCtx, token: string) {
+  if (!tokenPattern.test(token)) return null;
+  const tokenHash = await sha256(token);
+  return ctx.db
+    .query("apiTokens")
+    .withIndex("by_hash", (q) => q.eq("tokenHash", tokenHash))
+    .unique();
 }
 
 async function sha256(text: string) {

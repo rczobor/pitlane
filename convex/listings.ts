@@ -95,75 +95,92 @@ export const markRemoved = internalMutation({
 
 export const listForBoard = internalQuery({
   args: { boardId: v.id("boards") },
-  handler: async (ctx, { boardId }) => {
-    const items = await ctx.db
-      .query("boardItems")
-      .withIndex("by_board", (q) => q.eq("boardId", boardId))
-      .collect();
-    items.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
-    return Promise.all(
-      items.map(async (item) => {
-        const listing = (await ctx.db.get(item.listingId))!;
-        return {
-          listingId: listing._id,
-          url: listing.url,
-          tier: item.tier,
-          status: listing.status,
-          title: listing.current.title,
-          price: listing.current.price,
-          firstSeenAt: listing.firstSeenAt,
-          lastCheckedAt: listing.lastCheckedAt,
-        };
-      }),
-    );
-  },
+  handler: (ctx, { boardId }) => boardListings(ctx, boardId),
 });
 
 export const getForBoard = internalQuery({
   args: { boardId: v.id("boards"), listingId: v.string() },
-  handler: async (ctx, { boardId, listingId: rawId }) => {
-    const listingId = ctx.db.normalizeId("listings", rawId);
-    const item = listingId && (await boardItem(ctx, boardId, listingId));
-    if (!listingId || !item) return null;
-
-    const listing = (await ctx.db.get(listingId))!;
-    const snapshots = await ctx.db
-      .query("snapshots")
-      .withIndex("by_listing", (q) => q.eq("listingId", listingId))
-      .collect();
-    const photos = await ctx.db
-      .query("photos")
-      .withIndex("by_listing", (q) => q.eq("listingId", listingId))
-      .collect();
-
-    return {
-      listingId,
-      url: listing.url,
-      tier: item.tier,
-      status: listing.status,
-      firstSeenAt: listing.firstSeenAt,
-      lastCheckedAt: listing.lastCheckedAt,
-      lastChangedAt: listing.lastChangedAt,
-      removedAt: listing.removedAt,
-      ...listing.current,
-      history: snapshots.map((s) => ({
-        capturedAt: s.capturedAt,
-        capturedBy: s.capturedBy,
-        status: s.status,
-        price: s.data?.price,
-      })),
-      photos: await Promise.all(
-        photos.map(async (p) => ({
-          status: p.status,
-          url: (p.storageId && (await ctx.storage.getUrl(p.storageId))) ?? p.sourceUrl,
-          sourceUrl: p.sourceUrl,
-        })),
-      ),
-    };
-  },
+  handler: (ctx, { boardId, listingId }) => listingDetail(ctx, boardId, listingId),
 });
 
-function boardItem(ctx: QueryCtx, boardId: Id<"boards">, listingId: Id<"listings">) {
+// The board in tier order, with what a card needs: specs without the options list, and a cover photo.
+export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
+  const items = await ctx.db
+    .query("boardItems")
+    .withIndex("by_board", (q) => q.eq("boardId", boardId))
+    .collect();
+  items.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
+  return Promise.all(
+    items.map(async (item) => {
+      const listing = (await ctx.db.get(item.listingId))!;
+      const { options: _, ...specs } = listing.current.details;
+      const cover = await ctx.db
+        .query("photos")
+        .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+        .filter((q) => q.eq(q.field("status"), "stored"))
+        .first();
+      return {
+        listingId: listing._id,
+        url: listing.url,
+        tier: item.tier,
+        rank: item.rank,
+        status: listing.status,
+        title: listing.current.title,
+        price: listing.current.price,
+        specs,
+        location: listing.current.seller.location,
+        coverUrl: cover?.storageId ? await ctx.storage.getUrl(cover.storageId) : null,
+        firstSeenAt: listing.firstSeenAt,
+        lastCheckedAt: listing.lastCheckedAt,
+        removedAt: listing.removedAt,
+      };
+    }),
+  );
+}
+
+// Null when the id is malformed or the listing is not on this board.
+export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId: string) {
+  const listingId = ctx.db.normalizeId("listings", rawId);
+  const item = listingId && (await boardItem(ctx, boardId, listingId));
+  if (!listingId || !item) return null;
+
+  const listing = (await ctx.db.get(listingId))!;
+  const snapshots = await ctx.db
+    .query("snapshots")
+    .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+    .collect();
+  const photos = await ctx.db
+    .query("photos")
+    .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+    .collect();
+
+  return {
+    listingId,
+    url: listing.url,
+    tier: item.tier,
+    status: listing.status,
+    firstSeenAt: listing.firstSeenAt,
+    lastCheckedAt: listing.lastCheckedAt,
+    lastChangedAt: listing.lastChangedAt,
+    removedAt: listing.removedAt,
+    ...listing.current,
+    history: snapshots.map((s) => ({
+      capturedAt: s.capturedAt,
+      capturedBy: s.capturedBy,
+      status: s.status,
+      price: s.data?.price,
+    })),
+    photos: await Promise.all(
+      photos.map(async (p) => ({
+        status: p.status,
+        url: (p.storageId && (await ctx.storage.getUrl(p.storageId))) ?? p.sourceUrl,
+        sourceUrl: p.sourceUrl,
+      })),
+    ),
+  };
+}
+
+export function boardItem(ctx: QueryCtx, boardId: Id<"boards">, listingId: Id<"listings">) {
   return ctx.db
     .query("boardItems")
     .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))

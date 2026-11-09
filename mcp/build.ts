@@ -6,7 +6,7 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 
 const out = "dist/mcpb";
-await rm("dist", { recursive: true, force: true });
+await rm(out, { recursive: true, force: true });
 await build({
   entryPoints: ["mcp/server.ts"],
   outfile: `${out}/server/index.mjs`,
