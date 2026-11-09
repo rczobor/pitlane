@@ -1,7 +1,11 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../convex/_generated/api";
 
-export type BoardListing = NonNullable<FunctionReturnType<typeof api.board.get>>["listings"][number];
+export type BoardData = NonNullable<FunctionReturnType<typeof api.board.get>>;
+export type BoardListing = BoardData["listings"][number];
+export type BoardModel = BoardData["models"][number];
+export type KeySpecDef = BoardData["keySpecs"][number];
+export type ResolvedSpec = BoardListing["keySpecs"][number];
 export type Tier = BoardListing["tier"];
 export type Specs = BoardListing["specs"];
 
