@@ -11,6 +11,13 @@
       "groupName": "all non-major dependencies",
       "groupSlug": "all-minor-patch",
       "groupSingleUpdates": true
+    },
+    {
+      "description": "Group immutable GitHub Action updates into one weekly PR",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "GitHub Actions digests",
+      "schedule": ["* 0-5 * * 1"]
     }
   ]
 }
