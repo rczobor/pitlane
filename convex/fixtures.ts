@@ -57,9 +57,10 @@ const models = [
   { id: "9921-gt3t", name: "992.1 GT3 Touring" },
 ];
 const keySpecs = [
-  { id: "seats", name: "Seats", kind: "choice" as const, choices: ["918 buckets", "Carbon buckets", "Sport seats Plus", "Adaptive sport seats"], models: [] },
-  { id: "pdls", name: "PDLS+", kind: "check" as const, choices: [], models: [] },
-  { id: "gearbox", name: "Gearbox", kind: "choice" as const, choices: ["PDK", "Manual"], models: [] },
+  { id: "seats", name: "Seats", kind: "choice" as const, choices: ["918 buckets", "Carbon buckets", "Sport seats Plus", "Adaptive sport seats"], models: [], preferred: [{ value: "918 buckets", models: [] }] },
+  { id: "pdls", name: "PDLS+", kind: "check" as const, choices: [], models: [], preferred: [{ value: "yes", models: [] }] },
+  // PDK for the 718s, manual for the GT3s; the RS only comes with PDK.
+  { id: "gearbox", name: "Gearbox", kind: "choice" as const, choices: ["PDK", "Manual"], models: [], preferred: [{ value: "PDK", models: ["gt4", "gt4rs"] }, { value: "Manual", models: ["9912-gt3", "9912-gt3t", "9921-gt3", "9921-gt3t"] }] },
   { id: "colour", name: "Colour", kind: "choice" as const, choices: ["GT Silver", "Chalk", "Python Green", "Shark Blue", "Guards Red", "White", "Black"], models: [] },
   { id: "cage", name: "Roll cage", kind: "check" as const, choices: [], models: ["gt4", "gt4rs", "9912-gt3", "9912-gt3rs", "9921-gt3"] },
   { id: "accent", name: "Interior accent", kind: "choice" as const, choices: ["Black", "Guards Red", "Shark Blue", "Racing Yellow"], models: [] },
