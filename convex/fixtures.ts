@@ -29,20 +29,54 @@ const photos = [
 ];
 const photoSet = (start: number, count = 4) => Array.from({ length: count }, (_, i) => photos[(start + i) % photos.length]);
 
-type FixtureCar = { id: string; tier: Infer<typeof tiers>; prices: number[]; removed?: boolean; data: Omit<ListingData, "price"> & { price?: Partial<ListingData["price"]> } };
+type FixtureCar = {
+  id: string;
+  tier: Infer<typeof tiers>;
+  model: string;
+  prices: number[];
+  removed?: boolean;
+  // The user's own key-spec values; anything else comes from the listing text or stays unknown.
+  specs?: Record<string, string>;
+  data: Omit<ListingData, "price" | "seller" | "details"> & {
+    price?: Partial<ListingData["price"]>;
+    seller?: Partial<ListingData["seller"]>;
+    details: Partial<Extract<ListingData["details"], { category: "car" }>> & { model: string; mileageKm: number };
+  };
+};
 
-const options = ["Navigation system", "Heated seats", "LED headlights", "Apple CarPlay", "Sport seats", "Cruise control"];
+const options = ["Navigation system", "Heated seats", "Apple CarPlay", "Cruise control", "Bose Surround Sound"];
+
+// A sample shortlist: the models and the specs that decide a GT car's tier.
+const models = [
+  { id: "gt4", name: "718 GT4" },
+  { id: "gt4rs", name: "718 GT4 RS" },
+  { id: "9912-gt3", name: "991.2 GT3" },
+  { id: "9912-gt3t", name: "991.2 GT3 Touring" },
+  { id: "9912-gt3rs", name: "991.2 GT3 RS" },
+  { id: "9921-gt3", name: "992.1 GT3" },
+  { id: "9921-gt3t", name: "992.1 GT3 Touring" },
+];
+const keySpecs = [
+  { id: "seats", name: "Seats", kind: "choice" as const, choices: ["918 buckets", "Carbon buckets", "Sport seats Plus", "Adaptive sport seats"], models: [] },
+  { id: "pdls", name: "PDLS+", kind: "check" as const, choices: [], models: [] },
+  { id: "gearbox", name: "Gearbox", kind: "choice" as const, choices: ["PDK", "Manual"], models: [] },
+  { id: "colour", name: "Colour", kind: "choice" as const, choices: ["GT Silver", "Chalk", "Python Green", "Shark Blue", "Guards Red", "White", "Black"], models: [] },
+  { id: "cage", name: "Roll cage", kind: "check" as const, choices: [], models: ["gt4", "gt4rs", "9912-gt3", "9912-gt3rs", "9921-gt3"] },
+  { id: "accent", name: "Interior accent", kind: "choice" as const, choices: ["Black", "Guards Red", "Shark Blue", "Racing Yellow"], models: [] },
+];
 
 const cars: FixtureCar[] = [
   {
     id: "10000000000002",
     tier: "S",
+    model: "9912-gt3",
     prices: [164_900, 159_999],
+    specs: { seats: "918 buckets", gearbox: "Manual", colour: "GT Silver", cage: "yes", accent: "Black" },
     data: {
-      title: "Porsche 991 911 GT3 Clubsport Lift Approved 09.2027",
+      title: "Porsche 991.2 GT3 Clubsport, Lift, Approved 09.2027",
       price: { vatDeductible: true, netAmount: 134_453 },
-      seller: { type: "dealer", name: "Kurvenreich Automobile", location: "80331 München" },
-      details: { category: "car", make: "Porsche", model: "991 GT3", firstRegistration: "2018-03", mileageKm: 39_500, fuel: "petrol", gearbox: "automatic", powerKw: 368, bodyType: "Sports Car/Coupe", color: "White Metallic", options: [...options, "Front axle lift", "Clubsport package", "Carbon bucket seats"] },
+      seller: { name: "Kurvenreich Automobile", location: "80331 München" },
+      details: { model: "911 GT3", firstRegistration: "2018-03", mileageKm: 39_500, gearbox: "manual", powerKw: 368, color: "GT Silver Metallic", options: [...options, "LED headlights incl. PDLS+", "Front axle lift", "Clubsport package"] },
       description: "Porsche Approved warranty until 09.2027. New brakes and tyres at the last service.\n\nViewing by appointment only.",
       photoUrls: photoSet(0, 12),
     },
@@ -50,67 +84,76 @@ const cars: FixtureCar[] = [
   {
     id: "10000000000003",
     tier: "A",
-    prices: [61_490],
+    model: "gt4rs",
+    prices: [189_900],
+    specs: { pdls: "no", seats: "Carbon buckets" },
     data: {
-      title: "BMW M2 Competition DKG, M Performance exhaust",
-      seller: { type: "dealer", name: "Autohaus Nordkurve", location: "20095 Hamburg" },
-      details: { category: "car", make: "BMW", model: "M2 Competition", firstRegistration: "2020-06", mileageKm: 28_900, fuel: "petrol", gearbox: "automatic", powerKw: 302, options },
+      title: "Porsche 718 Cayman GT4 RS Weissach package, PDK",
+      seller: { name: "Sportwagenzentrum Hamburg", location: "20095 Hamburg" },
+      details: { model: "718 Cayman GT4 RS", firstRegistration: "2022-09", mileageKm: 8_900, gearbox: "automatic", powerKw: 368, color: "Python Green", options: [...options, "Weissach package", "Roll cage"] },
       photoUrls: photoSet(1),
     },
   },
   {
     id: "10000000000004",
     tier: "A",
-    prices: [54_800],
+    model: "9921-gt3",
+    prices: [214_800],
+    specs: { gearbox: "Manual" },
     data: {
-      title: "Audi RS 4 Avant quattro, panoramic roof, B&O",
-      seller: { type: "dealer", name: "Autohaus Schikane", location: "50667 Köln" },
-      details: { category: "car", make: "Audi", model: "RS 4 Avant", firstRegistration: "2019-11", mileageKm: 74_200, fuel: "petrol", gearbox: "automatic", powerKw: 331, options },
+      title: "Porsche 992 GT3 manual, Clubsport, PDLS+",
+      seller: { name: "Sportwagenzentrum Köln", location: "50667 Köln" },
+      details: { model: "911 GT3", firstRegistration: "2022-04", mileageKm: 14_200, gearbox: "manual", powerKw: 375, color: "Shark Blue", options },
       photoUrls: photoSet(2),
     },
   },
   {
     id: "10000000000005",
     tier: "B",
-    prices: [36_950],
+    model: "9912-gt3rs",
+    prices: [229_000],
     data: {
-      title: "VW Golf R 4Motion, DSG, Akrapovič",
-      seller: { type: "private", location: "70173 Stuttgart" },
-      details: { category: "car", make: "Volkswagen", model: "Golf R", firstRegistration: "2021-04", mileageKm: 41_000, fuel: "petrol", gearbox: "automatic", powerKw: 235, previousOwners: 1, options },
+      title: "Porsche 911 GT3 RS (991.2), PDK, Guards Red",
+      seller: { name: "Autohaus Schikane", location: "70173 Stuttgart" },
+      details: { model: "911 GT3 RS", firstRegistration: "2019-02", mileageKm: 21_000, gearbox: "automatic", powerKw: 383, color: "Guards Red", options },
       photoUrls: photoSet(3),
     },
   },
   {
     id: "10000000000006",
     tier: "watching",
-    prices: [89_900, 87_500],
+    model: "gt4",
+    prices: [99_900, 96_500],
+    specs: { seats: "Sport seats Plus", pdls: "no" },
     data: {
-      title: "Porsche 718 Cayman GT4, manual, Clubsport package",
-      seller: { type: "dealer", name: "Zentrum Porsche Leipzig", location: "04109 Leipzig" },
-      details: { category: "car", make: "Porsche", model: "718 Cayman GT4", firstRegistration: "2020-02", mileageKm: 18_300, fuel: "petrol", gearbox: "manual", powerKw: 309, options },
+      title: "Porsche 718 Cayman GT4 PDK, Chalk",
+      seller: { name: "Sportwagenzentrum Leipzig", location: "04109 Leipzig" },
+      details: { model: "718 Cayman GT4", firstRegistration: "2021-03", mileageKm: 18_300, gearbox: "automatic", powerKw: 309, color: "Chalk", options: [...options, "PDK"] },
       photoUrls: photoSet(4),
     },
   },
   {
     id: "51122334455667",
     tier: "watching",
-    prices: [58_900],
+    model: "9921-gt3t",
+    prices: [198_500],
     data: {
-      title: "Alpine A110 S, carbon roof, Sabelt seats",
+      title: "Porsche 992 GT3 Touring, manual, leather package",
       seller: { type: "private", location: "80331 München" },
-      details: { category: "car", make: "Alpine", model: "A110 S", firstRegistration: "2022-05", mileageKm: 12_400, fuel: "petrol", gearbox: "automatic", powerKw: 221, options },
+      details: { model: "911 GT3 Touring", firstRegistration: "2022-07", mileageKm: 9_400, gearbox: "manual", powerKw: 375, color: "Black", options: [...options, "LED headlights incl. PDLS+"] },
       photoUrls: photoSet(5),
     },
   },
   {
     id: "52233445566778",
     tier: "watching",
-    prices: [72_500],
+    model: "9912-gt3",
+    prices: [149_500],
     data: {
-      title: "Mercedes-AMG C 63 S T-Modell, AMG Performance seats",
-      price: { vatDeductible: true, netAmount: 60_924 },
-      seller: { type: "dealer", name: "Sternwerk Automobile", location: "60311 Frankfurt am Main" },
-      details: { category: "car", make: "Mercedes-Benz", model: "C 63 S AMG T-Modell", firstRegistration: "2019-09", mileageKm: 63_800, fuel: "petrol", gearbox: "automatic", powerKw: 375, options },
+      title: "Porsche 911 GT3 (991.2) PDK, Approved",
+      price: { vatDeductible: true, netAmount: 125_630 },
+      seller: { name: "Sportwagenzentrum Frankfurt", location: "60311 Frankfurt am Main" },
+      details: { model: "911 GT3", firstRegistration: "2017-11", mileageKm: 33_800, gearbox: "automatic", powerKw: 368, options },
       // No photos: shows how a listing without them looks.
       photoUrls: [],
     },
@@ -118,27 +161,38 @@ const cars: FixtureCar[] = [
   {
     id: "53344556677889",
     tier: "rejected",
-    prices: [33_900],
+    model: "9912-gt3t",
+    prices: [139_900],
     removed: true,
+    specs: { seats: "Adaptive sport seats" },
     data: {
-      title: "Ford Focus RS Performance Edition, Quaife LSD",
+      title: "Porsche 911 GT3 Touring (991.2), manual",
       seller: { type: "private", location: "28195 Bremen" },
-      details: { category: "car", make: "Ford", model: "Focus RS", firstRegistration: "2018-07", mileageKm: 88_000, fuel: "petrol", gearbox: "manual", powerKw: 257, previousOwners: 3, options },
+      details: { model: "911 GT3 Touring", firstRegistration: "2018-07", mileageKm: 58_000, gearbox: "manual", powerKw: 368, previousOwners: 3, options },
       photoUrls: photoSet(6),
     },
   },
   {
     id: "54455667788990",
     tier: "rejected",
-    prices: [29_400],
+    model: "gt4",
+    prices: [89_400],
+    specs: { gearbox: "Manual", pdls: "no", seats: "Sport seats Plus" },
     data: {
-      title: "Honda Civic Type R GT, one owner, full service history",
-      seller: { type: "dealer", name: "Autohaus Apex", location: "90402 Nürnberg" },
-      details: { category: "car", make: "Honda", model: "Civic Type R", firstRegistration: "2019-01", mileageKm: 96_500, fuel: "petrol", gearbox: "manual", powerKw: 235, options },
+      title: "Porsche 718 Cayman GT4 manual, one owner",
+      seller: { name: "Sportwagenzentrum Nürnberg", location: "90402 Nürnberg" },
+      details: { model: "718 Cayman GT4", firstRegistration: "2020-05", mileageKm: 46_500, gearbox: "manual", powerKw: 309, options },
       photoUrls: photoSet(7),
     },
   },
 ];
+
+const toListing = (car: FixtureCar, amount: number): ListingData => ({
+  ...car.data,
+  price: { currency: "EUR", ...car.data.price, amount },
+  seller: { type: "dealer", ...car.data.seller },
+  details: { category: "car", make: "Porsche", fuel: "petrol", gearbox: "automatic", options, ...car.data.details },
+});
 
 export const seed = internalAction({
   args: {},
@@ -155,11 +209,18 @@ export const seed = internalAction({
       const url = `https://suchen.mobile.de/fahrzeuge/details.html?id=${car.id}`;
       let listingId: Id<"listings"> | undefined;
       for (const amount of car.prices) {
-        const data = { ...car.data, price: { currency: "EUR", ...car.data.price, amount } };
+        const data = toListing(car, amount);
         ({ listingId } = await ctx.runMutation(internal.listings.save, { boardId, capturedBy: "fixtures", url, data }));
       }
       if (car.removed) await ctx.runMutation(internal.listings.markRemoved, { boardId, capturedBy: "fixtures", url });
-      await ctx.runMutation(internal.fixtures.place, { boardId, listingId: listingId!, tier: car.tier, rank: index });
+      await ctx.runMutation(internal.fixtures.place, {
+        boardId,
+        listingId: listingId!,
+        tier: car.tier,
+        rank: index,
+        modelId: car.model,
+        specValues: car.specs ?? {},
+      });
     }
 
     // Captures need every photo in storage, so wait for the archive jobs.
@@ -181,7 +242,7 @@ export const reset = internalMutation({
       await ctx.db.delete(doc._id);
     }
     const userId = await ctx.db.insert("users", { name: "Demo driver" });
-    const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId });
+    const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId, models, keySpecs });
     await ctx.db.insert("apiTokens", { name: "design-fixtures", tokenHash, userId, boardId, createdAt: Date.now() });
 
     const newUserId = await ctx.db.insert("users", { name: "New user" });
@@ -198,13 +259,20 @@ export const reset = internalMutation({
 });
 
 export const place = internalMutation({
-  args: { boardId: v.id("boards"), listingId: v.id("listings"), tier: tiers, rank: v.number() },
-  handler: async (ctx, { boardId, listingId, tier, rank }) => {
+  args: {
+    boardId: v.id("boards"),
+    listingId: v.id("listings"),
+    tier: tiers,
+    rank: v.number(),
+    modelId: v.string(),
+    specValues: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, { boardId, listingId, tier, rank, modelId, specValues }) => {
     const item = await ctx.db
       .query("boardItems")
       .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))
       .unique();
-    if (item) await ctx.db.patch(item._id, { tier, rank });
+    if (item) await ctx.db.patch(item._id, { tier, rank, modelId, specValues });
   },
 });
 

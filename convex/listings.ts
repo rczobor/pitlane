@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { appError } from "./errors";
+import { resolveSpecs } from "./keySpecs";
 import { listingDataValidator } from "./validators";
 import { isAllowedPhotoUrl, resolveListingUrl } from "../shared/sources";
 
@@ -110,6 +111,7 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
     .withIndex("by_board", (q) => q.eq("boardId", boardId))
     .collect();
   items.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
+  const board = (await ctx.db.get(boardId))!;
   return Promise.all(
     items.map(async (item) => {
       const listing = (await ctx.db.get(item.listingId))!;
@@ -129,6 +131,8 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
         price: listing.current.price,
         specs,
         location: listing.current.seller.location,
+        modelId: item.modelId ?? null,
+        keySpecs: resolveSpecs(board, item, listing),
         coverUrl: cover?.storageId ? await ctx.storage.getUrl(cover.storageId) : null,
         firstSeenAt: listing.firstSeenAt,
         lastCheckedAt: listing.lastCheckedAt,
@@ -145,6 +149,7 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
   if (!listingId || !item) return null;
 
   const listing = (await ctx.db.get(listingId))!;
+  const board = (await ctx.db.get(boardId))!;
   const snapshots = await ctx.db
     .query("snapshots")
     .withIndex("by_listing", (q) => q.eq("listingId", listingId))
@@ -158,6 +163,8 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
     listingId,
     url: listing.url,
     tier: item.tier,
+    modelId: item.modelId ?? null,
+    keySpecs: resolveSpecs(board, item, listing),
     status: listing.status,
     firstSeenAt: listing.firstSeenAt,
     lastCheckedAt: listing.lastCheckedAt,
