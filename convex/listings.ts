@@ -112,6 +112,7 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
     .collect();
   items.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
   const board = (await ctx.db.get(boardId))!;
+  const modelIds = new Set((board.models ?? []).map((m) => m.id));
   return Promise.all(
     items.map(async (item) => {
       const listing = (await ctx.db.get(item.listingId))!;
@@ -131,7 +132,8 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
         price: listing.current.price,
         specs,
         location: listing.current.seller.location,
-        modelId: item.modelId ?? null,
+        // A deleted model leaves its cars without one.
+        modelId: item.modelId && modelIds.has(item.modelId) ? item.modelId : null,
         keySpecs: resolveSpecs(board, item, listing),
         coverUrl: cover?.storageId ? await ctx.storage.getUrl(cover.storageId) : null,
         firstSeenAt: listing.firstSeenAt,
@@ -163,7 +165,7 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
     listingId,
     url: listing.url,
     tier: item.tier,
-    modelId: item.modelId ?? null,
+    modelId: item.modelId && (board.models ?? []).some((m) => m.id === item.modelId) ? item.modelId : null,
     keySpecs: resolveSpecs(board, item, listing),
     status: listing.status,
     firstSeenAt: listing.firstSeenAt,

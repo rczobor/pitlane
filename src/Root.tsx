@@ -1,5 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,9 +27,15 @@ export function Root() {
         >
           Pitlane
         </Link>
-        <Button variant="ghost" size="sm" onClick={() => setToken(null)}>
-          Sign out
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/settings" />}>
+            <SlidersHorizontal data-icon="inline-start" aria-hidden />
+            Models and key specs
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setToken(null)}>
+            Sign out
+          </Button>
+        </div>
       </header>
       <Outlet />
     </TokenContext>

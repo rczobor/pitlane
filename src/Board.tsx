@@ -11,20 +11,25 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { type BoardListing, type Tier, tiers } from "./format";
+import { type BoardData, type BoardListing, type Tier, tiers } from "./format";
 import { ListingCard } from "./ListingCard";
 import { slabColor } from "./TierSlab";
 import { useBoardToken } from "./token";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 export function Board() {
   const token = useBoardToken();
   const board = useQuery(api.board.get, { token });
+  const { model } = useSearch({ from: "/" });
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
   // A short travel threshold keeps a plain click opening the car; on touch a long press
@@ -36,10 +41,17 @@ export function Board() {
   );
 
   if (!board) return <BoardSkeleton />;
+  // One board for every model; picking a model shows that model's own tier list.
+  const filter = model === "none" || board.models.some((m) => m.id === model) ? model : undefined;
+  const visible = filter ? board.listings.filter((l) => (l.modelId ?? "none") === filter) : board.listings;
+  const modelNames = new Map(board.models.map((m) => [m.id, m.name]));
+  // The model name is noise when the board already shows a single model.
+  const modelName = (listing: BoardListing) => (filter ? undefined : modelNames.get(listing.modelId ?? ""));
+  const specOrder = board.keySpecs.map((s) => s.id);
   const lanes = tiers.map(({ tier, label }) => ({
     tier,
     label,
-    listings: board.listings.filter((l) => l.tier === tier).sort((a, b) => a.rank - b.rank),
+    listings: visible.filter((l) => l.tier === tier).sort((a, b) => a.rank - b.rank),
   }));
   const active = board.listings.find((l) => l.listingId === activeId);
 
@@ -70,11 +82,30 @@ export function Board() {
 
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+      {board.listings.length > 0 && board.models.length > 0 && <ModelFilter board={board} selected={filter} />}
+      {filter && (
+        <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="condensed text-4xl leading-none font-extrabold">
+            {filter === "none" ? "Cars without a model" : `${modelNames.get(filter)} tier list`}
+          </h1>
+          <p className="text-muted-foreground">{visible.length === 1 ? "1 car" : `${visible.length} cars`}</p>
+          {/* On phones the filter strip may have scrolled "All models" out of view. */}
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/" />}>
+            <X data-icon="inline-start" aria-hidden />
+            Clear filter
+          </Button>
+        </div>
+      )}
       {board.listings.length === 0 && (
         <div className="mb-6 max-w-prose space-y-1">
           <h1 className="condensed text-4xl leading-none font-extrabold">No cars yet</h1>
           <p className="text-muted-foreground">
-            Ask Claude to open a listing and save it to Pitlane. New cars land in Watching.
+            Set the{" "}
+            <Link to="/settings" className="text-foreground underline underline-offset-4">
+              models and key specs
+            </Link>{" "}
+            you are hunting, so cards show what decides a car's tier. Then ask Claude to open a listing and
+            save it to Pitlane; new cars land in Watching.
           </p>
           <p className="text-muted-foreground">
             For example:{" "}
@@ -93,10 +124,12 @@ export function Board() {
       >
         <div className="space-y-3">
           {lanes.map((lane) => (
-            <Lane key={lane.tier} {...lane} dragging={active !== undefined} />
+            <Lane key={lane.tier} {...lane} modelName={modelName} specOrder={specOrder} dragging={active !== undefined} />
           ))}
         </div>
-        <DragOverlay>{active && <ListingCard listing={active} lifted />}</DragOverlay>
+        <DragOverlay>
+          {active && <ListingCard listing={active} modelName={modelName(active)} specOrder={specOrder} lifted />}
+        </DragOverlay>
       </DndContext>
     </main>
   );
@@ -106,11 +139,15 @@ function Lane({
   tier,
   label,
   listings,
+  modelName,
+  specOrder,
   dragging,
 }: {
   tier: Tier;
   label: string;
   listings: BoardListing[];
+  modelName: (listing: BoardListing) => string | undefined;
+  specOrder: string[];
   dragging: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: tier });
@@ -147,7 +184,12 @@ function Lane({
       >
         <SortableContext items={listings.map((l) => l.listingId)}>
           {listings.map((listing) => (
-            <SortableCard key={listing.listingId} listing={listing} />
+            <SortableCard
+              key={listing.listingId}
+              listing={listing}
+              modelName={modelName(listing)}
+              specOrder={specOrder}
+            />
           ))}
         </SortableContext>
         {listings.length === 0 && (
@@ -160,7 +202,15 @@ function Lane({
   );
 }
 
-function SortableCard({ listing }: { listing: BoardListing }) {
+function SortableCard({
+  listing,
+  modelName,
+  specOrder,
+}: {
+  listing: BoardListing;
+  modelName?: string;
+  specOrder: string[];
+}) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: listing.listingId,
   });
@@ -171,8 +221,52 @@ function SortableCard({ listing }: { listing: BoardListing }) {
       className={isDragging ? "opacity-30" : ""}
       {...listeners}
     >
-      <ListingCard listing={listing} />
+      <ListingCard listing={listing} modelName={modelName} specOrder={specOrder} />
     </div>
+  );
+}
+
+function ModelFilter({ board, selected }: { board: BoardData; selected: string | undefined }) {
+  const navigate = useNavigate({ from: "/" });
+  const nav = useRef<HTMLElement>(null);
+  // On phones the strip scrolls; keep the selected model in view.
+  useEffect(() => {
+    nav.current?.querySelector("[data-pressed]")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [selected]);
+  const count = (id: string) => board.listings.filter((l) => (l.modelId ?? "none") === id).length;
+  const options = [
+    { id: "all", label: "All models", count: board.listings.length },
+    ...board.models.map((m) => ({ id: m.id, label: m.name, count: count(m.id) })),
+    ...(count("none") > 0 ? [{ id: "none", label: "No model", count: count("none") }] : []),
+  ];
+  return (
+    <nav
+      ref={nav}
+      aria-label="Filter by model"
+      className="mb-4 overflow-x-auto pb-1 [mask-image:linear-gradient(to_right,black_92%,transparent)] sm:[mask-image:none]"
+    >
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        value={[selected ?? "all"]}
+        onValueChange={(value) => {
+          const next = value[0];
+          // Clicking the selected model again is a no-op rather than an empty selection.
+          if (next) void navigate({ search: next === "all" ? {} : { model: next } });
+        }}
+      >
+        {options.map((option) => (
+          <ToggleGroupItem
+            key={option.id}
+            value={option.id}
+            className="condensed h-8 gap-1.5 text-base font-bold data-pressed:bg-foreground data-pressed:text-background"
+          >
+            {option.label}
+            <span className="tabular-nums opacity-60">{option.count}</span>
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </nav>
   );
 }
 
