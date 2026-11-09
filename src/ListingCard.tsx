@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   type BoardListing,
   formatAge,
+  formatDate,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -20,11 +22,13 @@ export function ListingCard({ listing, lifted = false }: { listing: BoardListing
       to="/listings/$listingId"
       params={{ listingId: listing.listingId }}
       draggable={false}
-      className="block w-64 shrink-0 rounded-xl"
+      // Cards grow on wide screens so photos use the lane, within a readable range.
+      className="block w-[clamp(16rem,22vw,22.5rem)] shrink-0 rounded-lg"
     >
-      <Card size="sm" className={cn("h-full pt-0", lifted && "rotate-1 shadow-xl")}>
-        <div className="relative aspect-[4/3] bg-muted">
-          {listing.coverUrl && (
+      <Card size="sm" className={cn("h-full rounded-lg pt-0", lifted && "rotate-1 shadow-xl")}>
+        {/* overflow-hidden lets aspect-ratio win over a photo's natural height. */}
+        <div className="relative aspect-video shrink-0 overflow-hidden bg-muted">
+          {listing.coverUrl ? (
             <img
               src={listing.coverUrl}
               alt=""
@@ -32,32 +36,53 @@ export function ListingCard({ listing, lifted = false }: { listing: BoardListing
               loading="lazy"
               className={cn("size-full object-cover", removed && "grayscale")}
             />
+          ) : (
+            <NoPhoto />
           )}
-          {removed && <Badge className="absolute top-2 left-2">Ad removed</Badge>}
+          {removed && (
+            <p className="absolute inset-x-0 bottom-0 bg-slab px-3 py-1 text-xs font-semibold text-slab-foreground">
+              Ad removed{listing.removedAt && ` ${formatDate(listing.removedAt)}`}
+            </p>
+          )}
         </div>
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
-            <span className={cn("condensed text-3xl leading-none font-bold", removed && "line-through")}>
-              {formatPrice(listing.price)}
-            </span>
-            {listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>}
+            <span className="condensed text-3xl leading-none font-bold">{formatPrice(listing.price)}</span>
+            {removed ? (
+              <span className="text-xs text-muted-foreground">Last price</span>
+            ) : (
+              listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>
+            )}
           </div>
           <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
-            <Spec label="First registration" value={formatRegistration(specs.firstRegistration)} />
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
+            <Spec
+              label="First registration"
+              value={specs.firstRegistration ? `Reg. ${formatRegistration(specs.firstRegistration)}` : "New"}
+            />
             <Spec label="Mileage" value={formatKm(specs.mileageKm)} />
             {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
             <Spec label="Fuel and gearbox" value={formatDrivetrain(specs)} />
           </dl>
+          <p className="mt-3 flex justify-between gap-2 text-xs text-muted-foreground">
+            <span className="truncate">{listing.location}</span>
+            <span className="shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
+          </p>
         </CardContent>
-        <CardFooter className="mt-auto justify-between gap-2 text-xs text-muted-foreground">
-          <span className="truncate">{listing.location}</span>
-          <span className="shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
-        </CardFooter>
       </Card>
     </Link>
+  );
+}
+
+// The title sits right below, so the panel only states what is missing.
+export function NoPhoto({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex size-full items-center justify-center gap-2 text-sm text-muted-foreground", className)}>
+      <ImageOff className="size-4" aria-hidden />
+      No photo saved
+    </div>
   );
 }
 

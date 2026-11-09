@@ -58,3 +58,13 @@ export function formatAge(timestamp: number) {
 
 export const formatDate = (timestamp: number) =>
   new Date(timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+// Re-checks can land on the same day, so history rows carry the time as well.
+export const formatDateTime = (timestamp: number) =>
+  new Date(timestamp).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });

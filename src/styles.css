@@ -53,7 +53,8 @@
     --destructive: #f2867e;
     --border: #3b4146;
     --input: #4a5157;
-    --slab: #ebece8;
+    /* Dimmer than the light theme's inversion, so the yellow S slab stays the brightest. */
+    --slab: #b0b5b8;
     --slab-foreground: #1d2023;
   }
 }
