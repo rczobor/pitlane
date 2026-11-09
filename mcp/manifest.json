@@ -1,0 +1,45 @@
+{
+  "manifest_version": "0.3",
+  "name": "pitlane",
+  "display_name": "Pitlane",
+  "version": "0.1.0",
+  "description": "Save, re-check and read car listings on your Pitlane watchlist.",
+  "author": { "name": "Robi" },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.mjs"],
+      "env": {
+        "PITLANE_API_URL": "${user_config.api_url}",
+        "PITLANE_API_TOKEN": "${user_config.api_token}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "save_listing", "description": "Add a listing or record a re-check of a saved one." },
+    { "name": "mark_listing_removed", "description": "Record that a saved listing's ad is gone." },
+    { "name": "list_listings", "description": "List the watchlist with tiers, status and prices." },
+    { "name": "get_listing", "description": "Full details, price history and photos of one listing." }
+  ],
+  "user_config": {
+    "api_url": {
+      "type": "string",
+      "title": "Pitlane API URL",
+      "description": "The Convex deployment's HTTP Actions URL, ending in .convex.site.",
+      "required": true
+    },
+    "api_token": {
+      "type": "string",
+      "title": "API token",
+      "description": "A pit_… token created with tokens:create.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

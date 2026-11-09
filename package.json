@@ -1,0 +1,32 @@
+{
+  "name": "pitlane",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "test": "vitest run",
+    "typecheck": "tsc",
+    "mcp": "node mcp/server.ts",
+    "build:mcpb": "node mcp/build.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "convex": "^1.49.0",
+    "convex-helpers": "^0.1.134",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^26.6.6",
+    "convex-test": "^0.0.67",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}
