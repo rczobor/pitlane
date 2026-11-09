@@ -12,11 +12,18 @@ mkdir -p "$work"
 for f in convex shared node_modules package.json tsconfig.json; do ln -sfn "$root/$f" "$work/$f"; done
 cd "$work"
 export CONVEX_AGENT_MODE=anonymous
+# Fixture photos stay out of the repository: PITLANE_FIXTURE_PHOTOS names a local file
+# with one listing photo URL per line (see convex/fixtures.ts).
+seed_args='{}'
+if [ -n "${PITLANE_FIXTURE_PHOTOS:-}" ] && [ -f "$PITLANE_FIXTURE_PHOTOS" ]; then
+  seed_args=$(node -e 'const urls = require("fs").readFileSync(process.argv[1], "utf8").split("\n").map((l) => l.trim()).filter(Boolean); console.log(JSON.stringify({ photoUrls: urls }))' "$PITLANE_FIXTURE_PHOTOS")
+fi
+export seed_args
 # The CLI names the URL VITE_CONVEX_URL or CONVEX_URL depending on what it detects.
 # A process env var beats the checkout's .env.local in Vite, so the app reads the fixtures.
 start="url=\$(sed -n 's/^\(VITE_\)\{0,1\}CONVEX_URL=//p' .env.local | head -1)
 [ -n \"\$url\" ] || { echo 'No local CONVEX_URL in .design/.env.local' >&2; exit 1; }
-pnpm exec convex run fixtures:seed
+pnpm exec convex run fixtures:seed \"\$seed_args\"
 echo \$\$ > '$work/vite.pid'
 cd '$root' && CONVEX_URL=\"\$url\" exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${1:-5190} --strictPort"
 # The CLI starts --start in its own process group and does not stop it, so a signal to

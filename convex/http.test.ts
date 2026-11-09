@@ -93,7 +93,9 @@ test("adds a new listing to Watching and archives its photos", async () => {
 
   const saved = await call("/api/listings", listing({ photoUrls: [photo(1), photo(2)] }));
   expect(saved.body).toMatchObject({ created: true, changed: true, priceChange: null });
-  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  // Only the timers already pending each round: runAllTimers would also chase timers the
+  // runtime keeps creating, and intermittently abort after 10,000 of them.
+  await t.finishAllScheduledFunctions(vi.runOnlyPendingTimers);
 
   const detail = await call(`/api/listings/${saved.body.listingId}`);
   expect(detail.body).toMatchObject({

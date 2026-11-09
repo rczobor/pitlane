@@ -11,20 +11,27 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { type BoardListing, type Tier, tiers } from "./format";
+import { toCheck } from "../shared/fit";
+import { type BoardData, type BoardListing, type KeySpecDef, type Tier, tiers } from "./format";
 import { ListingCard } from "./ListingCard";
 import { slabColor } from "./TierSlab";
 import { useBoardToken } from "./token";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toggle } from "@/components/ui/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 export function Board() {
   const token = useBoardToken();
   const board = useQuery(api.board.get, { token });
+  const { model, check } = useSearch({ from: "/" });
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
   // A short travel threshold keeps a plain click opening the car; on touch a long press
@@ -36,10 +43,17 @@ export function Board() {
   );
 
   if (!board) return <BoardSkeleton />;
+  // One board for every model; picking a model shows that model's own tier list.
+  const filter = model === "none" || board.models.some((m) => m.id === model) ? model : undefined;
+  const ofModel = filter ? board.listings.filter((l) => (l.modelId ?? "none") === filter) : board.listings;
+  const visible = check ? ofModel.filter((l) => toCheck(l.keySpecs) > 0) : ofModel;
+  const modelNames = new Map(board.models.map((m) => [m.id, m.name]));
+  // The model name is noise when the board already shows a single model.
+  const modelName = (listing: BoardListing) => (filter ? undefined : modelNames.get(listing.modelId ?? ""));
   const lanes = tiers.map(({ tier, label }) => ({
     tier,
     label,
-    listings: board.listings.filter((l) => l.tier === tier).sort((a, b) => a.rank - b.rank),
+    listings: visible.filter((l) => l.tier === tier).sort((a, b) => a.rank - b.rank),
   }));
   const active = board.listings.find((l) => l.listingId === activeId);
 
@@ -70,11 +84,35 @@ export function Board() {
 
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+      {board.listings.length > 0 && (board.models.length > 0 || board.keySpecs.length > 0) && (
+        <BoardFilters board={board} selected={filter} check={check === true} ofModel={ofModel} />
+      )}
+      {(filter || check) && (
+        <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="condensed text-4xl leading-none font-extrabold">
+            {!filter ? "Cars to check" : filter === "none" ? "Cars without a model" : `${modelNames.get(filter)} tier list`}
+          </h1>
+          <p className="text-muted-foreground">
+            {visible.length === 1 ? "1 car" : `${visible.length} cars`}
+            {check && filter && " to check"}
+          </p>
+          {/* On phones the filter strip may have scrolled "All models" out of view. */}
+          <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <X data-icon="inline-start" aria-hidden />
+            Clear filter
+          </Link>
+        </div>
+      )}
       {board.listings.length === 0 && (
         <div className="mb-6 max-w-prose space-y-1">
           <h1 className="condensed text-4xl leading-none font-extrabold">No cars yet</h1>
           <p className="text-muted-foreground">
-            Ask Claude to open a listing and save it to Pitlane. New cars land in Watching.
+            Set the{" "}
+            <Link to="/settings" className="text-foreground underline underline-offset-4">
+              models and key specs
+            </Link>{" "}
+            you are hunting, so cards show what decides a car's tier. Then ask Claude to open a listing and
+            save it to Pitlane; new cars land in Watching.
           </p>
           <p className="text-muted-foreground">
             For example:{" "}
@@ -93,10 +131,12 @@ export function Board() {
       >
         <div className="space-y-3">
           {lanes.map((lane) => (
-            <Lane key={lane.tier} {...lane} dragging={active !== undefined} />
+            <Lane key={lane.tier} {...lane} modelName={modelName} specDefs={board.keySpecs} dragging={active !== undefined} />
           ))}
         </div>
-        <DragOverlay>{active && <ListingCard listing={active} lifted />}</DragOverlay>
+        <DragOverlay>
+          {active && <ListingCard listing={active} modelName={modelName(active)} specDefs={board.keySpecs} lifted />}
+        </DragOverlay>
       </DndContext>
     </main>
   );
@@ -106,11 +146,15 @@ function Lane({
   tier,
   label,
   listings,
+  modelName,
+  specDefs,
   dragging,
 }: {
   tier: Tier;
   label: string;
   listings: BoardListing[];
+  modelName: (listing: BoardListing) => string | undefined;
+  specDefs: KeySpecDef[];
   dragging: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: tier });
@@ -147,7 +191,12 @@ function Lane({
       >
         <SortableContext items={listings.map((l) => l.listingId)}>
           {listings.map((listing) => (
-            <SortableCard key={listing.listingId} listing={listing} />
+            <SortableCard
+              key={listing.listingId}
+              listing={listing}
+              modelName={modelName(listing)}
+              specDefs={specDefs}
+            />
           ))}
         </SortableContext>
         {listings.length === 0 && (
@@ -160,7 +209,15 @@ function Lane({
   );
 }
 
-function SortableCard({ listing }: { listing: BoardListing }) {
+function SortableCard({
+  listing,
+  modelName,
+  specDefs,
+}: {
+  listing: BoardListing;
+  modelName?: string;
+  specDefs: KeySpecDef[];
+}) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: listing.listingId,
   });
@@ -171,8 +228,82 @@ function SortableCard({ listing }: { listing: BoardListing }) {
       className={isDragging ? "opacity-30" : ""}
       {...listeners}
     >
-      <ListingCard listing={listing} />
+      <ListingCard listing={listing} modelName={modelName} specDefs={specDefs} />
     </div>
+  );
+}
+
+function BoardFilters({
+  board,
+  selected,
+  check,
+  ofModel,
+}: {
+  board: BoardData;
+  selected: string | undefined;
+  check: boolean;
+  /** The cars of the selected model, for the to-check count. */
+  ofModel: BoardListing[];
+}) {
+  const navigate = useNavigate({ from: "/" });
+  const nav = useRef<HTMLElement>(null);
+  // On phones the strip scrolls; keep the selected model in view.
+  useEffect(() => {
+    nav.current?.querySelector("[data-pressed]")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [selected]);
+  const count = (id: string) => board.listings.filter((l) => (l.modelId ?? "none") === id).length;
+  const options = [
+    { id: "all", label: "All models", count: board.listings.length },
+    ...board.models.map((m) => ({ id: m.id, label: m.name, count: count(m.id) })),
+    ...(count("none") > 0 ? [{ id: "none", label: "No model", count: count("none") }] : []),
+  ];
+  const unchecked = ofModel.filter((l) => toCheck(l.keySpecs) > 0).length;
+  const chip = "condensed h-8 gap-1.5 text-base font-bold data-pressed:bg-foreground data-pressed:text-background";
+  return (
+    <nav
+      ref={nav}
+      aria-label="Filter the board"
+      className="mb-4 flex items-center gap-3 overflow-x-auto pb-1 [mask-image:linear-gradient(to_right,black_92%,transparent)] sm:[mask-image:none]"
+    >
+      {board.models.length > 0 && (
+        <ToggleGroup
+          aria-label="Model"
+          variant="outline"
+          size="sm"
+          value={[selected ?? "all"]}
+          onValueChange={(value) => {
+            const next = value[0];
+            // Clicking the selected model again is a no-op rather than an empty selection.
+            if (next) void navigate({ search: { ...(next !== "all" && { model: next }), ...(check && { check: true }) } });
+          }}
+        >
+          {options.map((option) => (
+            <ToggleGroupItem key={option.id} value={option.id} className={chip}>
+              {option.label}
+              <span className="tabular-nums opacity-60">{option.count}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      )}
+      {board.keySpecs.length > 0 && (
+        <>
+          <span aria-hidden className="h-6 w-px shrink-0 bg-border" />
+          {/* Cars whose key specs still need a look at the photos; combines with the model. */}
+          <Toggle
+            variant="outline"
+            size="sm"
+            pressed={check}
+            onPressedChange={(pressed) =>
+              void navigate({ search: { ...(selected && { model: selected }), ...(pressed && { check: true }) } })
+            }
+            className={chip}
+          >
+            To check
+            <span className="tabular-nums opacity-60">{unchecked}</span>
+          </Toggle>
+        </>
+      )}
+    </nav>
   );
 }
 

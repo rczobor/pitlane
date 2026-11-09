@@ -5,10 +5,22 @@ import { createRoot } from "react-dom/client";
 import { Board } from "./Board";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
+import { Settings } from "./Settings";
 import "./styles.css";
 
 const rootRoute = createRootRoute({ component: Root });
-const boardRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: Board });
+// `model` narrows the board to one model: that model's own tier list. `check` keeps only
+// cars with key specs still to check (from the listing or unknown).
+const boardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  validateSearch: (search: Record<string, unknown>): { model?: string; check?: true } => ({
+    ...(typeof search.model === "string" && { model: search.model }),
+    ...(search.check === true && { check: true }),
+  }),
+  component: Board,
+});
+const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings });
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
@@ -17,7 +29,7 @@ const listingRoute = createRoute({
   },
 });
 
-const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute]) });
+const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, settingsRoute]) });
 
 declare module "@tanstack/react-router" {
   interface Register {
