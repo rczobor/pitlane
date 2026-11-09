@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "convex dev",
     "dev:web": "vite",
+    "dev:design": "scripts/dev-design.sh",
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@anthropic-ai/mcpb": "^2.1.2",
     "@edge-runtime/vm": "^5.0.0",
+    "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
