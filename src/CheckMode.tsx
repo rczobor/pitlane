@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,10 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
   // The queue is fixed on entry, so confirming a spec does not reshuffle what is left.
   const [queue] = useState(() => keySpecs.filter((s) => s.source !== "you").map((s) => s.id));
   const [position, setPosition] = useState(0);
+  // Each step starts with focus on the spec, so a button focused on the previous step
+  // cannot be activated by the next key press.
+  const stepRef = useRef<HTMLDivElement>(null);
+  useEffect(() => stepRef.current?.focus({ preventScroll: true }), [position]);
   const spec = keySpecs.find((s) => s.id === queue[position]);
   const def = board.keySpecs.find((s) => s.id === spec?.id);
   const options =
@@ -55,16 +59,16 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      // Typing a new choice must not trigger shortcuts.
+      // Typing a new choice must not trigger shortcuts, and Enter on a focused control
+      // (Skip, Back, a value, a photo) does what that control says.
       if (event.target instanceof HTMLInputElement || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "Enter" && (event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement)) {
+        return;
+      }
       if (event.key === "Escape") onDone();
       else if (event.key === "ArrowRight" || event.key === "j") advance();
       else if (event.key === "ArrowLeft" || event.key === "k") setPosition((p) => Math.max(p - 1, 0));
-      // Enter always means "confirm the listing's value", never a click on whichever
-      // button kept focus from the previous spec.
-      else if (event.key === "Enter" && spec) {
-        if (spec.source === "listing" && spec.value) pick(spec.value);
-      }
+      else if (event.key === "Enter" && spec?.source === "listing" && spec.value) pick(spec.value);
       else if (/^[1-9]$/.test(event.key) && options[Number(event.key) - 1]) pick(options[Number(event.key) - 1].value);
       else return;
       event.preventDefault();
@@ -95,7 +99,7 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
         </ol>
 
         {spec ? (
-          <div className="space-y-4">
+          <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
             <div>
               <p className="text-sm text-muted-foreground tabular-nums">
                 {position + 1} of {queue.length}
