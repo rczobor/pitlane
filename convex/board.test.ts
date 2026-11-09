@@ -130,6 +130,11 @@ test("a new choice is added to the spec's list", async () => {
   const board = await t.query(api.board.get, { token });
   expect(board!.keySpecs[1].choices).toEqual(["918 buckets", "Sport seats Plus", "Carbon buckets"]);
   expect(board!.listings[0].keySpecs[1]).toMatchObject({ value: "Carbon buckets", source: "you" });
+  // A case-only variant reuses the existing choice instead of adding a twin.
+  await t.mutation(api.board.setSpecValue, { token, listingId, specId: "seats", value: "carbon BUCKETS" });
+  const again = await t.query(api.board.get, { token });
+  expect(again!.keySpecs[1].choices).toHaveLength(3);
+  expect(again!.listings[0].keySpecs[1].value).toBe("Carbon buckets");
   await expect(t.mutation(api.board.setSpecValue, { token, listingId, specId: "pdls", value: "maybe" })).rejects.toThrow(
     /yes or no/,
   );
@@ -152,7 +157,7 @@ test("a choice shared by two specs is not filled in from the listing", async () 
     boardId: board!._id,
     capturedBy: "test",
     url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000002",
-    data: { ...car, details: { ...car.details, color: "Guards Red", options: ["Chalk stitching"] } },
+    data: { ...car, details: { ...car.details, color: "Chalk", options: ["Guards Red seat belts"] } },
   });
   await t.mutation(api.board.saveSettings, {
     token,
@@ -185,6 +190,14 @@ test("settings keep preferences only for values and models that exist", async ()
   const saved = (await t.query(api.board.get, { token }))!.keySpecs;
   expect(saved[0].preferred).toEqual([{ value: "918 buckets", models: ["gt3"] }]);
   expect(saved[1].preferred).toEqual([{ value: "yes", models: [] }]);
+
+  // A preference for deleted models only goes away rather than widening to every model.
+  const onlyGone = await t.mutation(api.board.saveSettings, {
+    token,
+    models,
+    keySpecs: [{ ...keySpecs[1], preferred: [{ value: "918 buckets", models: ["gone"] }] }],
+  });
+  expect(onlyGone.keySpecs[0].preferred).toEqual([]);
   // The editor adopts what was stored, so its unsaved state clears after a save.
   expect(returned.keySpecs).toEqual(saved);
 });

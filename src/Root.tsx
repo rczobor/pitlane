@@ -30,7 +30,7 @@ export function Root() {
           <Link
             to="/settings"
             className={buttonVariants({ variant: "ghost", size: "sm" })}
-            activeProps={{ "aria-current": "page", className: "underline underline-offset-4" }}
+            activeProps={{ className: "underline underline-offset-4" }}
           >
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
             Models and key specs

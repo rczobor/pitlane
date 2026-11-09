@@ -65,7 +65,8 @@ export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {
             size="sm"
             value={modelId ? [modelId] : []}
             onValueChange={(value) => {
-              void setModel({ token, listingId, modelId: value[0] ?? null });
+              // Clicking the current model again closes the picker; it never clears the model.
+              if (value[0]) void setModel({ token, listingId, modelId: value[0] });
               setPickingModel(false);
             }}
             className="flex-wrap"

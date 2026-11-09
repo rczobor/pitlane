@@ -39,7 +39,9 @@ export function Settings() {
 
 type DraftSpec = KeySpecDef;
 
-const newId = () => crypto.randomUUID().slice(0, 8);
+// Not crypto.randomUUID: it only exists in secure contexts, and the app is opened over
+// plain http on the home network. Ids only need to be unique within one board.
+const newId = () => Math.random().toString(36).slice(2, 10);
 
 // Compares settings the way the server stores them: older specs have no `preferred`,
 // names are trimmed, and only choice specs keep choices. A raw comparison would show

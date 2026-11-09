@@ -60,7 +60,11 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
       if (event.key === "Escape") onDone();
       else if (event.key === "ArrowRight" || event.key === "j") advance();
       else if (event.key === "ArrowLeft" || event.key === "k") setPosition((p) => Math.max(p - 1, 0));
-      else if (event.key === "Enter" && spec?.source === "listing" && spec.value) pick(spec.value);
+      // Enter always means "confirm the listing's value", never a click on whichever
+      // button kept focus from the previous spec.
+      else if (event.key === "Enter" && spec) {
+        if (spec.source === "listing" && spec.value) pick(spec.value);
+      }
       else if (/^[1-9]$/.test(event.key) && options[Number(event.key) - 1]) pick(options[Number(event.key) - 1].value);
       else return;
       event.preventDefault();

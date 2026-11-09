@@ -71,7 +71,10 @@ export const setSpecValue = mutation({
       await ctx.db.patch(item._id, { specValues: rest });
       return;
     }
-    const clean = value.trim();
+    const trimmed = value.trim();
+    // "manual" when "Manual" exists reuses it: a case-only twin would make the choice
+    // ambiguous for listing suggestions (they match case-insensitively).
+    const clean = spec.choices.find((c) => c.toLowerCase() === trimmed.toLowerCase()) ?? trimmed;
     if (spec.kind === "check" && clean !== "yes" && clean !== "no") throw appError("invalid", "Use yes or no");
     if (spec.kind === "choice") {
       if (!clean || clean.length > 60) throw appError("invalid", "Choices are 1–60 characters");
@@ -127,9 +130,11 @@ function cleanSettings(models: Model[], keySpecs: KeySpec[]) {
         choices,
         // Drops references to models that no longer exist.
         models: s.models.filter((id) => modelIds.has(id)),
-        // Keeps preferences for values that still exist; a deleted choice drops its preference.
+        // Keeps preferences for values and models that still exist. A preference whose
+        // models were all deleted goes away; emptied, it would widen to every model.
         preferred: (s.preferred ?? [])
           .filter((p) => valid.includes(p.value))
+          .filter((p) => p.models.length === 0 || p.models.some((id) => modelIds.has(id)))
           .map((p) => ({ value: p.value, models: p.models.filter((id) => modelIds.has(id)) })),
       };
     }),
