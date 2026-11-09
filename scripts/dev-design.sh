@@ -17,6 +17,20 @@ export CONVEX_AGENT_MODE=anonymous
 start="url=\$(sed -n 's/^\(VITE_\)\{0,1\}CONVEX_URL=//p' .env.local | head -1)
 [ -n \"\$url\" ] || { echo 'No local CONVEX_URL in .design/.env.local' >&2; exit 1; }
 pnpm exec convex run fixtures:seed
-cd '$root' && CONVEX_URL=\"\$url\" exec pnpm exec vite --host 127.0.0.1 --port ${1:-5190} --strictPort"
+echo \$\$ > '$work/vite.pid'
+cd '$root' && CONVEX_URL=\"\$url\" exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${1:-5190} --strictPort"
+# The CLI starts --start in its own process group and does not stop it, so a signal to
+# this script or its group would leave Vite running. Vite records its PID (the start
+# shell execs into it); stop it and every remaining descendant on the way out.
+rm -f "$work/vite.pid"
+killtree() { for child in $(pgrep -P "$1"); do killtree "$child"; done; kill "$1" 2>/dev/null || true; }
+cleanup() {
+  trap - EXIT TERM INT
+  [ -f "$work/vite.pid" ] && kill "$(cat "$work/vite.pid")" 2>/dev/null
+  for child in $(pgrep -P $$); do killtree "$child"; done
+}
+trap cleanup EXIT TERM INT
 # --start and --run are exclusive in the CLI, so the start command seeds before serving.
-exec pnpm exec convex dev --typecheck disable --tail-logs disable --start "$start"
+# Run in the background and wait, so the trap fires as soon as a signal arrives.
+pnpm exec convex dev --typecheck disable --tail-logs disable --start "$start" &
+wait $!

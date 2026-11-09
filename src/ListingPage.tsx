@@ -1,16 +1,17 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import {
   formatDate,
+  formatDateTime,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -18,6 +19,8 @@ import {
   formatRegistration,
   tiers,
 } from "./format";
+import { NoPhoto } from "./ListingCard";
+import { TierSlab } from "./TierSlab";
 import { useBoardToken } from "./token";
 
 export function ListingPage({ listingId }: { listingId: string }) {
@@ -38,6 +41,11 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
   const { details, price, seller } = listing;
   const photo = listing.photos[photoIndex];
+  const removed = listing.status === "removed";
+  // Price history arrives oldest first; the change is measured from the first price seen.
+  const prices = listing.history.flatMap((entry) => (entry.price ? [entry.price] : []));
+  const change = prices.length > 1 ? price.amount - prices[0].amount : 0;
+  const history = listing.history.toReversed();
   const specs = [
     ["First registration", formatRegistration(details.firstRegistration)],
     ["Mileage", formatKm(details.mileageKm)],
@@ -53,17 +61,25 @@ export function ListingPage({ listingId }: { listingId: string }) {
       <BackLink />
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section aria-label="Photos">
-          <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-            {photo && (
+          <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+            {photo ? (
               <img
                 src={photo.url}
                 alt={`Photo ${photoIndex + 1} of ${listing.photos.length}`}
-                className={cn("size-full object-cover", listing.status === "removed" && "grayscale")}
+                className={cn("size-full object-cover", removed && "grayscale")}
               />
+            ) : (
+              <NoPhoto />
+            )}
+            {listing.photos.length > 1 && (
+              <span className="absolute right-3 bottom-3 rounded-md bg-slab px-2 py-0.5 text-sm font-medium text-slab-foreground tabular-nums">
+                {photoIndex + 1} / {listing.photos.length}
+              </span>
             )}
           </div>
           {listing.photos.length > 1 && (
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+            // The fade at the end shows the strip scrolls when it holds more photos than fit.
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-2 [mask-image:linear-gradient(to_right,black_92%,transparent)]">
               {listing.photos.map((p, index) => (
                 <button
                   key={p.sourceUrl}
@@ -85,25 +101,33 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
         <section aria-label="Details" className="min-w-0 space-y-6">
           <div className="space-y-3">
-            {listing.status === "removed" && listing.removedAt && (
-              <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>
-            )}
+            {removed && listing.removedAt && <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>}
             <h1 className="text-xl leading-snug font-semibold">{listing.title}</h1>
-            <div>
-              <p className="condensed text-5xl leading-none font-bold">{formatPrice(price)}</p>
-              {price.vatDeductible && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  VAT reclaimable
-                  {price.netAmount !== undefined && `, ${formatPrice({ ...price, amount: price.netAmount })} net`}
-                </p>
-              )}
+            <div className="flex items-stretch gap-4">
+              <TierSlab tier={listing.tier} className="min-w-20" />
+              <div className="space-y-1">
+                {removed && <p className="text-sm text-muted-foreground">Last price</p>}
+                <p className="condensed text-5xl leading-none font-bold">{formatPrice(price)}</p>
+                {change !== 0 && (
+                  <p className="text-sm font-medium">
+                    {change < 0 ? "Down" : "Up"} {formatPrice({ ...price, amount: Math.abs(change) })} (
+                    {Math.abs((change / prices[0].amount) * 100).toFixed(1)}%) since first seen
+                  </p>
+                )}
+                {price.vatDeductible && (
+                  <p className="text-sm text-muted-foreground">
+                    VAT reclaimable
+                    {price.netAmount !== undefined && `, ${formatPrice({ ...price, amount: price.netAmount })} net`}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p id="tier-label" className="text-sm text-muted-foreground">
+            <h2 id="tier-label" className="font-semibold">
               Tier
-            </p>
+            </h2>
             <ToggleGroup
               aria-labelledby="tier-label"
               variant="outline"
@@ -118,12 +142,8 @@ export function ListingPage({ listingId }: { listingId: string }) {
                 <ToggleGroupItem
                   key={tier}
                   value={tier}
-                  className={cn(
-                    "condensed text-lg font-bold",
-                    tier === "S"
-                      ? "data-pressed:bg-signal data-pressed:text-signal-foreground"
-                      : "data-pressed:bg-slab data-pressed:text-slab-foreground",
-                  )}
+                  // The slab beside the price carries the colour; the control only marks the choice.
+                  className="condensed text-lg font-bold data-pressed:bg-slab data-pressed:text-slab-foreground"
                 >
                   {label}
                 </ToggleGroupItem>
@@ -151,24 +171,26 @@ export function ListingPage({ listingId }: { listingId: string }) {
             Open the listing
           </Button>
 
-          <Card size="sm">
-            <CardHeader>
-              <CardTitle>Price history</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <ol className="space-y-1">
-                {listing.history.map((entry) => (
-                  <li key={entry.capturedAt} className="flex gap-4">
-                    <span className="w-28 text-muted-foreground">{formatDate(entry.capturedAt)}</span>
-                    <span>{entry.price ? formatPrice(entry.price) : "Ad removed"}</span>
+          <section>
+            <h2 className="font-semibold">Price history</h2>
+            <Separator className="my-3" />
+            <ol className="space-y-1">
+                {history.map((entry, index) => (
+                  <li key={entry.capturedAt} className="flex gap-4 tabular-nums">
+                    <span className="w-40 text-muted-foreground">{formatDateTime(entry.capturedAt)}</span>
+                    <span className={cn(index === 0 && "font-semibold")}>
+                      {entry.price ? formatPrice(entry.price) : "Ad removed"}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {index === 0 && !removed ? "Now" : index === history.length - 1 ? "First seen" : ""}
+                    </span>
                   </li>
                 ))}
-              </ol>
-              <p className="text-muted-foreground">
-                Added {formatDate(listing.firstSeenAt)}, last checked {formatDate(listing.lastCheckedAt)}.
-              </p>
-            </CardContent>
-          </Card>
+            </ol>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Added {formatDate(listing.firstSeenAt)}, last checked {formatDateTime(listing.lastCheckedAt)}.
+            </p>
+          </section>
         </section>
       </div>
 
@@ -199,8 +221,9 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
 function BackLink() {
   return (
-    <Button variant="ghost" size="sm" className="-ml-2.5" nativeButton={false} render={<Link to="/" />}>
-      Back to board
+    <Button variant="ghost" className="-ml-2.5" nativeButton={false} render={<Link to="/" />}>
+      <ArrowLeft data-icon="inline-start" aria-hidden />
+      Board
     </Button>
   );
 }
