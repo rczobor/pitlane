@@ -53,6 +53,11 @@ removal come from the snapshots. A re-check with unchanged data only bumps
 enforces the minimum interval; an agent just works through the list. A failed or
 blocked page load is never recorded as "removed".
 
+**Key specs are the user's call.** A board defines the models it tracks and the
+key specs that decide a car's tier (PDLS+, seats, gearbox, colour, …), with
+preferred values per model. A spec the listing text names shows as an unconfirmed
+suggestion; only values the user confirms count towards a car's fit.
+
 **Agents never move cars between tiers.** New listings land in Watching; tiers,
 notes and pros/cons are yours.
 
@@ -70,7 +75,10 @@ kept in the browser.
 
 1. ✅ Convex data model, the intake and the MCP server.
 2. ✅ Tier board web app.
-3. Criteria and match scores, then notes and pros/cons.
+3. Criteria and match scores, then notes and pros/cons. Started: models with a
+   per-model tier list, key specs (confirmed / from listing / missing / unknown),
+   preferred values per model with a fit count on each card, and a check mode
+   for confirming specs against the photos.
 4. Chrome extension.
 5. Re-checks and the price history view.
 6. Side-by-side comparison.

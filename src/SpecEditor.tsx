@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { preferredFor } from "../shared/fit";
 import type { BoardData, ResolvedSpec } from "./format";
+
+export const preferenceLabel = (kind: ResolvedSpec["kind"], value: string) =>
+  kind === "check" ? (value === "yes" ? "Yes" : "No") : value;
 import { useBoardToken } from "./token";
 
 type Props = {
@@ -103,6 +107,11 @@ export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {
                     <span className="block text-xs font-normal text-muted-foreground">
                       {spec.source === "listing" ? "From listing" : spec.source === "you" ? "Yours" : "Unknown"}
                     </span>
+                    {preferredFor(def, modelId).length > 0 && (
+                      <span className="block text-xs font-normal text-muted-foreground">
+                        Preferred: {preferredFor(def, modelId).map((v) => preferenceLabel(spec.kind, v)).join(" or ")}
+                      </span>
+                    )}
                   </dt>
                   <dd className="flex flex-wrap items-center gap-2">
                     <ToggleGroup
@@ -169,7 +178,7 @@ export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {
 }
 
 // Colours and seat types vary by car, so new choices are added where they are needed.
-function OtherChoice({ onAdd }: { onAdd: (value: string) => void }) {
+export function OtherChoice({ onAdd }: { onAdd: (value: string) => void }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   if (!open) {

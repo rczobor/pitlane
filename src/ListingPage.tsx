@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScanSearch } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,7 +19,9 @@ import {
   formatRegistration,
   tiers,
 } from "./format";
-import { NoPhoto } from "./ListingCard";
+import { toCheck } from "../shared/fit";
+import { CheckMode } from "./CheckMode";
+import { Gallery } from "./Gallery";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
 import { useBoardToken } from "./token";
@@ -30,7 +32,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
   // Model and key-spec definitions live on the board; this shares the board's subscription.
   const board = useQuery(api.board.get, { token });
   const move = useMutation(api.board.move);
-  const [photoIndex, setPhotoIndex] = useState(0);
+  const [checking, setChecking] = useState(false);
 
   if (listing === undefined) return <ListingSkeleton />;
   if (listing === null) {
@@ -43,7 +45,6 @@ export function ListingPage({ listingId }: { listingId: string }) {
   }
 
   const { details, price, seller } = listing;
-  const photo = listing.photos[photoIndex];
   const removed = listing.status === "removed";
   // Price history arrives oldest first; the change is measured from the first price seen.
   const prices = listing.history.flatMap((entry) => (entry.price ? [entry.price] : []));
@@ -59,6 +60,26 @@ export function ListingPage({ listingId }: { listingId: string }) {
     ["Previous owners", details.previousOwners?.toString()],
   ].filter((row): row is [string, string] => row[1] !== undefined);
 
+  const unchecked = toCheck(listing.keySpecs);
+
+  if (checking && board) {
+    return (
+      <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+        <BackLink />
+        <CheckMode
+          listingId={listing.listingId}
+          title={listing.title}
+          modelId={listing.modelId}
+          keySpecs={listing.keySpecs}
+          photos={listing.photos}
+          removed={removed}
+          board={board}
+          onDone={() => setChecking(false)}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
       <BackLink />
@@ -68,44 +89,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
           price and tier, key specs, listing details, then options and description. */}
       <div className="mt-4 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
         <div className="contents lg:flex lg:flex-col lg:gap-8">
-        <section aria-label="Photos" className="order-1">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-            {photo ? (
-              <img
-                src={photo.url}
-                alt={`Photo ${photoIndex + 1} of ${listing.photos.length}`}
-                className={cn("size-full object-cover", removed && "grayscale")}
-              />
-            ) : (
-              <NoPhoto />
-            )}
-            {listing.photos.length > 1 && (
-              <span className="absolute right-3 bottom-3 rounded-md bg-slab px-2 py-0.5 text-sm font-medium text-slab-foreground tabular-nums">
-                {photoIndex + 1} / {listing.photos.length}
-              </span>
-            )}
-          </div>
-          {listing.photos.length > 1 && (
-            // The fade at the end shows the strip scrolls when it holds more photos than fit.
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-2 [mask-image:linear-gradient(to_right,black_92%,transparent)]">
-              {listing.photos.map((p, index) => (
-                <button
-                  key={p.sourceUrl}
-                  type="button"
-                  onClick={() => setPhotoIndex(index)}
-                  aria-label={`Show photo ${index + 1}`}
-                  aria-current={index === photoIndex}
-                  className={cn(
-                    "h-16 w-20 shrink-0 overflow-hidden rounded-md border-2",
-                    index === photoIndex ? "border-foreground" : "border-transparent",
-                  )}
-                >
-                  <img src={p.url} alt="" loading="lazy" className="size-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        <Gallery photos={listing.photos} removed={removed} className="order-1" />
         {board && (
           <div className="order-3 min-w-0">
             <SpecEditor listingId={listing.listingId} modelId={listing.modelId} keySpecs={listing.keySpecs} board={board} />
@@ -166,6 +150,13 @@ export function ListingPage({ listingId }: { listingId: string }) {
               ))}
             </ToggleGroup>
           </div>
+          {/* The cue that something still needs a look; opens the photo-side checker. */}
+          {board && unchecked > 0 && (
+            <Button variant="outline" onClick={() => setChecking(true)}>
+              <ScanSearch data-icon="inline-start" aria-hidden />
+              Check {unchecked === 1 ? "1 key spec" : `${unchecked} key specs`}
+            </Button>
+          )}
         </section>
 
         <section aria-labelledby="listing-details" className="order-4 min-w-0 space-y-6">
@@ -190,9 +181,9 @@ export function ListingPage({ listingId }: { listingId: string }) {
           </dl>
           </div>
 
-          <Button variant="outline" nativeButton={false} render={<a href={listing.url} target="_blank" rel="noreferrer" />}>
+          <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
             Open on mobile.de
-          </Button>
+          </a>
 
           <section>
             <h2 className="font-semibold">Price history</h2>
@@ -246,10 +237,10 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
 function BackLink() {
   return (
-    <Button variant="ghost" className="-ml-2.5" nativeButton={false} render={<Link to="/" />}>
+    <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
       <ArrowLeft data-icon="inline-start" aria-hidden />
       Board
-    </Button>
+    </Link>
   );
 }
 

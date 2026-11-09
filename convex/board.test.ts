@@ -165,3 +165,26 @@ test("a choice shared by two specs is not filled in from the listing", async () 
   const specs = (await t.query(api.board.get, { token }))!.listings[0].keySpecs;
   expect(specs.map((s) => s.value)).toEqual(["Chalk", null]);
 });
+
+test("settings keep preferences only for values and models that exist", async () => {
+  const { t, token } = await setupWithSpecs([]);
+  const returned = await t.mutation(api.board.saveSettings, {
+    token,
+    models,
+    keySpecs: [
+      {
+        ...keySpecs[1],
+        preferred: [
+          { value: "918 buckets", models: ["gt3", "gone"] },
+          { value: "Bean bag", models: [] },
+        ],
+      },
+      { ...keySpecs[0], preferred: [{ value: "maybe", models: [] }, { value: "yes", models: [] }] },
+    ],
+  });
+  const saved = (await t.query(api.board.get, { token }))!.keySpecs;
+  expect(saved[0].preferred).toEqual([{ value: "918 buckets", models: ["gt3"] }]);
+  expect(saved[1].preferred).toEqual([{ value: "yes", models: [] }]);
+  // The editor adopts what was stored, so its unsaved state clears after a save.
+  expect(returned.keySpecs).toEqual(saved);
+});

@@ -90,7 +90,10 @@ export const saveSettings = mutation({
   handler: async (ctx, { token, models, keySpecs }) => {
     const access = await tokenAccess(ctx, token);
     if (!access) throw appError("not_found", "Board not found");
-    await ctx.db.patch(access.boardId, cleanSettings(models, keySpecs));
+    const clean = cleanSettings(models, keySpecs);
+    await ctx.db.patch(access.boardId, clean);
+    // What was stored, so the editor can adopt it (dropped preferences, trimmed names).
+    return clean;
   },
 });
 
@@ -114,14 +117,22 @@ function cleanSettings(models: Model[], keySpecs: KeySpec[]) {
   const modelIds = new Set(models.map((m) => m.id));
   return {
     models: models.map((m) => ({ id: m.id, name: name(m.name, "Model") })),
-    keySpecs: keySpecs.map((s) => ({
-      id: s.id,
-      name: name(s.name, "Key spec"),
-      kind: s.kind,
-      choices: s.kind === "choice" ? [...new Set(s.choices.map((c) => name(c, "Choice")))] : [],
-      // Drops references to models that no longer exist.
-      models: s.models.filter((id) => modelIds.has(id)),
-    })),
+    keySpecs: keySpecs.map((s) => {
+      const choices = s.kind === "choice" ? [...new Set(s.choices.map((c) => name(c, "Choice")))] : [];
+      const valid = s.kind === "check" ? ["yes", "no"] : choices;
+      return {
+        id: s.id,
+        name: name(s.name, "Key spec"),
+        kind: s.kind,
+        choices,
+        // Drops references to models that no longer exist.
+        models: s.models.filter((id) => modelIds.has(id)),
+        // Keeps preferences for values that still exist; a deleted choice drops its preference.
+        preferred: (s.preferred ?? [])
+          .filter((p) => valid.includes(p.value))
+          .map((p) => ({ value: p.value, models: p.models.filter((id) => modelIds.has(id)) })),
+      };
+    }),
   };
 }
 

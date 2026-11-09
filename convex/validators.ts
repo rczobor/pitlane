@@ -18,6 +18,9 @@ export const keySpec = v.object({
   choices: v.array(v.string()),
   // Model ids it applies to; empty means every model.
   models: v.array(v.string()),
+  // The values the user wants, each for some models (empty: every model). A car's fit
+  // counts its confirmed values that match.
+  preferred: v.optional(v.array(v.object({ value: v.string(), models: v.array(v.string()) }))),
 });
 
 export const tiers = v.union(
