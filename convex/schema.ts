@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { listingDataValidator, listingStatus, tiers } from "./validators";
+import { boardModel, keySpec, listingDataValidator, listingStatus, tiers } from "./validators";
 
 export default defineSchema({
   users: defineTable({
@@ -10,6 +10,8 @@ export default defineSchema({
   boards: defineTable({
     name: v.string(),
     ownerId: v.id("users"),
+    models: v.optional(v.array(boardModel)),
+    keySpecs: v.optional(v.array(keySpec)),
   }).index("by_owner", ["ownerId"]),
 
   // An agent or extension credential. Only the SHA-256 of the token is stored.
@@ -63,6 +65,9 @@ export default defineSchema({
     rank: v.number(),
     addedAt: v.number(),
     addedBy: v.string(),
+    modelId: v.optional(v.string()),
+    // The user's own key-spec values by spec id: "yes"/"no" for checks, the choice for choices.
+    specValues: v.optional(v.record(v.string(), v.string())),
   })
     .index("by_board", ["boardId", "tier", "rank"])
     .index("by_board_listing", ["boardId", "listingId"]),
