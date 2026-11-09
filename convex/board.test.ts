@@ -143,3 +143,25 @@ test("settings reject duplicate ids and drop links to deleted models", async () 
   await t.mutation(api.board.saveSettings, { token, models: [models[0]], keySpecs });
   expect((await t.query(api.board.get, { token }))!.keySpecs[2].models).toEqual([]);
 });
+
+test("a choice shared by two specs is not filled in from the listing", async () => {
+  const t = convexTest(schema, modules);
+  const token = await t.action(internal.tokens.create, { name: "web" });
+  const board = await t.run((ctx) => ctx.db.query("boards").first());
+  await t.mutation(internal.listings.save, {
+    boardId: board!._id,
+    capturedBy: "test",
+    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000002",
+    data: { ...car, details: { ...car.details, color: "Guards Red", options: ["Chalk stitching"] } },
+  });
+  await t.mutation(api.board.saveSettings, {
+    token,
+    models: [],
+    keySpecs: [
+      { id: "colour", name: "Colour", kind: "choice", choices: ["Guards Red", "Chalk"], models: [] },
+      { id: "accent", name: "Interior accent", kind: "choice", choices: ["Guards Red", "Racing Yellow"], models: [] },
+    ],
+  });
+  const specs = (await t.query(api.board.get, { token }))!.listings[0].keySpecs;
+  expect(specs.map((s) => s.value)).toEqual(["Chalk", null]);
+});

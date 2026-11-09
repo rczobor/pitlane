@@ -3,6 +3,7 @@ import { ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { KeySpecLedger } from "./KeySpecLedger";
 import {
   type BoardListing,
   formatAge,
@@ -14,7 +15,17 @@ import {
   formatRegistration,
 } from "./format";
 
-export function ListingCard({ listing, lifted = false }: { listing: BoardListing; lifted?: boolean }) {
+export function ListingCard({
+  listing,
+  modelName,
+  specOrder,
+  lifted = false,
+}: {
+  listing: BoardListing;
+  modelName?: string;
+  specOrder: string[];
+  lifted?: boolean;
+}) {
   const { specs } = listing;
   const removed = listing.status === "removed";
   return (
@@ -54,9 +65,11 @@ export function ListingCard({ listing, lifted = false }: { listing: BoardListing
               listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>
             )}
           </div>
+          {modelName && <p className="condensed text-lg leading-none font-bold">{modelName}</p>}
           <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* Year, mileage and power stay at glance level, above the key specs. */}
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
             <Spec
               label="First registration"
@@ -66,7 +79,8 @@ export function ListingCard({ listing, lifted = false }: { listing: BoardListing
             {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
             <Spec label="Fuel and gearbox" value={formatDrivetrain(specs)} />
           </dl>
-          <p className="mt-3 flex justify-between gap-2 text-xs text-muted-foreground">
+          <KeySpecLedger specs={listing.keySpecs} order={specOrder} />
+          <p className="flex justify-between gap-2 text-xs text-muted-foreground">
             <span className="truncate">{listing.location}</span>
             <span className="shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
           </p>

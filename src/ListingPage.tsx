@@ -20,12 +20,15 @@ import {
   tiers,
 } from "./format";
 import { NoPhoto } from "./ListingCard";
+import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
 import { useBoardToken } from "./token";
 
 export function ListingPage({ listingId }: { listingId: string }) {
   const token = useBoardToken();
   const listing = useQuery(api.board.listing, { token, listingId });
+  // Model and key-spec definitions live on the board; this shares the board's subscription.
+  const board = useQuery(api.board.get, { token });
   const move = useMutation(api.board.move);
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -59,8 +62,13 @@ export function ListingPage({ listingId }: { listingId: string }) {
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
       <BackLink />
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <section aria-label="Photos">
+      {/* Wide screens: photos with the key-spec editor under them (it is checked against
+          them), and the car's details beside. Phones: one column in task order, with the
+          columns dissolved (display: contents) so `order` can interleave them: photos,
+          price and tier, key specs, listing details, then options and description. */}
+      <div className="mt-4 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-8">
+        <section aria-label="Photos" className="order-1">
           <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
             {photo ? (
               <img
@@ -98,8 +106,15 @@ export function ListingPage({ listingId }: { listingId: string }) {
             </div>
           )}
         </section>
+        {board && (
+          <div className="order-3 min-w-0">
+            <SpecEditor listingId={listing.listingId} modelId={listing.modelId} keySpecs={listing.keySpecs} board={board} />
+          </div>
+        )}
+        </div>
 
-        <section aria-label="Details" className="min-w-0 space-y-6">
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
+        <section aria-label="Price and tier" className="order-2 min-w-0 space-y-6">
           <div className="space-y-3">
             {removed && listing.removedAt && <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>}
             <h1 className="text-xl leading-snug font-semibold">{listing.title}</h1>
@@ -124,10 +139,11 @@ export function ListingPage({ listingId }: { listingId: string }) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div>
             <h2 id="tier-label" className="font-semibold">
               Tier
             </h2>
+            <Separator className="my-3" />
             <ToggleGroup
               aria-labelledby="tier-label"
               variant="outline"
@@ -143,16 +159,22 @@ export function ListingPage({ listingId }: { listingId: string }) {
                   key={tier}
                   value={tier}
                   // The slab beside the price carries the colour; the control only marks the choice.
-                  className="condensed text-lg font-bold data-pressed:bg-slab data-pressed:text-slab-foreground"
+                  className="condensed text-lg font-bold data-pressed:bg-foreground data-pressed:text-background"
                 >
                   {label}
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
           </div>
+        </section>
 
-          <Separator />
-
+        <section aria-labelledby="listing-details" className="order-4 min-w-0 space-y-6">
+          <div>
+            {/* As the listing states them; key specs above are where the user's own values live. */}
+            <h2 id="listing-details" className="font-semibold">
+              Listing details
+            </h2>
+            <Separator className="my-3" />
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
             {specs.map(([label, value]) => (
               <div key={label} className="contents">
@@ -166,6 +188,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
               <span className="text-muted-foreground"> ({seller.type === "dealer" ? "dealer" : "private seller"})</span>
             </dd>
           </dl>
+          </div>
 
           <Button variant="outline" nativeButton={false} render={<a href={listing.url} target="_blank" rel="noreferrer" />}>
             Open on mobile.de
@@ -192,29 +215,31 @@ export function ListingPage({ listingId }: { listingId: string }) {
             </p>
           </section>
         </section>
+        <div className="order-5 min-w-0 space-y-10 lg:mt-4">
+        {details.options.length > 0 && (
+          <section>
+            <h2 className="font-semibold">Options</h2>
+            <Separator className="my-3" />
+            <ul className="columns-2 gap-6 text-sm sm:columns-3 lg:columns-2">
+              {details.options.map((option) => (
+                <li key={option} className="break-inside-avoid py-0.5">
+                  {option}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {listing.description && (
+          <section>
+            <h2 className="font-semibold">Seller's description</h2>
+            <Separator className="my-3" />
+            <p className="max-w-[70ch] text-sm leading-relaxed whitespace-pre-line">{listing.description}</p>
+          </section>
+        )}
+        </div>
+        </div>
       </div>
-
-      {details.options.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-semibold">Options</h2>
-          <Separator className="my-3" />
-          <ul className="columns-2 gap-6 text-sm sm:columns-3 lg:columns-4">
-            {details.options.map((option) => (
-              <li key={option} className="break-inside-avoid py-0.5">
-                {option}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {listing.description && (
-        <section className="mt-12">
-          <h2 className="font-semibold">Seller's description</h2>
-          <Separator className="my-3" />
-          <p className="max-w-[70ch] text-sm leading-relaxed whitespace-pre-line">{listing.description}</p>
-        </section>
-      )}
     </main>
   );
 }
