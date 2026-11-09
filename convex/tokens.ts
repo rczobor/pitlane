@@ -54,7 +54,7 @@ export async function tokenAccess(ctx: QueryCtx, token: string) {
     .unique();
 }
 
-async function sha256(text: string) {
+export async function sha256(text: string) {
   return toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))));
 }
 

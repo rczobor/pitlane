@@ -10,6 +10,7 @@
 
 import type * as board from "../board.js";
 import type * as errors from "../errors.js";
+import type * as fixtures from "../fixtures.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
 import type * as photos from "../photos.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   board: typeof board;
   errors: typeof errors;
+  fixtures: typeof fixtures;
   http: typeof http;
   listings: typeof listings;
   photos: typeof photos;
