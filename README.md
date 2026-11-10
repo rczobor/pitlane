@@ -174,14 +174,28 @@ The extension has no sign-in of its own: it uses the web app's Clerk session in
 the same browser (Clerk's sync host), and calls the Convex functions in
 [`convex/extension.ts`](convex/extension.ts), which share the agents' intake.
 
+To install it, download the zip from the latest `extension-v…`
+[release](https://github.com/rczobor/pitlane/releases) and unzip it into a folder
+you keep. In Chrome, open `chrome://extensions`, turn on Developer mode, choose
+**Load unpacked** and pick that folder. Then sign in to Pitlane in the same browser.
+To update, unzip the new version over the same folder and press reload on the
+extension's card.
+
+To release a version, bump `version` in
+[`extension/manifest.json`](extension/manifest.json), merge, and push a matching
+tag such as `extension-v0.2.0`. The workflow builds for production from the
+`EXTENSION_CONVEX_URL` and `EXTENSION_CLERK_PUBLISHABLE_KEY` repository variables,
+production's public values.
+
+To build it yourself:
+
 ```sh
 pnpm build:extension   # → dist/extension, for the deployment in .env.local
 ```
 
 To build for production instead, set `VITE_CONVEX_URL` and
-`VITE_CLERK_PUBLISHABLE_KEY` to production's values for the command. In Chrome,
-open `chrome://extensions`, turn on Developer mode, choose **Load unpacked** and
-pick `dist/extension`. Then sign in to the web app in the same browser: on
+`VITE_CLERK_PUBLISHABLE_KEY` to production's values for the command. Load
+`dist/extension` unpacked as above, then sign in to the web app in the same browser: on
 `localhost:5173` for a development build (or the host in `PITLANE_APP_URL`, e.g.
 `http://homelab:5173`, if you open it elsewhere), or on the production site.
 

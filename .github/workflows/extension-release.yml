@@ -1,0 +1,77 @@
+name: Extension release
+
+# Pushing a tag like extension-v0.2.0 builds the Chrome extension for production and
+# attaches it to a GitHub release. The tag must match the manifest's version.
+on:
+  push:
+    tags:
+      - extension-v*
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 26
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the tag matches the manifest
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(jq -r .version extension/manifest.json)
+          if [ "$TAG" != "extension-v$version" ]; then
+            echo "::error::Tag $TAG does not match the manifest version $version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Production's public values: the same ones the web app ships.
+      - name: Build for production
+        env:
+          VITE_CONVEX_URL: ${{ vars.EXTENSION_CONVEX_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.EXTENSION_CLERK_PUBLISHABLE_KEY }}
+        run: |
+          case "$VITE_CLERK_PUBLISHABLE_KEY" in
+            pk_live_*) ;;
+            *) echo "::error::Set the EXTENSION_CLERK_PUBLISHABLE_KEY repository variable to production's pk_live_ key"; exit 1 ;;
+          esac
+          if [ -z "$VITE_CONVEX_URL" ]; then
+            echo "::error::Set the EXTENSION_CONVEX_URL repository variable to production's .convex.cloud URL"
+            exit 1
+          fi
+          pnpm build:extension
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          zip_name="pitlane-extension-$VERSION.zip"
+          (cd dist/extension && zip -qr "../../$zip_name" .)
+          gh release create "$TAG" "$zip_name" --repo "$GITHUB_REPOSITORY" --title "Chrome extension $VERSION" --notes "$(cat <<'EOF'
+          To install: download the zip below and unzip it into a folder you keep. In Chrome, open chrome://extensions, turn on Developer mode, choose Load unpacked and pick that folder. Then sign in to Pitlane in the same browser.
+
+          To update: unzip the new version over the same folder and press the reload button on the extension's card.
+          EOF
+          )"
