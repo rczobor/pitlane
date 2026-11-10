@@ -14,7 +14,12 @@ type Props = { listingId: Id<"listings">; notes: string; pros: string[]; cons: s
 // The user's own take on a car. Notes save shortly after typing stops and when the field
 // loses focus; pros and cons save on every change.
 export function YourTake({ listingId, notes, pros, cons }: Props) {
-  const setNotes = useMutation(api.board.setNotes);
+  // Applied locally at once, so a save followed quickly by another (an edit committed on
+  // blur by a click on another item's ×) builds on the first instead of undoing it.
+  const setNotes = useMutation(api.board.setNotes).withOptimisticUpdate((store, { listingId, ...take }) => {
+    const listing = store.getQuery(api.board.listing, { listingId });
+    if (listing) store.setQuery(api.board.listing, { listingId }, { ...listing, ...take });
+  });
   const [draft, setDraft] = useState(notes);
   const [state, setState] = useState<"saved" | "saving" | "error" | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -111,9 +116,14 @@ function ItemList({
       {items.length > 0 && (
         <ul aria-label={label} className="space-y-1">
           {items.map((item, i) => (
-            <li key={`${item}-${i}`} className="flex items-start gap-2 text-sm">
+            // Keyed by position so an item's row, and its focus, survive saving an edit.
+            <li key={i} className="flex items-start gap-2 text-sm">
               <span className="mt-1 shrink-0 text-muted-foreground">{icon}</span>
-              <span className="min-w-0 flex-1 break-words">{item}</span>
+              <ItemText
+                item={item}
+                label={`${label.toLowerCase().slice(0, -1)}: ${item}`}
+                onSave={(value) => onChange(items.with(i, value))}
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -147,5 +157,55 @@ function ItemList({
         </Button>
       </form>
     </div>
+  );
+}
+
+// An item reads as plain text; clicking it swaps in an input. Enter or leaving the field
+// saves, Escape cancels, and an emptied item keeps its old text (remove it with ×).
+// Closing with a key puts focus back on the item, so keyboard users keep their place.
+function ItemText({ item, label, onSave }: { item: string; label: string; onSave: (value: string) => void }) {
+  const [mode, setMode] = useState<"view" | "edit" | "keyClosed">("view");
+  // Enter and Escape close the input, and its blur on the way out must not save again.
+  const closed = useRef(false);
+  const close = (value: string | null, next: "view" | "keyClosed") => {
+    if (closed.current) return;
+    closed.current = true;
+    setMode(next);
+    const text = value?.trim();
+    if (text && text !== item) onSave(text);
+  };
+  if (mode !== "edit") {
+    return (
+      <button
+        type="button"
+        autoFocus={mode === "keyClosed"}
+        aria-label={`Edit ${label}`}
+        className="-mx-1 min-w-0 flex-1 cursor-text rounded px-1 text-left break-words hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        onClick={() => {
+          closed.current = false;
+          setMode("edit");
+        }}
+      >
+        {item}
+      </button>
+    );
+  }
+  return (
+    <Input
+      aria-label={`Edit ${label}`}
+      defaultValue={item}
+      maxLength={200}
+      autoFocus
+      className="-mx-1 -my-1.5 h-8 min-w-0 flex-1 px-1"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+          // Otherwise the same keypress activates the item that just took focus and reopens it.
+          event.preventDefault();
+          close(event.currentTarget.value, "keyClosed");
+        }
+        if (event.key === "Escape") close(null, "keyClosed");
+      }}
+      onBlur={(event) => close(event.currentTarget.value, "view")}
+    />
   );
 }
