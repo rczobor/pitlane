@@ -59,10 +59,12 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
     const onKey = (event: KeyboardEvent) => {
       // Typing a new choice must not trigger shortcuts, and Enter on a focused control
       // (Skip, Back, a value, a photo) does what that control says. The photo gallery
-      // claims the arrow keys while it has focus.
+      // claims the arrow keys while it has focus, and the full-screen photo viewer
+      // (a dialog) claims every key, Escape included.
       if (event.defaultPrevented || event.target instanceof HTMLInputElement || event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return;
       if (event.key === "Enter" && (event.target instanceof HTMLButtonElement || event.target instanceof HTMLAnchorElement)) {
         return;
       }
