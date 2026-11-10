@@ -1,7 +1,7 @@
-import { SignIn, useClerk } from "@clerk/react";
+import { SignIn, UserButton, useClerk } from "@clerk/react";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Columns3, LogOut, MapIcon, SlidersHorizontal } from "lucide-react";
+import { Columns3, MapIcon, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -73,10 +73,9 @@ function SignedIn() {
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
             <span className="max-sm:sr-only">Specs</span>
           </Link>
-          <Button variant="ghost" size="sm" className="relative" onClick={() => void signOut()}>
-            <LogOut data-icon="inline-start" aria-hidden className="sm:hidden" />
-            <span className="max-sm:sr-only">Sign out</span>
-          </Button>
+          <div className="ml-2 flex">
+            <UserButton />
+          </div>
         </nav>
       </header>
       <Outlet />
