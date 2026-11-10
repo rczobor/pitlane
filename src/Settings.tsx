@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import type { Criteria, Preference } from "../shared/fit";
-import type { BoardData, BoardListing, BoardModel, KeySpecDef, ResolvedSpec } from "./format";
+import { formatDate, type BoardData, type BoardListing, type BoardModel, type KeySpecDef, type ResolvedSpec } from "./format";
 import { ListingCard } from "./ListingCard";
 import { preferenceLabel } from "./SpecEditor";
 
@@ -32,7 +32,45 @@ export function Settings() {
       </p>
       </div>
       {board ? <SettingsForm board={board} /> : <Skeleton className="mt-8 h-96 max-w-3xl" />}
+      <ApiTokens />
     </main>
+  );
+}
+
+// Tokens are made with `tokens:create` on the command line, so this only lists and revokes.
+function ApiTokens() {
+  const tokens = useQuery(api.tokens.list);
+  const revoke = useMutation(api.tokens.revoke);
+  // Revoking takes a second click on the same row.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  if (!tokens?.length) return null;
+  return (
+    <section aria-labelledby="tokens-heading" className="mt-16 max-w-3xl space-y-3">
+      <h2 id="tokens-heading" className="font-semibold">
+        API tokens
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Scripts and the browser extension use these. A revoked token stops working at once.
+      </p>
+      <Separator />
+      <ul>
+        {tokens.map((token) => (
+          <li key={token.tokenId} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t py-3 first:border-t-0 first:pt-1">
+            <span className="mr-auto font-medium">{token.name}</span>
+            <span className="text-sm text-muted-foreground">Created {formatDate(token.createdAt)}</span>
+            {confirming === token.tokenId ? (
+              <Button variant="destructive" size="sm" onClick={() => revoke({ tokenId: token.tokenId }).catch(() => setConfirming(null))}>
+                Revoke {token.name}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setConfirming(token.tokenId)}>
+                Revoke
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

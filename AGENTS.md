@@ -9,13 +9,11 @@ everything. Read it before changing behaviour.
 
 ## Layout
 
-- `convex/`: the whole backend (schema, intake, REST via HTTP actions, scheduled
-  re-checks, photo storage). `convex/_generated/` is committed.
+- `convex/`: the whole backend (schema, intake, REST and the MCP server via HTTP
+  actions, scheduled re-checks, photo storage). `convex/_generated/` is committed.
 - `shared/`: the listing snapshot schema and fit scoring used by Convex, the web app
   and the MCP server.
 - `src/`: the web app (Vite, React, TanStack Router, shadcn/ui on Base UI).
-- `mcp/`: the local stdio MCP server over the REST API, and its Claude Desktop
-  bundle.
 
 ## Checks
 

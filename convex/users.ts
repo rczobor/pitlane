@@ -1,10 +1,15 @@
-import { mutation, type QueryCtx } from "./_generated/server";
+import { internalQuery, mutation, type QueryCtx } from "./_generated/server";
 import { appError } from "./errors";
 
+// Convex accepts both of Clerk's token kinds on every function (see auth.config.ts).
+// Only OAuth access tokens carry `client_id`; each side admits only its own kind, so a
+// token granted to Claude cannot drive the web app's functions, and the reverse.
+type Via = "web" | "mcp";
+
 // The signed-in user's board, or null when signed out or not set up yet.
-export async function viewerAccess(ctx: QueryCtx) {
+export async function viewerAccess(ctx: QueryCtx, via: Via = "web") {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
+  if (!identity || (typeof identity.client_id === "string") !== (via === "mcp")) return null;
   const user = await ctx.db
     .query("users")
     .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
@@ -13,6 +18,9 @@ export async function viewerAccess(ctx: QueryCtx) {
     user && (await ctx.db.query("boards").withIndex("by_owner", (q) => q.eq("ownerId", user._id)).first());
   return board && { userId: user._id, boardId: board._id };
 }
+
+// For actions, which have no database access of their own.
+export const viewerForMcp = internalQuery({ args: {}, handler: (ctx) => viewerAccess(ctx, "mcp") });
 
 // Runs when a signed-in account has no board yet. A new account takes over a user
 // that no account owns yet: the one `tokens:create` makes for the owner before they

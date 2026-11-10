@@ -28,7 +28,6 @@
   "include": [
     "convex",
     "shared",
-    "mcp",
     "src",
     "*.ts"
   ],

@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalAction, internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query, type ActionCtx } from "./_generated/server";
+import { appError } from "./errors";
+import { viewerAccess } from "./users";
 
 const tokenPattern = /^pit_[0-9a-f]{64}$/;
 
 // Run from the CLI; prints the token once:
-//   pnpm convex run tokens:create '{"name": "claude-desktop"}'
+//   pnpm convex run tokens:create '{"name": "chrome-extension"}'
 // Generated in an action because mutations use seeded randomness.
 export const create = internalAction({
   args: { name: v.string(), userName: v.optional(v.string()) },
@@ -26,6 +28,31 @@ export const insert = internalMutation({
       (await ctx.db.query("boards").withIndex("by_owner", (q) => q.eq("ownerId", userId)).first())?._id ??
       (await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId }));
     await ctx.db.insert("apiTokens", { name, tokenHash, userId, boardId, createdAt: Date.now() });
+  },
+});
+
+// The signed-in user's API tokens, for Settings. Never the hashes.
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await viewerAccess(ctx);
+    if (!access) return [];
+    const tokens = await ctx.db
+      .query("apiTokens")
+      .withIndex("by_user", (q) => q.eq("userId", access.userId))
+      .collect();
+    return tokens.map(({ _id, name, createdAt }) => ({ tokenId: _id, name, createdAt }));
+  },
+});
+
+// Deleting the row is enough: every request looks its token up by hash.
+export const revoke = mutation({
+  args: { tokenId: v.id("apiTokens") },
+  handler: async (ctx, { tokenId }) => {
+    const access = await viewerAccess(ctx);
+    const token = await ctx.db.get(tokenId);
+    if (!access || token?.userId !== access.userId) throw appError("not_found", "Token not found");
+    await ctx.db.delete(tokenId);
   },
 });
 

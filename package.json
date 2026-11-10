@@ -12,9 +12,7 @@
     "dev:design": "scripts/dev-design.sh",
     "build": "vite build",
     "test": "vitest run",
-    "typecheck": "tsc",
-    "mcp": "node mcp/server.ts",
-    "build:mcpb": "node mcp/build.ts"
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -39,7 +37,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@anthropic-ai/mcpb": "^2.1.2",
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.5",
