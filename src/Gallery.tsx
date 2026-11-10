@@ -36,7 +36,7 @@ export function Gallery({ photos, removed, className }: { photos: Photo[]; remov
     if (photos.length === 0) return;
     const onKey = (event: KeyboardEvent) => {
       const t = event.target;
-      if (event.key.toLowerCase() !== "f" || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "f" || event.repeat || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
       if (t instanceof HTMLElement && t.isContentEditable) return;
       event.preventDefault();

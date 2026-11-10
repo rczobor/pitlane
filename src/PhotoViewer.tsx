@@ -24,7 +24,6 @@ export function PhotoViewer({ open, onOpenChange, ...props }: Props) {
       <Dialog.Portal>
         <Dialog.Popup
           initialFocus={carousel}
-          aria-label="Photos"
           className="fixed inset-0 z-50 bg-black text-white transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0"
         >
           <Dialog.Title className="sr-only">Photos</Dialog.Title>
@@ -42,7 +41,7 @@ function Slides({
   index,
   onIndexChange,
   carousel,
-}: Omit<Props, "open" | "onOpenChange"> & { carousel: React.Ref<HTMLDivElement> }) {
+}: Omit<Props, "open" | "onOpenChange"> & { carousel: React.RefObject<HTMLDivElement | null> }) {
   const [api, setApi] = useState<CarouselApi>();
   const [zoomed, setZoomed] = useState(false);
   const zooms = useRef<(ReactZoomPanPinchRef | null)[]>([]);
@@ -51,6 +50,22 @@ function Slides({
   const zoomedRef = useRef(false);
   zoomedRef.current = zoomed;
   const [opts] = useState(() => ({ startIndex: index, watchDrag: () => !zoomedRef.current }));
+
+  // The second click of a double-click that opened the viewer would zoom straight in.
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setOpened(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Ctrl + scroll over the bars and thumbnails would zoom the page behind the viewer.
+  // React's wheel listener is passive, so this one is added by hand.
+  useEffect(() => {
+    const el = carousel.current;
+    const block = (event: WheelEvent) => event.ctrlKey && event.preventDefault();
+    el?.addEventListener("wheel", block, { passive: false });
+    return () => el?.removeEventListener("wheel", block);
+  }, [carousel]);
 
   useEffect(() => {
     if (!api) return;
@@ -92,7 +107,7 @@ function Slides({
                 // Ctrl + scroll and trackpad pinches zoom (browsers send a pinch as a
                 // wheel event with ctrlKey); a plain wheel does nothing.
                 wheel={{ wheelDisabled: true, step: 0.003 }}
-                doubleClick={{ mode: "toggle", step: 1 }}
+                doubleClick={{ mode: "toggle", step: 1, disabled: !opened }}
                 // At full size a drag swipes to the next photo instead.
                 panning={{ disabled: !(zoomed && i === index) }}
                 onTransform={(_, { scale }) => i === index && setZoomed(scale > 1.01)}
