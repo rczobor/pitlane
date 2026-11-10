@@ -61,33 +61,30 @@ export const specValueText = (spec: ResolvedSpec) =>
 export const specTone = (spec: ResolvedSpec, { hit, breaker }: { hit: boolean; breaker: boolean }) =>
   cn(
     "rounded-sm border border-transparent",
-    // Confirmed carries an asphalt edge, so it outranks the dashed "from the listing" cells.
-    spec.value !== null && spec.source === "you" && "bg-secondary/60 shadow-[inset_2px_0_0_var(--foreground)] dark:bg-secondary",
+    spec.value !== null && spec.source === "you" && "bg-secondary/60 dark:bg-secondary",
     spec.value !== null && spec.source === "listing" && "border-dashed border-foreground/45",
-    hit && "bg-foreground text-background shadow-none dark:bg-foreground",
+    hit && "bg-foreground text-background dark:bg-foreground",
     // A confirmed value the user ruled out for this model.
-    breaker && "border-destructive bg-transparent text-destructive shadow-none dark:bg-transparent",
+    breaker && "border-destructive bg-transparent text-destructive dark:bg-transparent",
   );
 
 function LedgerCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
   const missing = spec.kind === "check" && spec.value === "no";
   const value = specValueText(spec);
   return (
-    <div title={specDescription(spec, hit)} className={cn("group/cell min-w-0 px-1.5 py-1", specTone(spec, { hit, breaker }))}>
-      <dt className={cn("text-xs leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
+    <div title={specDescription(spec, hit)} className={cn("group/cell min-w-0 px-1.5 py-0.5", specTone(spec, { hit, breaker }))}>
+      <dt className={cn("text-[0.6875rem] leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
         {spec.name}
       </dt>
       <dd
         className={cn(
-          // Comparing these values is the board's job: near the size of the year and mileage line.
-          // A fixed two-line height keeps rows level across the cards of a lane.
-          "flex min-h-[2.5em] items-start gap-0.5 text-[0.8125rem] leading-tight font-semibold break-words",
+          // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
+          "flex items-start gap-0.5 text-xs leading-tight font-semibold break-words",
           // A confirmed "No" is as definite as any other value; only unknown is quiet.
           spec.value === null && "font-medium text-muted-foreground",
         )}
       >
         {missing && <X className="mt-px size-3 shrink-0" aria-hidden />}
-        {/* Long choices ("Adaptive sport seats") wrap to a second line instead of being cut off. */}
         <span className="line-clamp-3 sm:line-clamp-2">{value}</span>
         {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
         {hit && <span className="sr-only">(preferred)</span>}

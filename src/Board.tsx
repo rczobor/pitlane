@@ -187,14 +187,14 @@ function Lane({
       {/* The pit board: the one loud element on the page. */}
       <div
         className={cn(
-          "flex shrink-0 items-baseline justify-between gap-3 rounded-t-lg px-4 py-2 sm:w-40 sm:flex-col sm:items-start sm:justify-start sm:rounded-l-lg sm:rounded-tr-none sm:py-4",
+          "flex shrink-0 items-baseline justify-between gap-3 rounded-t-lg px-4 py-2 sm:w-28 sm:flex-col sm:px-3 sm:items-start sm:justify-start sm:rounded-l-lg sm:rounded-tr-none sm:py-4",
           // Rejected is quieter through its fill only: label and count keep full contrast, and
           // the cars keep full ink so a live ad never looks removed.
           tier === "rejected" ? "bg-muted text-foreground" : slabColor(tier),
         )}
       >
         {/* On phones every label shares one size, so the header bars match; the letters grow on wider screens. */}
-        <h2 className={cn("condensed text-4xl leading-none font-extrabold", isLetter ? "sm:text-8xl" : "sm:text-4xl")}>
+        <h2 className={cn("condensed text-4xl leading-none font-extrabold", isLetter ? "sm:text-7xl" : "sm:text-2xl")}>
           {label}
         </h2>
         {/* Pinned to the slab's foot, so it sits in the same place whatever the label. */}

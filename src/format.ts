@@ -63,6 +63,9 @@ export function formatRegistration(yyyyMm: string | undefined) {
   return `${month}/${year}`;
 }
 
+// Cards show the year alone: it is what decides a car's place, and the month is on the car page.
+export const formatRegistrationYear = (yyyyMm: string | undefined) => (yyyyMm ? yyyyMm.slice(0, 4) : "New");
+
 const fuelLabels: Record<Specs["fuel"], string> = {
   petrol: "Petrol",
   diesel: "Diesel",
@@ -76,13 +79,17 @@ const fuelLabels: Record<Specs["fuel"], string> = {
 };
 
 const gearboxLabels: Record<Specs["gearbox"], string> = {
-  manual: "manual",
-  automatic: "automatic",
-  semi_automatic: "semi-automatic",
+  manual: "Manual",
+  automatic: "Automatic",
+  semi_automatic: "Semi-automatic",
 };
 
-export const formatDrivetrain = (specs: Pick<Specs, "fuel" | "gearbox">) =>
-  `${fuelLabels[specs.fuel]}, ${gearboxLabels[specs.gearbox]}`;
+// The shortlist is petrol cars only, so petrol goes without saying; any other fuel is
+// worth flagging.
+export const otherFuel = (fuel: Specs["fuel"]) => (fuel === "petrol" ? undefined : fuelLabels[fuel]);
+
+export const formatDrivetrain = ({ fuel, gearbox }: Pick<Specs, "fuel" | "gearbox">) =>
+  [otherFuel(fuel), gearboxLabels[gearbox]].filter(Boolean).join(", ");
 
 export function formatAge(timestamp: number) {
   const days = Math.floor((Date.now() - timestamp) / 86_400_000);
