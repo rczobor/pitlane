@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Columns3, House, Languages, ScanSearch, Trash2 } from "lucide-react";
+import { ArrowLeft, Columns3, Languages, ScanSearch, Trash2 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -18,21 +18,20 @@ import {
   formatPower,
   formatPrice,
   formatRegistration,
-  type Tier,
   tiers,
 } from "./format";
 import { toCheck } from "../shared/fit";
-import type { Point } from "../shared/geo";
 import { CheckMode } from "./CheckMode";
 import { FitList } from "./Fit";
 import { Gallery, galleryColumns, useTheatre } from "./Gallery";
-import { fitView, mapboxToken, staticMapUrl } from "./mapbox";
-import { homeClass, notchClass, pinClass, pinFor } from "./pins";
+import { mapboxToken } from "./mapbox";
 import { PriceChart } from "./PriceChart";
 import { RemoveCarDialog } from "./RemoveCar";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
 import { YourTake } from "./YourTake";
+
+const SellerMap = lazy(() => import("./SellerMap"));
 
 export function ListingPage({ listingId }: { listingId: string }) {
   const listing = useQuery(api.board.listing, { listingId });
@@ -282,15 +281,17 @@ export function ListingPage({ listingId }: { listingId: string }) {
                 </Link>
               )}
               {mapboxToken && (
-                <SellerMap
-                  token={mapboxToken}
-                  listingId={listing.listingId}
-                  geo={listing.geo}
-                  home={board?.home ?? null}
-                  tier={listing.tier}
-                  live={!removed && listing.tier !== "rejected"}
-                  location={seller.location}
-                />
+                <Suspense fallback={<div className="mt-3 aspect-[2/1] rounded-lg bg-muted" />}>
+                  <SellerMap
+                    token={mapboxToken}
+                    listingId={listing.listingId}
+                    geo={listing.geo}
+                    home={board?.home ?? null}
+                    tier={listing.tier}
+                    live={!removed && listing.tier !== "rejected"}
+                    location={seller.location}
+                  />
+                </Suspense>
               )}
             </section>
           )}
@@ -381,69 +382,6 @@ function Description({ original, translation }: { original: string; translation?
         {translated ? translation.text : original}
       </p>
     </section>
-  );
-}
-
-// A static image, so the car page loads no map library, with the map page's own pins
-// drawn on it. It opens the full map with this car's place picked.
-function SellerMap({
-  token,
-  listingId,
-  geo,
-  home,
-  tier,
-  live,
-  location,
-}: {
-  token: string;
-  listingId: string;
-  geo: Point;
-  home: Point | null;
-  tier: Tier;
-  live: boolean;
-  location: string | undefined;
-}) {
-  const [width, height] = [640, 320];
-  // Generous padding: pins stand 14px above their place, as on the map page.
-  const view = fitView(home ? [geo, home] : [geo], width, height, 64);
-  const { letter, tone } = pinFor(tier, live);
-  const pinAt = (point: Point) => {
-    const { left, top } = view.at(point);
-    return { left: `${left * 100}%`, top: `${top * 100}%`, transform: "translate(-50%, calc(-100% - 14px))" };
-  };
-  return (
-    <Link
-      to="/map"
-      search={{ car: listingId }}
-      className="relative mt-3 block overflow-hidden rounded-lg bg-muted outline-offset-2"
-      aria-label={`Open the map${location ? ` at ${location}` : ""}`}
-    >
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcSet={staticMapUrl(token, view, width, height, true)} />
-        <img
-          src={staticMapUrl(token, view, width, height, false)}
-          alt=""
-          width={width}
-          height={height}
-          loading="lazy"
-          className="aspect-[2/1] w-full object-cover"
-        />
-      </picture>
-      {home && (
-        <span aria-hidden className="absolute" style={pinAt(home)}>
-          <span className={cn(homeClass, "relative shadow-md")}>
-            <House className="size-4" strokeWidth={2.5} />
-            <span className={notchClass("home")} />
-          </span>
-        </span>
-      )}
-      <span aria-hidden className="absolute" style={pinAt(geo)}>
-        <span className={cn(pinClass(letter !== null, tone), "relative shadow-md")}>
-          {letter}
-          <span className={notchClass(tone)} />
-        </span>
-      </span>
-    </Link>
   );
 }
 

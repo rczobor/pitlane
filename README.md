@@ -82,8 +82,9 @@ by OpenStreetMap's Nominatim. Unlike Mapbox's free geocoding, its results may be
 stored. One queue, run every minute, looks up new or moved sellers at no more than
 one request per second, as Nominatim's usage policy asks. A listing saved before
 this existed is located on its next re-check. Distances are straight lines from
-the home you set on the map page. The map page and the car page's map image use
-Mapbox; both stay within its free tier for one person's watchlist.
+the home you set on the map page. The map page and the car page's small map are
+live Mapbox maps in its Standard style (day or night, following the system theme);
+both stay within its free tier for one person's watchlist.
 
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, the MCP server via
 HTTP actions, scheduled jobs, file storage). The web app is Vite, React,

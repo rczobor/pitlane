@@ -1,5 +1,3 @@
-import "mapbox-gl/dist/mapbox-gl.css";
-import "./map.css";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
@@ -10,7 +8,8 @@ import { api } from "../convex/_generated/api";
 import type { Point } from "../shared/geo";
 import { type BoardData, type BoardListing, formatDistance, tiers } from "./format";
 import { ListingCard } from "./ListingCard";
-import { mapboxToken, mapStyle } from "./mapbox";
+import { createMap, homeMarker, pinOffset, span } from "./basemap";
+import { mapboxToken } from "./mapbox";
 import { countClass, homeClass, notchClass, pinClass, pinFor } from "./pins";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -151,10 +150,6 @@ function MapView({ board }: { board: BoardData }) {
   );
 }
 
-// The notch (6px) plus the cap height of the base map's city labels, so a pin never sits on
-// the name of the place it marks.
-const pinOffset: [number, number] = [0, -14];
-
 const count = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
 
 function CarMap({
@@ -179,22 +174,15 @@ function CarMap({
   select.current = onSelect;
 
   useEffect(() => {
-    const dark = window.matchMedia("(prefers-color-scheme: dark)");
-    const created = new mapboxgl.Map({
-      container: container.current!,
-      accessToken: token,
-      style: mapStyle(dark.matches),
+    const created = createMap(container.current!, token, {
       center: [10, 50],
       zoom: 3.5,
       // Scrolling the page over the map should scroll the page.
       cooperativeGestures: true,
     });
-    created.addControl(new mapboxgl.NavigationControl({ showCompass: false }));
-    const restyle = () => created.setStyle(mapStyle(dark.matches));
-    dark.addEventListener("change", restyle);
-    setMap(created);
+    created.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }));
+    setMap(created.map);
     return () => {
-      dark.removeEventListener("change", restyle);
       created.remove();
       framed.current = false;
     };
@@ -206,7 +194,7 @@ function CarMap({
       const element = placeMarker(place);
       element.addEventListener("click", () => select.current(place));
       markers.current.set(place.key, element);
-      // Anchored above the place, clear of the base map's own city name below it.
+      // Anchored above the place, clear of the base map's own city name.
       const marker = new mapboxgl.Marker({ element, anchor: "bottom", offset: pinOffset }).setLngLat(place.point).addTo(map);
       // Mapbox marks every marker as an image; this one is a button.
       element.removeAttribute("role");
@@ -263,14 +251,6 @@ function placeMarker(place: Place) {
   return element;
 }
 
-function span(className: string, text = "") {
-  const element = document.createElement("span");
-  element.className = className;
-  element.textContent = text;
-  if (!text) element.setAttribute("aria-hidden", "true");
-  return element;
-}
-
 // What the pins mean. Shown, not described, so it matches the map exactly.
 function Legend({ home }: { home: boolean }) {
   const item = "flex items-center gap-2";
@@ -309,18 +289,6 @@ function Legend({ home }: { home: boolean }) {
       )}
     </ul>
   );
-}
-
-function homeMarker() {
-  const element = document.createElement("div");
-  element.className = cn(homeClass, "shadow-md");
-  element.setAttribute("role", "img");
-  element.setAttribute("aria-label", "Home");
-  // Lucide's "house" icon.
-  element.innerHTML =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
-  element.append(span(notchClass("home")));
-  return element;
 }
 
 // Where distances are measured from. Looked up on the server, so the place it found is
