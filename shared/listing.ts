@@ -73,6 +73,18 @@ export const listingData = z.object({
   }),
   details: listingDetails,
   description: z.string().max(20_000).optional().describe("Seller's free-text description."),
+  descriptionTranslation: z
+    .object({
+      from: z
+        .string()
+        .regex(/^[a-z]{2}$/)
+        .describe('ISO 639-1 code of the language the description is written in, e.g. "de".'),
+      text: text(30_000).describe(
+        "The whole description in English, keeping its paragraphs. Translate meaning, not word for word, and spell out local terms and abbreviations a buyer from abroad would not know.",
+      ),
+    })
+    .optional()
+    .describe("English translation of the description. Omit when the description is already in English."),
   photoUrls: z
     .array(z.url({ protocol: /^https$/ }).max(2_000))
     .max(60)

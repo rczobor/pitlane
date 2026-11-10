@@ -18,10 +18,10 @@ export const save = internalMutation({
     url: v.string(),
     data: listingDataValidator,
   },
-  handler: async (ctx, { boardId, capturedBy, url, data }) => {
+  handler: async (ctx, { boardId, capturedBy, url, data: captured }) => {
     const ref = resolveListingUrl(url);
     if (!ref) throw appError("invalid", "Not a supported listing URL");
-    const badPhoto = data.photoUrls.find((photoUrl) => !isAllowedPhotoUrl(ref.source, photoUrl));
+    const badPhoto = captured.photoUrls.find((photoUrl) => !isAllowedPhotoUrl(ref.source, photoUrl));
     if (badPhoto) throw appError("invalid", `Photo URL is not on a ${ref.source} image host: ${badPhoto}`);
 
     const now = Date.now();
@@ -29,6 +29,14 @@ export const save = internalMutation({
       .query("listings")
       .withIndex("by_source_external", (q) => q.eq("source", ref.source).eq("externalId", ref.externalId))
       .unique();
+
+    // A capture without a translation (the extension, or an agent that skipped it) keeps the
+    // one already saved, as long as the description it translates is unchanged.
+    const kept =
+      !captured.descriptionTranslation &&
+      existing?.current.description === captured.description &&
+      existing?.current.descriptionTranslation;
+    const data = kept ? { ...captured, descriptionTranslation: kept } : captured;
 
     let listingId: Id<"listings">;
     let changed = true;
@@ -288,7 +296,8 @@ async function queuePhotos(ctx: MutationCtx, listingId: Id<"listings">, urls: st
 }
 
 // Photo URLs are excluded because CDNs may rotate them without the listing changing.
-function fingerprint({ photoUrls: _, ...rest }: ListingData) {
+// Translations are left out: they are reworded on every capture of the same text.
+function fingerprint({ photoUrls: _, descriptionTranslation: __, ...rest }: ListingData) {
   return stableStringify(rest);
 }
 
