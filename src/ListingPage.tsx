@@ -1,8 +1,21 @@
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Columns3, House, Languages, ScanSearch } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Columns3, House, Languages, ScanSearch, Trash2 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -39,8 +52,11 @@ export function ListingPage({ listingId }: { listingId: string }) {
   const board = useQuery(api.board.get);
   const move = useMutation(api.board.move);
   const [checking, setChecking] = useState(false);
+  // Set while removing: the listing query turns null before the navigation to the board lands.
+  const [leaving, setLeaving] = useState(false);
 
   if (listing === undefined) return <ListingSkeleton />;
+  if (listing === null && leaving) return null;
   if (listing === null) {
     return (
       <main className="mx-auto max-w-[1600px] space-y-2 px-4 sm:px-8">
@@ -223,6 +239,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
               <Columns3 data-icon="inline-start" aria-hidden />
               Compare with others
             </Link>
+            <RemoveCar listingId={listing.listingId} title={listing.title} onLeaving={setLeaving} />
           </div>
 
           {/* Pitlane's own measure, so it has its own section outside the listing's facts. */}
@@ -418,6 +435,65 @@ function SellerMap({
         </span>
       </span>
     </Link>
+  );
+}
+
+// Removing is final: the car's notes, key specs and tier go with it.
+function RemoveCar({
+  listingId,
+  title,
+  onLeaving,
+}: {
+  listingId: Id<"listings">;
+  title: string;
+  onLeaving: (leaving: boolean) => void;
+}) {
+  const remove = useMutation(api.board.remove);
+  const navigate = useNavigate();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const confirm = async () => {
+    setPending(true);
+    setError(null);
+    onLeaving(true);
+    try {
+      await remove({ listingId });
+      await navigate({ to: "/", replace: true });
+    } catch (caught) {
+      onLeaving(false);
+      setError(caught instanceof ConvexError ? String(caught.data.message) : "Removing failed. Try again.");
+      setPending(false);
+    }
+  };
+
+  return (
+    <AlertDialog onOpenChange={() => setError(null)}>
+      <AlertDialogTrigger render={<Button variant="ghost" className="text-muted-foreground" />}>
+        <Trash2 data-icon="inline-start" aria-hidden />
+        Remove from board
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this car?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {title} comes off your board, and its tier, notes and key-spec values are deleted. Saving the listing
+            again adds it back to Watching.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" disabled={pending} onClick={() => void confirm()}>
+            Remove
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

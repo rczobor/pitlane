@@ -77,5 +77,6 @@ export default defineSchema({
     cons: v.optional(v.array(v.string())),
   })
     .index("by_board", ["boardId", "tier", "rank"])
-    .index("by_board_listing", ["boardId", "listingId"]),
+    .index("by_board_listing", ["boardId", "listingId"])
+    .index("by_listing", ["listingId"]),
 });

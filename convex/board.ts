@@ -44,6 +44,36 @@ export const move = mutation({
   },
 });
 
+// Takes the car off the user's board. The listing is shared by every board that tracks it,
+// so its history and stored photos are deleted only once no board tracks it any more.
+export const remove = mutation({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, { listingId }) => {
+    const { item } = await ownItem(ctx, listingId);
+    await ctx.db.delete(item._id);
+    const tracked = await ctx.db
+      .query("boardItems")
+      .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+      .first();
+    if (tracked) return;
+
+    const snapshots = await ctx.db
+      .query("snapshots")
+      .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+      .collect();
+    for (const snapshot of snapshots) await ctx.db.delete(snapshot._id);
+    const photos = await ctx.db
+      .query("photos")
+      .withIndex("by_listing", (q) => q.eq("listingId", listingId))
+      .collect();
+    for (const photo of photos) {
+      if (photo.storageId) await ctx.storage.delete(photo.storageId);
+      await ctx.db.delete(photo._id);
+    }
+    await ctx.db.delete(listingId);
+  },
+});
+
 export const setModel = mutation({
   args: { listingId: v.id("listings"), modelId: v.union(v.string(), v.null()) },
   handler: async (ctx, { listingId, modelId }) => {
