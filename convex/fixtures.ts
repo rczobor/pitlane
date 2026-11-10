@@ -215,16 +215,16 @@ const coordinates: Record<string, { lat: number; lng: number }> = {
 };
 const demoHome = { query: "1010 Wien", place: "1010, Innere Stadt, Vienna, Austria", lat: 48.2082, lng: 16.3738 };
 
-// Every fixture function wipes or rewrites data, so each refuses to run on a cloud
-// deployment anyone has signed in to, even when called directly with `convex run`.
-// Production always has a signed-in owner; a fresh preview has nobody yet.
-async function fixturesOnly(ctx: MutationCtx) {
+// Every fixture function wipes or rewrites data, so on a cloud deployment each refuses
+// real data, even when called directly with `convex run`: the wipe runs only on an
+// empty database (a preview the CLI just created), the rest only before anyone signs in.
+async function fixturesOnly(ctx: MutationCtx, { wipe = false } = {}) {
   if (process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) return;
-  const signedIn = await ctx.db
-    .query("users")
-    .withIndex("by_token_identifier", (q) => q.gt("tokenIdentifier", ""))
-    .first();
-  if (signedIn) throw new Error("Fixtures only run on a local deployment or a fresh preview");
+  const users = ctx.db.query("users");
+  const blocking = await (wipe
+    ? users.first()
+    : users.withIndex("by_token_identifier", (q) => q.gt("tokenIdentifier", "")).first());
+  if (blocking) throw new Error("Fixtures only run on a local deployment or a fresh preview");
 }
 
 // Vercel's preview builds also run this, without photos, when they create a preview
@@ -267,7 +267,7 @@ export const seed = internalAction({
 export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
-    await fixturesOnly(ctx);
+    await fixturesOnly(ctx, { wipe: true });
     for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
