@@ -115,9 +115,10 @@ export function ListingCard({
           {modelName && <p className="condensed text-lg leading-none font-bold">{modelName}</p>}
           <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {/* Year, mileage and power stay at glance level, above the key specs. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <CardContent className="flex flex-1 flex-col gap-2">
+          {/* Year, mileage and power stay at glance level, above the key specs. Both sit at the
+              card's foot, so in a lane row the ledgers line up even when one card's badges wrap. */}
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <dl className="flex gap-x-3 tabular-nums">
               <Spec label="First registration" value={formatRegistrationYear(specs.firstRegistration)} />
               <Spec label="Mileage" value={formatKm(specs.mileageKm)} />

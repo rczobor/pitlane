@@ -265,7 +265,7 @@ function Lane({
         </h2>
         {/* Pinned to the slab's foot, so it sits in the same place whatever the label. A lane
             that hides cars says which ones are on screen. */}
-        <p className="text-sm tabular-nums opacity-75 sm:mt-auto sm:pt-3">
+        <p className="text-sm tabular-nums opacity-75 sm:mt-auto sm:pt-3 dark:opacity-100">
           {view
             ? `${view.first + 1}${view.last > view.first ? `–${view.last + 1}` : ""} of ${total}`
             : total}
@@ -320,7 +320,7 @@ function Lane({
                     "h-1 w-full rounded-full",
                     index >= view.first && index <= view.last
                       ? "bg-muted-foreground"
-                      : "bg-foreground/15 group-hover/tick:bg-foreground/30",
+                      : "bg-foreground/25 group-hover/tick:bg-foreground/40",
                   )}
                 />
               </button>
@@ -333,7 +333,8 @@ function Lane({
 }
 
 // What a lane that hides cars shows: whether cars are hidden at each end, and the first and
-// last car on screen (centre clear of the fades). Null when every car fits.
+// last car on screen (at least 60% clear of the fades, or else the most visible one). Null
+// when every car fits.
 type LaneView = { start: boolean; end: boolean; first: number; last: number };
 
 // Measures the lane on scroll and resize, and sizes its cards. Re-renders only when the view
@@ -379,11 +380,12 @@ function measureLane(lane: HTMLElement): LaneView | null {
   const { scrollPaddingLeft, scrollPaddingRight } = getComputedStyle(lane);
   const from = box.left + (start ? parseFloat(scrollPaddingLeft) : 0);
   const to = box.right - (end ? parseFloat(scrollPaddingRight) : 0);
-  const shown = [...lane.children].flatMap((card, index) => {
-    const { left, width } = card.getBoundingClientRect();
-    return left + width / 2 >= from && left + width / 2 <= to ? [index] : [];
+  const clear = [...lane.children].map((card) => {
+    const { left, right, width } = card.getBoundingClientRect();
+    return Math.max(0, Math.min(right, to) - Math.max(left, from)) / width;
   });
-  if (shown.length === 0) return null;
+  const shown = clear.flatMap((part, index) => (part >= 0.6 ? [index] : []));
+  if (shown.length === 0) shown.push(clear.indexOf(Math.max(...clear)));
   return { start, end, first: shown[0], last: shown[shown.length - 1] };
 }
 
