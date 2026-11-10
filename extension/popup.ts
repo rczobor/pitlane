@@ -1,11 +1,8 @@
-import { z } from "zod";
+import "./jitless.ts";
 import { fuelTypes, gearboxTypes, listingData } from "../shared/listing.ts";
 import { fullSizePhotoUrl, resolveListingUrl } from "../shared/sources.ts";
 import { type Settings, callApi, loadSettings } from "./api.ts";
 import { type PageDraft, extract } from "./extract.ts";
-
-// Extension pages forbid eval, which zod would otherwise probe for.
-z.config({ jitless: true });
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const form = $<HTMLFormElement>("#listing");
@@ -49,14 +46,22 @@ async function start() {
   const listing = tab?.url ? resolveListingUrl(tab.url) : null;
   if (!tab?.id || !tab.url || !listing) return showIdle(settings);
 
-  show("listing");
+  let draft: PageDraft = { options: [], photoUrls: [] };
   try {
     const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extract });
-    fill(injection.result as PageDraft, listing.source);
+    draft = injection.result as PageDraft;
   } catch (error) {
-    fill({ options: [], photoUrls: [] }, listing.source);
     say(`Could not read the page (${error instanceof Error ? error.message : error}). Fill in the details by hand.`, true);
   }
+  // A re-check starts from the saved listing, so values typed in by hand on an earlier
+  // save survive when the page does not show them. What the page shows wins.
+  setUpSelects();
+  const saved = await savedListing(settings, listing.canonicalUrl);
+  if (saved) fill(saved);
+  fill(draft);
+  if (!field("currency").value) field("currency").value = "EUR";
+  showPhotos(draft.photoUrls, listing.source);
+  show("listing");
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     void save(settings, tab.url!);
@@ -67,7 +72,10 @@ async function start() {
 async function showIdle(settings: Settings) {
   show("idle");
   const result = await callApi(settings, "/api/rechecks");
-  if (!result.ok) return;
+  if (!result.ok) {
+    $("#idle-status").textContent = result.message;
+    return;
+  }
   const due = (result.body as { due: { title: string; url: string }[] }).due;
   if (due.length === 0) return;
   $("#due-box").hidden = false;
@@ -84,7 +92,31 @@ async function showIdle(settings: Settings) {
   );
 }
 
-function fill(draft: PageDraft, source: string) {
+// The listing as saved on the board, or null when it is new (or cannot be read).
+async function savedListing(settings: Settings, canonicalUrl: string): Promise<Partial<PageDraft> | null> {
+  const list = await callApi(settings, "/api/listings");
+  const match =
+    list.ok && (list.body as { listings: { listingId: string; url: string }[] }).listings.find((l) => l.url === canonicalUrl);
+  if (!match) return null;
+  const detail = await callApi(settings, `/api/listings/${encodeURIComponent(match.listingId)}`);
+  const parsed = detail.ok ? listingData.omit({ photoUrls: true }).safeParse(detail.body) : null;
+  if (!parsed?.success) return null;
+  const { title, price, seller, details, description } = parsed.data;
+  return {
+    title,
+    price: price.amount,
+    currency: price.currency,
+    vatDeductible: price.vatDeductible,
+    netPrice: price.netAmount,
+    sellerType: seller.type,
+    sellerName: seller.name,
+    location: seller.location,
+    ...details,
+    description,
+  };
+}
+
+function setUpSelects() {
   const options = (select: string, labels: Record<string, string>) =>
     (field(select) as HTMLSelectElement).replaceChildren(
       new Option("Choose…", ""),
@@ -92,14 +124,18 @@ function fill(draft: PageDraft, source: string) {
     );
   options("fuel", fuelLabels);
   options("gearbox", gearboxLabels);
+}
 
+// Writes the values it has and leaves the other fields as they are, so a later call
+// only overrides what it knows.
+function fill(draft: Partial<PageDraft>) {
   const set = (name: string, value: string | number | undefined) => {
     if (value !== undefined) field(name).value = String(value);
   };
   set("title", draft.title);
   set("price", draft.price);
-  set("currency", draft.currency ?? "EUR");
-  set("vatDeductible", draft.vatDeductible === undefined ? "" : draft.vatDeductible ? "yes" : "no");
+  set("currency", draft.currency);
+  set("vatDeductible", draft.vatDeductible === undefined ? undefined : draft.vatDeductible ? "yes" : "no");
   set("netPrice", draft.netPrice);
   set("make", draft.make);
   set("model", draft.model);
@@ -111,14 +147,16 @@ function fill(draft: PageDraft, source: string) {
   set("previousOwners", draft.previousOwners);
   set("bodyType", draft.bodyType);
   set("color", draft.color);
-  set("options", draft.options.join("\n"));
+  if (draft.options?.length) set("options", draft.options.join("\n"));
   set("sellerType", draft.sellerType);
   set("sellerName", draft.sellerName);
   set("location", draft.location);
   set("description", draft.description);
+}
 
+function showPhotos(photoUrls: string[], source: string) {
   // Only the listing site's own photo host is accepted by Pitlane; same photo, largest size.
-  const photos = [...new Set(draft.photoUrls.flatMap((url) => fullSizePhotoUrl(source, url) ?? []))].slice(0, 60);
+  const photos = [...new Set(photoUrls.flatMap((url) => fullSizePhotoUrl(source, url) ?? []))].slice(0, 60);
   $("#no-photos").hidden = photos.length > 0;
   $("#photos").replaceChildren(
     ...photos.map((url, index) => {
@@ -135,8 +173,13 @@ function fill(draft: PageDraft, source: string) {
 // Form values as the API's listing shape. Empty optional fields are left out.
 function readForm() {
   const text = (name: string) => field(name).value.trim() || undefined;
+  // The first number, cents dropped: a pasted "119.950,00 €" is 119950, not 11995000.
   const number = (name: string) => {
-    const digits = text(name)?.replace(/\D/g, "");
+    const digits = text(name)
+      ?.match(/\d[\d.,\s]*/)?.[0]
+      .trim()
+      .replace(/[.,]\d{1,2}$/, "")
+      .replace(/\D/g, "");
     return digits ? Number(digits) : undefined;
   };
   const vat = text("vatDeductible");

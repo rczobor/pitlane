@@ -38,7 +38,9 @@ test("reads structured data first", () => {
         },
       ],
     })}</script>`;
-  document.body.innerHTML = "<h1>Ignored when structured data has a name</h1>";
+  // A similar car's label block further down must not override the structured data.
+  document.body.innerHTML = `<h1>Ignored when structured data has a name</h1>
+    <dl><dt>Kilometerstand</dt><dd>99.999 km</dd><dt>Getriebe</dt><dd>Automatik</dd></dl>`;
 
   expect(extract()).toMatchObject({
     title: "Porsche 911 GT3 Touring",

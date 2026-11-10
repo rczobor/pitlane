@@ -4,6 +4,7 @@
 //
 // Sources, most trusted first: structured data (JSON-LD), then label/value pairs as the
 // page shows them (German and English labels), then the page title and OpenGraph tags.
+// The price notes (net price, VAT) and the private-seller hint come from the page text.
 // Whatever it cannot find stays empty for the user to fill in; it never guesses values.
 
 export type PageDraft = {
@@ -86,7 +87,7 @@ export function extract(): PageDraft {
     }
   };
 
-  const fuelText = field("kraftstoffart", "kraftstoff", "fuel", "fuel type") ?? clean(vehicle?.fuelType);
+  const fuelText = clean(vehicle?.fuelType) ?? field("kraftstoffart", "kraftstoff", "fuel", "fuel type");
   const fuels: [RegExp, string][] = [
     [/plug-?in/i, "plugin_hybrid"],
     [/hybrid/i, "hybrid"],
@@ -97,7 +98,7 @@ export function extract(): PageDraft {
     [/erdgas|cng/i, "cng"],
     [/wasserstoff|hydrogen/i, "hydrogen"],
   ];
-  const gearboxText = field("getriebe", "getriebeart", "transmission", "gearbox") ?? clean(vehicle?.vehicleTransmission);
+  const gearboxText = clean(vehicle?.vehicleTransmission) ?? field("getriebe", "getriebeart", "transmission", "gearbox");
   const gearboxes: [RegExp, string][] = [
     [/halbautomat|semi-?auto/i, "semi_automatic"],
     [/automat|pdk|dsg|tiptronic/i, "automatic"],
@@ -116,6 +117,8 @@ export function extract(): PageDraft {
   const kw = powerText?.match(/(\d+)\s*kw/i)?.[1];
   const engine = [vehicle?.vehicleEngine].flat().find(isObject);
   const enginePower = isObject(engine?.enginePower) ? engine.enginePower : undefined;
+  // Structured power counts only when its unit says kW; a bare number may be hp.
+  const engineKw = enginePower?.unitCode === "KWT" ? whole(enginePower.value) : undefined;
 
   const mileage = isObject(vehicle?.mileageFromOdometer) ? vehicle.mileageFromOdometer.value : undefined;
 
@@ -137,7 +140,7 @@ export function extract(): PageDraft {
   const section = (pattern: RegExp) => {
     const heading = headings.find((h) => pattern.test(clean(h.textContent) ?? ""));
     if (!heading) return undefined;
-    // The heading's own container, or the next sibling, holds the content.
+    // The content is in the siblings after the heading, up to the next heading.
     let next = heading.nextElementSibling;
     while (next && !/^H[1-4]$/.test(next.tagName)) {
       if (next.matches("ul, ol, p, div")) return next;
@@ -164,7 +167,14 @@ export function extract(): PageDraft {
       const link = img.closest("a[href]") as HTMLAnchorElement | null;
       if (link && link.href.split("#")[0] !== here) return [];
       const srcset = img.getAttribute("srcset")?.split(",").at(-1)?.trim().split(/\s+/)[0];
-      return [srcset, img.getAttribute("data-src"), img.getAttribute("src")].flatMap((u) => (u ? [new URL(u, here).href] : []));
+      return [srcset, img.getAttribute("data-src"), img.getAttribute("src")].flatMap((u) => {
+        // One malformed address must not cost the rest of the page.
+        try {
+          return u ? [new URL(u, here).href] : [];
+        } catch {
+          return [];
+        }
+      });
     }),
   ];
 
@@ -197,13 +207,13 @@ export function extract(): PageDraft {
       field("standort", "location", "adresse", "address"),
     make,
     model: clean(vehicle?.model),
-    firstRegistration: registration(field("erstzulassung", "first registration") ?? clean(vehicle?.dateVehicleFirstRegistered)),
-    mileageKm: whole(field("kilometerstand", "mileage", "kilometres", "odometer")) ?? whole(mileage),
+    firstRegistration: registration(clean(vehicle?.dateVehicleFirstRegistered) ?? field("erstzulassung", "first registration")),
+    mileageKm: whole(mileage) ?? whole(field("kilometerstand", "mileage", "kilometres", "odometer")),
     fuel: pick(fuelText, fuels) || undefined,
     gearbox: pick(gearboxText, gearboxes) || undefined,
-    powerKw: kw ? Number(kw) : whole(enginePower?.value),
-    bodyType: field("kategorie", "category", "body type", "karosserieform") ?? clean(vehicle?.bodyType),
-    color: field("farbe", "außenfarbe", "farbe (hersteller)", "colour", "color", "exterior colour") ?? clean(vehicle?.color),
+    powerKw: engineKw ?? (kw ? Number(kw) : undefined),
+    bodyType: clean(vehicle?.bodyType) ?? field("kategorie", "category", "body type", "karosserieform"),
+    color: clean(vehicle?.color) ?? field("farbe", "außenfarbe", "farbe (hersteller)", "colour", "color", "exterior colour"),
     previousOwners: whole(field("anzahl der fahrzeughalter", "fahrzeughalter", "number of vehicle owners", "previous owners")),
     options,
     description: paragraphs(descriptionBox) ?? clean(product?.description),
