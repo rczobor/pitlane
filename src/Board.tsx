@@ -281,7 +281,7 @@ function Lane({
         <div
           ref={lane}
           onMouseDown={panWithMiddleButton}
-          className="relative flex min-h-20 flex-1 scroll-px-12 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/lane:[--fade-end:3rem] group-data-more-start/lane:[--fade-start:3rem] sm:min-h-44"
+          className="relative flex min-h-20 flex-1 scroll-px-16 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/lane:[--fade-end:4rem] group-data-more-start/lane:[--fade-start:4rem] sm:min-h-44"
         >
           <SortableContext items={listings.map((l) => l.listingId)}>
             {listings.map((listing) => (
@@ -364,13 +364,14 @@ function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onCl
   const Icon = direction === "back" ? ChevronLeft : ChevronRight;
   return (
     <Button
-      variant="outline"
+      variant="secondary"
       size="icon-lg"
       tabIndex={-1}
       aria-hidden
       onClick={onClick}
       className={cn(
-        "invisible absolute top-1/2 -translate-y-1/2 rounded-full bg-background shadow-md opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
+        // Centred on the photos (16:9, below the lane's padding), clear of prices and titles.
+        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 shadow-md opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
         direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
       )}
     >

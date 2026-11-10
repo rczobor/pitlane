@@ -151,8 +151,7 @@ export function ListingCard({
       </Card>
     </>
   );
-  // Cards grow on wide screens so photos use the lane, within a readable range.
-  const frame = "block w-[clamp(16rem,22vw,22.5rem)] shrink-0 rounded-lg";
+  const frame = "block w-(--board-card) shrink-0 rounded-lg";
   return preview ? (
     <div className={frame}>{card}</div>
   ) : (

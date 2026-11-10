@@ -38,6 +38,8 @@
   --signal: #f4be1a;
   --signal-foreground: #23272b;
   --radius: 0.375rem;
+  /* Cards grow on wide screens so photos use the lane, within a readable range. */
+  --board-card: clamp(16rem, 22vw, 22.5rem);
 }
 
 @media (prefers-color-scheme: dark) {
