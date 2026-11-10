@@ -8,14 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { useBoardToken } from "./token";
 
 type Props = { listingId: Id<"listings">; notes: string; pros: string[]; cons: string[] };
 
 // The user's own take on a car. Notes save shortly after typing stops and when the field
 // loses focus; pros and cons save on every change.
 export function YourTake({ listingId, notes, pros, cons }: Props) {
-  const token = useBoardToken();
   const setNotes = useMutation(api.board.setNotes);
   const [draft, setDraft] = useState(notes);
   const [state, setState] = useState<"saved" | "saving" | "error" | null>(null);
@@ -28,7 +26,7 @@ export function YourTake({ listingId, notes, pros, cons }: Props) {
     pending.current = null;
     if (value === notes) return;
     setState("saving");
-    setNotes({ token, listingId, notes: value }).then(
+    setNotes({ listingId, notes: value }).then(
       () => setState("saved"),
       () => setState("error"),
     );
@@ -77,13 +75,13 @@ export function YourTake({ listingId, notes, pros, cons }: Props) {
           label="Pros"
           icon={<Plus className="size-3.5" aria-hidden />}
           items={pros}
-          onChange={(next) => void setNotes({ token, listingId, pros: next })}
+          onChange={(next) => void setNotes({ listingId, pros: next })}
         />
         <ItemList
           label="Cons"
           icon={<Minus className="size-3.5" aria-hidden />}
           items={cons}
-          onChange={(next) => void setNotes({ token, listingId, cons: next })}
+          onChange={(next) => void setNotes({ listingId, cons: next })}
         />
       </div>
     </section>

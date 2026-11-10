@@ -9,7 +9,6 @@ import { preferredFor } from "../shared/fit";
 import type { BoardData, ResolvedSpec } from "./format";
 import { Gallery } from "./Gallery";
 import { OtherChoice, preferenceLabel } from "./SpecEditor";
-import { useBoardToken } from "./token";
 
 type Props = {
   listingId: Id<"listings">;
@@ -31,7 +30,6 @@ const Kbd = ({ children, className }: { children: React.ReactNode; className?: s
 );
 
 export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed, board, onDone }: Props) {
-  const token = useBoardToken();
   const setValue = useMutation(api.board.setSpecValue);
   // The queue is fixed on entry, so confirming a spec does not reshuffle what is left.
   const [queue] = useState(() => keySpecs.filter((s) => s.source !== "you").map((s) => s.id));
@@ -53,7 +51,7 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
   const advance = () => setPosition((p) => Math.min(p + 1, queue.length));
   const pick = (value: string) => {
     if (!spec) return;
-    void setValue({ token, listingId, specId: spec.id, value });
+    void setValue({ listingId, specId: spec.id, value });
     advance();
   };
 

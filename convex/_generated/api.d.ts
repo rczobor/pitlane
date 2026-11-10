@@ -16,6 +16,7 @@ import type * as keySpecs from "../keySpecs.js";
 import type * as listings from "../listings.js";
 import type * as photos from "../photos.js";
 import type * as tokens from "../tokens.js";
+import type * as users from "../users.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   listings: typeof listings;
   photos: typeof photos;
   tokens: typeof tokens;
+  users: typeof users;
   validators: typeof validators;
 }>;
 

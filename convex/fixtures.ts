@@ -9,7 +9,9 @@ import { tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
 import { listingSite } from "../shared/sources";
 
-// Sign the browser in during captures. They only ever exist on a local fixture deployment.
+// REST API tokens for the two seeded boards; they only ever exist on a local fixture
+// deployment. The web app signs in with Clerk: the first account takes over the seeded
+// board, a second one the empty board.
 export const fixtureToken = `pit_${"f".repeat(64)}`;
 export const emptyBoardToken = `pit_${"e".repeat(64)}`;
 

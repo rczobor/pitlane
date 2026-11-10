@@ -13,7 +13,6 @@ import type { BoardData, ResolvedSpec } from "./format";
 
 export const preferenceLabel = (kind: ResolvedSpec["kind"], value: string) =>
   kind === "check" ? (value === "yes" ? "Yes" : "No") : value;
-import { useBoardToken } from "./token";
 
 type Props = {
   listingId: Id<"listings">;
@@ -33,10 +32,9 @@ const itemClass = (source: ResolvedSpec["source"]) =>
   );
 
 export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {
-  const token = useBoardToken();
   const setModel = useMutation(api.board.setModel);
   const setValue = useMutation(api.board.setSpecValue);
-  const save = (specId: string, value: string | null) => void setValue({ token, listingId, specId, value });
+  const save = (specId: string, value: string | null) => void setValue({ listingId, specId, value });
   const toConfirm = keySpecs.filter((s) => s.source === "listing").length;
   const [pickingModel, setPickingModel] = useState(false);
 
@@ -66,7 +64,7 @@ export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {
             value={modelId ? [modelId] : []}
             onValueChange={(value) => {
               // Clicking the current model again closes the picker; it never clears the model.
-              if (value[0]) void setModel({ token, listingId, modelId: value[0] });
+              if (value[0]) void setModel({ listingId, modelId: value[0] });
               setPickingModel(false);
             }}
             className="flex-wrap"

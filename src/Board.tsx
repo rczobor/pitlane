@@ -21,7 +21,6 @@ import { toCheck } from "../shared/fit";
 import { type BoardData, type BoardListing, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard } from "./ListingCard";
 import { slabColor } from "./TierSlab";
-import { useBoardToken } from "./token";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
@@ -29,8 +28,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 export function Board() {
-  const token = useBoardToken();
-  const board = useQuery(api.board.get, { token });
+  const board = useQuery(api.board.get);
   const { model, check } = useSearch({ from: "/" });
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
@@ -83,7 +81,7 @@ export function Board() {
     const index = order.indexOf(dragged);
     const rank = rankBetween(order[index - 1]?.rank, order[index + 1]?.rank);
     if (dragged.tier !== tier || rank !== dragged.rank) {
-      void move({ token, listingId: dragged.listingId, tier, rank });
+      void move({ listingId: dragged.listingId, tier, rank });
     }
   }
 
@@ -310,12 +308,12 @@ function rankBetween(before: number | undefined, after: number | undefined) {
 
 // Moves the card locally at once; Convex replaces this with the server's answer.
 function useMoveListing() {
-  return useMutation(api.board.move).withOptimisticUpdate((store, { token, listingId, tier, rank }) => {
-    const board = store.getQuery(api.board.get, { token });
+  return useMutation(api.board.move).withOptimisticUpdate((store, { listingId, tier, rank }) => {
+    const board = store.getQuery(api.board.get, {});
     if (!board) return;
     store.setQuery(
       api.board.get,
-      { token },
+      {},
       { ...board, listings: board.listings.map((l) => (l.listingId === listingId ? { ...l, tier, rank } : l)) },
     );
   });

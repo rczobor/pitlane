@@ -24,13 +24,11 @@ import {
 import { specTone, specValueText, specVerdict } from "./KeySpecLedger";
 import { NoPhoto } from "./ListingCard";
 import { TierSlab } from "./TierSlab";
-import { useBoardToken } from "./token";
 
 export const maxCompared = 3;
 
 export function Compare({ ids }: { ids: string[] }) {
-  const token = useBoardToken();
-  const board = useQuery(api.board.get, { token });
+  const board = useQuery(api.board.get);
   const navigate = useNavigate();
   const setIds = (next: string[]) =>
     void navigate({ to: "/compare", search: next.length > 0 ? { ids: next.join(",") } : {}, replace: true });

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalAction, internalMutation, internalQuery, type ActionCtx, type QueryCtx } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, type ActionCtx } from "./_generated/server";
 
 const tokenPattern = /^pit_[0-9a-f]{64}$/;
 
@@ -16,7 +16,8 @@ export const create = internalAction({
   },
 });
 
-// Single-user for now: every token belongs to the first user's first board, created on demand.
+// Every token belongs to the oldest user's first board, created on demand: the owner's,
+// as long as the owner signs in or creates a token before anyone else signs in.
 export const insert = internalMutation({
   args: { name: v.string(), userName: v.optional(v.string()), tokenHash: v.string() },
   handler: async (ctx, { name, userName, tokenHash }) => {
@@ -42,16 +43,6 @@ export async function authenticate(ctx: ActionCtx, request: Request) {
   return token && tokenPattern.test(token)
     ? ctx.runQuery(internal.tokens.byHash, { tokenHash: await sha256(token) })
     : null;
-}
-
-// For public queries and mutations, which receive the token as an argument.
-export async function tokenAccess(ctx: QueryCtx, token: string) {
-  if (!tokenPattern.test(token)) return null;
-  const tokenHash = await sha256(token);
-  return ctx.db
-    .query("apiTokens")
-    .withIndex("by_hash", (q) => q.eq("tokenHash", tokenHash))
-    .unique();
 }
 
 export async function sha256(text: string) {

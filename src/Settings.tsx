@@ -15,11 +15,9 @@ import type { Criteria, Preference } from "../shared/fit";
 import type { BoardData, BoardListing, BoardModel, KeySpecDef, ResolvedSpec } from "./format";
 import { ListingCard } from "./ListingCard";
 import { preferenceLabel } from "./SpecEditor";
-import { useBoardToken } from "./token";
 
 export function Settings() {
-  const token = useBoardToken();
-  const board = useQuery(api.board.get, { token });
+  const board = useQuery(api.board.get);
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
       <div className="max-w-3xl">
@@ -69,7 +67,6 @@ function move<T>(list: T[], index: number, by: -1 | 1) {
 }
 
 function SettingsForm({ board }: { board: BoardData }) {
-  const token = useBoardToken();
   const saveSettings = useMutation(api.board.saveSettings);
   const [models, setModels] = useState<BoardModel[]>(board.models);
   const [specs, setSpecs] = useState<DraftSpec[]>(board.keySpecs);
@@ -95,7 +92,7 @@ function SettingsForm({ board }: { board: BoardData }) {
 
   async function save() {
     try {
-      const saved = await saveSettings({ token, models, keySpecs: specs });
+      const saved = await saveSettings({ models, keySpecs: specs });
       setModels(saved.models);
       setSpecs(saved.keySpecs);
       setStatus({ kind: "saved" });
