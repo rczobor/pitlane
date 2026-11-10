@@ -99,7 +99,7 @@ Claude through OAuth.
    missing / unknown) with preferred values and deal-breakers per model; a fit
    count on each card and a "How it fits" breakdown on the car page; a check mode
    for confirming specs against the photos; notes, pros and cons per car.
-4. Chrome extension (manual route).
+4. ✅ Chrome extension (manual route).
 5. ✅ Re-checks (due list, failed checks retried later) and the price history chart.
 6. ✅ Side-by-side comparison of up to three cars.
 
@@ -161,6 +161,25 @@ Tools: `save_listing`, `mark_listing_removed`, `list_due_rechecks`,
 To re-check, ask Claude to "re-check my Pitlane listings": it asks for the due
 list, opens each page and saves it again. A listing is due a day after its last
 check; a page that failed to load is retried after six hours.
+
+### Chrome extension
+
+The manual route: open a listing, click the Pitlane button, check the form and
+save. Saving a listing that is already on the board records a re-check. With no
+listing open, the popup lists the cars due for a re-check.
+
+```sh
+pnpm build:extension   # → dist/extension
+```
+
+In Chrome, open `chrome://extensions`, turn on Developer mode, choose **Load
+unpacked** and pick `dist/extension`. Then open the extension's options, paste the
+deployment's `CONVEX_SITE_URL` and a token of its own
+(`pnpm convex run tokens:create '{"name": "chrome-extension"}'`).
+
+The extension reads the open page only when you click its button, and fills the
+form from structured data and the labels the page shows. Anything it could not
+find stays empty for you to fill in.
 
 ## Deployment
 

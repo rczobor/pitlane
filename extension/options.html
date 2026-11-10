@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pitlane options</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="options.js"></script>
+  </head>
+  <body class="options">
+    <main>
+      <h1><span class="mark">Pitlane</span></h1>
+      <p>Connect the extension to your board. In the Pitlane checkout, create a token for it and paste it here:</p>
+      <p><code>pnpm convex run tokens:create '{"name": "chrome-extension"}'</code></p>
+      <p class="muted">The API URL is the deployment's <code>.convex.site</code> address. Saving asks Chrome to let the extension reach it.</p>
+      <form id="settings" class="grid" novalidate>
+        <label class="wide">API URL <input name="apiUrl" type="url" placeholder="https://your-deployment.convex.site" required /></label>
+        <label class="wide">Token <input name="token" type="password" autocomplete="off" placeholder="pit_…" required /></label>
+        <div class="wide actions">
+          <button class="primary" type="submit">Save and test</button>
+        </div>
+        <p id="status" class="wide" role="status"></p>
+      </form>
+    </main>
+  </body>
+</html>

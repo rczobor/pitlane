@@ -1,0 +1,67 @@
+/* The app's pit-wall palette, in plain CSS: the extension carries no Tailwind. */
+:root {
+  color-scheme: light dark;
+  --background: #e4e5e0;
+  --surface: #f6f6f3;
+  --foreground: #23272b;
+  --muted-foreground: #5f656b;
+  --border: #c8cac3;
+  --destructive: #b3261e;
+  --signal: #f4be1a;
+  --signal-foreground: #23272b;
+  --slab: #23272b;
+  --slab-foreground: #f6f6f3;
+  font: 14px/1.45 system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1d2023;
+    --surface: #292d31;
+    --foreground: #ebece8;
+    --muted-foreground: #a2a8ad;
+    --border: #3b4146;
+    --destructive: #f2867e;
+    --slab: #ebece8;
+    --slab-foreground: #1d2023;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground); }
+body.popup { width: 400px; max-height: 600px; }
+main { padding: 16px; }
+body.options main { max-width: 32rem; margin: 0 auto; padding: 40px 16px; }
+[hidden] { display: none !important; }
+h1 { margin: 0 0 12px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+h1 .mark { background: var(--slab); color: var(--slab-foreground); border-radius: 6px; padding: 2px 8px; }
+h2 { margin: 16px 0 8px; font-size: 13px; font-weight: 700; }
+p { margin: 0 0 8px; }
+.muted { color: var(--muted-foreground); }
+.error { color: var(--destructive); font-weight: 600; }
+label { display: grid; gap: 2px; font-size: 12px; color: var(--muted-foreground); }
+input, select, textarea {
+  font: inherit; color: var(--foreground); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 100%;
+}
+textarea { resize: vertical; }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--destructive); }
+:focus-visible { outline: 2px solid var(--foreground); outline-offset: 1px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.grid .wide { grid-column: 1 / -1; }
+.field-error { color: var(--destructive); font-size: 12px; }
+button {
+  font: inherit; font-weight: 600; border-radius: 6px; padding: 7px 14px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--foreground);
+}
+button.primary { background: var(--signal); color: var(--signal-foreground); border-color: transparent; }
+button.danger { color: var(--destructive); }
+button:disabled { opacity: 0.6; cursor: default; }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: 14px; position: sticky; bottom: 0; background: var(--background); padding: 10px 0; }
+.actions .spacer { flex: 1; }
+.photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.photos label { position: relative; display: block; }
+.photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; display: block; }
+.photos input { position: absolute; top: 4px; left: 4px; width: auto; }
+.photos input:not(:checked) + img { opacity: 0.35; }
+ul.due { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+ul.due button { width: 100%; text-align: left; font-weight: 500; }
+#status { margin-top: 8px; }
