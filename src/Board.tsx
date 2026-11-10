@@ -18,7 +18,7 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Ellipsis, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ellipsis, Trash2, X } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -240,6 +240,7 @@ function Lane({
   onRemove: (car: RemovableCar) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: tier });
+  const { frame, lane } = useLaneScroll(listings.length);
   const isLetter = label.length === 1;
   return (
     <section
@@ -268,24 +269,113 @@ function Lane({
       {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
-        onMouseDown={panWithMiddleButton}
+        ref={frame}
         className={cn(
-          "relative flex min-h-20 flex-1 gap-3 overflow-x-auto rounded-b-lg p-3 transition-colors sm:min-h-44 sm:rounded-r-lg sm:rounded-bl-none",
+          "group/lane relative flex min-w-0 flex-1 rounded-b-lg transition-colors sm:rounded-r-lg sm:rounded-bl-none",
           target && "bg-muted",
         )}
       >
-        <SortableContext items={listings.map((l) => l.listingId)}>
-          {listings.map((listing) => (
-            <SortableCard key={listing.listingId} listing={listing} onRemove={onRemove} {...cardProps(listing)} />
-          ))}
-        </SortableContext>
-        {listings.length === 0 && (
-          <p className="self-center px-2 text-sm text-muted-foreground">
-            {dragging ? "Drop here" : tier === "watching" ? "New cars from Claude land here" : "No cars"}
-          </p>
-        )}
+        {/* The lane fades out at an end that hides cars; the rail below shows how much is
+            hidden and where the view is. The scroll padding keeps a card scrolled into view
+            (by the arrows or by tabbing) clear of the fade. */}
+        <div
+          ref={lane}
+          onMouseDown={panWithMiddleButton}
+          className="relative flex min-h-20 flex-1 scroll-px-12 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/lane:[--fade-end:3rem] group-data-more-start/lane:[--fade-start:3rem] sm:min-h-44"
+        >
+          <SortableContext items={listings.map((l) => l.listingId)}>
+            {listings.map((listing) => (
+              <SortableCard key={listing.listingId} listing={listing} onRemove={onRemove} {...cardProps(listing)} />
+            ))}
+          </SortableContext>
+          {listings.length === 0 && (
+            <p className="self-center px-2 text-sm text-muted-foreground">
+              {dragging ? "Drop here" : tier === "watching" ? "New cars from Claude land here" : "No cars"}
+            </p>
+          )}
+        </div>
+        <LaneArrow direction="back" onClick={() => lane.current && pageLane(lane.current, "back")} />
+        <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-3 bottom-1 hidden h-1 rounded-full bg-foreground/10 group-data-overflow/lane:block"
+        >
+          <div className="absolute inset-y-0 left-(--thumb-left) w-(--thumb-width) rounded-full bg-foreground/35" />
+        </div>
       </div>
     </section>
+  );
+}
+
+// Marks the lane's frame with the ends that hide cars (`data-more-start`, `data-more-end`)
+// and sizes the rail's thumb. It writes to the DOM directly, so scrolling never re-renders
+// the cards.
+function useLaneScroll(cars: number) {
+  const frame = useRef<HTMLDivElement>(null);
+  const lane = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const frameEl = frame.current;
+    const laneEl = lane.current;
+    if (!frameEl || !laneEl) return;
+    const update = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = laneEl;
+      const hidden = scrollWidth - clientWidth;
+      frameEl.toggleAttribute("data-overflow", hidden > 1);
+      frameEl.toggleAttribute("data-more-start", scrollLeft > 1);
+      frameEl.toggleAttribute("data-more-end", scrollLeft < hidden - 1);
+      frameEl.style.setProperty("--thumb-width", `${(clientWidth / scrollWidth) * 100}%`);
+      frameEl.style.setProperty("--thumb-left", `${(scrollLeft / scrollWidth) * 100}%`);
+    };
+    update();
+    laneEl.addEventListener("scroll", update, { passive: true });
+    const resize = new ResizeObserver(update);
+    resize.observe(laneEl);
+    return () => {
+      laneEl.removeEventListener("scroll", update);
+      resize.disconnect();
+    };
+  }, [cars]);
+  return { frame, lane };
+}
+
+// Brings the next cars into view: the card cut off at that end moves to the other end, so
+// the user keeps one card of context.
+function pageLane(lane: HTMLElement, direction: "back" | "forward") {
+  const view = lane.getBoundingClientRect();
+  const { scrollPaddingLeft, scrollPaddingRight } = getComputedStyle(lane);
+  const start = view.left + parseFloat(scrollPaddingLeft);
+  const end = view.right - parseFloat(scrollPaddingRight);
+  const cards = [...lane.children];
+  const target =
+    direction === "forward"
+      ? cards.find((card) => card.getBoundingClientRect().right > end + 1)
+      : cards.findLast((card) => card.getBoundingClientRect().left < start - 1);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  target?.scrollIntoView({
+    behavior: reduce ? "instant" : "smooth",
+    block: "nearest",
+    inline: direction === "forward" ? "start" : "end",
+  });
+}
+
+// Shown while the mouse is over a lane that hides cars at that end. Tabbing through the
+// cards already scrolls the lane, so the arrows are for the mouse only; touch screens swipe.
+function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onClick: () => void }) {
+  const Icon = direction === "back" ? ChevronLeft : ChevronRight;
+  return (
+    <Button
+      variant="outline"
+      size="icon-lg"
+      tabIndex={-1}
+      aria-hidden
+      onClick={onClick}
+      className={cn(
+        "invisible absolute top-1/2 -translate-y-1/2 rounded-full bg-background shadow-md opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
+        direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
+      )}
+    >
+      <Icon aria-hidden />
+    </Button>
   );
 }
 
