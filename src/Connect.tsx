@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { ArrowLeft, ArrowUpRight, Check, Copy } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../convex/_generated/api";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +14,7 @@ export function Connect() {
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
       <div className="max-w-3xl">
-        {/* Back to where the link to this page lives, unlike the other pages' "Board". */}
+        {/* Unlike the other pages' "Board": most people arrive from Models and key specs. */}
         <Link to="/settings" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
           <ArrowLeft data-icon="inline-start" aria-hidden />
           Models and key specs
@@ -73,7 +73,8 @@ export function Connect() {
           </Step>
           <Step>Name it Pitlane and paste the server URL.</Step>
           <Step>
-            Set authentication to <Menu>OAuth</Menu> and leave the client ID and secret empty.
+            Set authentication to <Menu>OAuth</Menu> and leave the client ID and secret empty. If it asks how ChatGPT
+            registers, pick client ID metadata documents (CIMD): Pitlane doesn't support dynamic registration.
           </Step>
           <Step>
             Accept the warning, choose <Menu>Create as a plugin</Menu>, then install the plugin and sign in to Pitlane.
@@ -146,6 +147,9 @@ function Ask({ children }: { children: ReactNode }) {
 
 function CopyField({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
+  const field = useRef<HTMLSpanElement>(null);
+  // Without the clipboard (plain-http origins) or permission, select the value for Ctrl+C instead.
+  const select = () => field.current && getSelection()?.selectAllChildren(field.current);
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(false), 2000);
@@ -155,15 +159,16 @@ function CopyField({ value }: { value: string }) {
     <div className="flex gap-2">
       {/* One line, so the field and Copy share a height; on phones it scrolls, and the fade shows there is more. */}
       <code className="min-w-0 flex-1 rounded-md border font-sans text-sm leading-5 font-medium">
-        <span className="block overflow-x-auto px-3 py-2 whitespace-nowrap [mask-image:linear-gradient(to_right,black_92%,transparent)]">
+        <span ref={field} className="block overflow-x-auto py-2 pr-8 pl-3 whitespace-nowrap [mask-image:linear-gradient(to_right,black_92%,transparent)]">
           {value}
         </span>
       </code>
       <Button
         variant="outline"
         className="h-auto"
-        // The clipboard API only exists on secure origins; over plain http the value stays selectable.
-        onClick={() => navigator.clipboard?.writeText(value).then(() => setCopied(true), () => {})}
+        onClick={() =>
+          navigator.clipboard ? navigator.clipboard.writeText(value).then(() => setCopied(true), select) : select()
+        }
       >
         {copied ? <Check data-icon="inline-start" aria-hidden /> : <Copy data-icon="inline-start" aria-hidden />}
         <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
