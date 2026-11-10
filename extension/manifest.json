@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Pitlane",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Save the car listing you are looking at to your Pitlane board.",
   "minimum_chrome_version": "120",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzvsgpTiQo5Arp+7KKEYBSKedoFFXQmkTxv4pM6hgF9NZp9bprDlnUIbhH8dVMAKbYtjrmUbFXek9y7UIerzBIZIp7rOo0o4rWxRp66fKflroi7jnl+eCQJdmyX/Zxnscqii75kHwVlpjcV8+GiHOO8u42EGIDlGkK+aeFyogCMco+Tt/a7osUkXXSBQhjJT1GzEK3JxacpykTCO4cFsCE7Hj8Qt4aZnst4x4CfIwviONynXOTeHsaxTWxBzmPvj6gwULPRqcOHzDu8bLjT6XN9ti85kBvVpmWRsxqaTjhKoMOyQvxgsUg0ITM8ZRjZYHJl9hCTAmeG5SMwXpt2IwAQIDAQAB",
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Save to Pitlane"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
   },
   "background": {
     "service_worker": "background.js",
@@ -17,6 +19,10 @@
     "activeTab",
     "scripting",
     "storage",
-    "cookies"
+    "cookies",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.mobile.de/*"
   ]
 }

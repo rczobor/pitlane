@@ -109,3 +109,21 @@ test("leaves out what the page does not say, and skips other cars' photos", () =
   expect(draft.options).toEqual([]);
   expect(draft.photoUrls).toEqual(["https://img.example.test/this-car.jpg"]);
 });
+
+test("reads the net price note as reclaimable VAT", () => {
+  document.body.innerHTML = `<h1>Some car</h1><p>€209,890</p><p>€176,378 Net, 19% VAT</p>`;
+
+  expect(extract()).toMatchObject({ netPrice: 176_378, vatDeductible: true });
+});
+
+test("takes photos from the listing's gallery only", () => {
+  document.body.innerHTML = `
+    <h1>Some car</h1>
+    <article data-testid="gallery-main-focus-container">
+      <img src="https://img.example.test/1.jpg" srcset="https://img.example.test/1-small.jpg 80w, https://img.example.test/1-large.jpg 640w">
+      <img src="https://img.example.test/2.jpg">
+    </article>
+    <aside><img src="https://img.example.test/ad-banner.jpg"></aside>`;
+
+  expect(extract().photoUrls).toEqual(["https://img.example.test/1-large.jpg", "https://img.example.test/1.jpg", "https://img.example.test/2.jpg"]);
+});

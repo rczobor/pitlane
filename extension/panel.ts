@@ -26,9 +26,8 @@ const gearboxLabels: Record<(typeof gearboxTypes)[number], string> = {
   semi_automatic: "Semi-automatic",
 };
 
-function show(id: "connect" | "idle" | "listing") {
-  $("#loading").hidden = true;
-  for (const section of ["connect", "idle", "listing"]) $(`#${section}`).hidden = section !== id;
+function show(id: "loading" | "connect" | "idle" | "listing") {
+  for (const section of ["loading", "connect", "idle", "listing"]) $(`#${section}`).hidden = section !== id;
 }
 
 const say = (text: string, error = false) => {
@@ -36,22 +35,43 @@ const say = (text: string, error = false) => {
   status.className = error ? "error" : "";
 };
 
-async function start() {
+// The page the form was read from. The panel stays open while the user browses, so
+// saving goes to this page, not to whatever tab is active by then.
+let pageUrl = "";
+
+// Reads the active tab into the form: when the panel opens and on "Read this page".
+async function read() {
+  const button = $<HTMLButtonElement>("#read");
+  button.disabled = true;
+  show("loading");
+  try {
+    await load();
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function load() {
   let signedIn: boolean;
+  $("#connect-status").textContent = "";
   try {
     signedIn = await signIn();
   } catch (error) {
     signedIn = false;
     $("#connect-status").textContent = error instanceof Error ? error.message : String(error);
   }
-  if (!signedIn) {
-    $("#open-app").addEventListener("click", () => void chrome.tabs.create({ url: PITLANE.appUrl }));
-    return show("connect");
-  }
+  if (!signedIn) return show("connect");
+  // The tab's URL is only visible on the listing site (the host permission), so any
+  // other page reads as no listing.
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const listing = tab?.url ? resolveListingUrl(tab.url) : null;
   if (!tab?.id || !tab.url || !listing) return showIdle();
 
+  // Nothing from the previous listing may leak into this one.
+  form.reset();
+  markInvalid([]);
+  resetRemoved();
+  say("");
   let draft: PageDraft = { options: [], photoUrls: [] };
   try {
     const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extract });
@@ -61,22 +81,19 @@ async function start() {
   }
   // A re-check starts from the saved listing, so values typed in by hand on an earlier
   // save survive when the page does not show them. What the page shows wins.
-  setUpSelects();
   const saved = await savedListing(listing.canonicalUrl);
   if (saved) fill(saved);
   fill(draft);
   if (!field("currency").value) field("currency").value = "EUR";
   showPhotos(draft.photoUrls, listing.source);
+  pageUrl = tab.url;
   show("listing");
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    void save(tab.url!);
-  });
-  setUpRemoved(tab.url);
 }
 
 async function showIdle() {
   show("idle");
+  $("#idle-status").textContent = "";
+  $("#due-box").hidden = true;
   let due;
   try {
     due = await convex.query(api.extension.due, { now: Date.now() });
@@ -162,7 +179,14 @@ function fill(draft: Partial<PageDraft>) {
 
 function showPhotos(photoUrls: string[], source: string) {
   // Only the listing site's own photo host is accepted by Pitlane; same photo, largest size.
-  const photos = [...new Set(photoUrls.flatMap((url) => fullSizePhotoUrl(source, url) ?? []))].slice(0, 60);
+  // One photo can appear in several spellings (structured data, preview tag, gallery), so
+  // the address without its query names the photo, and its first spelling is kept.
+  const byPhoto = new Map<string, string>();
+  for (const url of photoUrls.flatMap((url) => fullSizePhotoUrl(source, url) ?? [])) {
+    const { origin, pathname } = new URL(url);
+    if (!byPhoto.has(origin + pathname)) byPhoto.set(origin + pathname, url);
+  }
+  const photos = [...byPhoto.values()].slice(0, 60);
   $("#no-photos").hidden = photos.length > 0;
   $("#photos").replaceChildren(
     ...photos.map((url, index) => {
@@ -282,26 +306,27 @@ async function save(url: string) {
 }
 
 // Two clicks, since a removed ad drops out of re-checks.
-function setUpRemoved(url: string) {
-  const button = $<HTMLButtonElement>("#removed");
-  let armed = false;
-  button.addEventListener("click", async () => {
-    if (!armed) {
-      armed = true;
-      button.textContent = "Confirm: ad is gone";
-      return;
-    }
-    button.disabled = true;
-    const result = await send({ status: "removed", url });
-    button.disabled = false;
-    armed = false;
-    button.textContent = "Ad is gone";
-    say(
-      result.ok ? "Marked as removed." : result.status === 404 ? "This listing is not on your board." : result.message,
-      !result.ok,
-    );
-  });
+const removedButton = $<HTMLButtonElement>("#removed");
+let removedArmed = false;
+function resetRemoved() {
+  removedArmed = false;
+  removedButton.textContent = "Ad is gone";
 }
+removedButton.addEventListener("click", async () => {
+  if (!removedArmed) {
+    removedArmed = true;
+    removedButton.textContent = "Confirm: ad is gone";
+    return;
+  }
+  removedButton.disabled = true;
+  const result = await send({ status: "removed", url: pageUrl });
+  removedButton.disabled = false;
+  resetRemoved();
+  say(
+    result.ok ? "Marked as removed." : result.status === 404 ? "This listing is not on your board." : result.message,
+    !result.ok,
+  );
+});
 
 type SendResult = { ok: true; body: unknown } | { ok: false; status: number; message: string; body?: unknown };
 
@@ -319,4 +344,11 @@ async function send(snapshot: SnapshotInput): Promise<SendResult> {
   }
 }
 
-void start();
+setUpSelects();
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  void save(pageUrl);
+});
+$("#open-app").addEventListener("click", () => void chrome.tabs.create({ url: PITLANE.appUrl }));
+$("#read").addEventListener("click", () => void read());
+void read();

@@ -21,7 +21,7 @@ export const saved = query({
 });
 
 // Up to 10 listings due for a re-check, oldest first. Queries must not read the clock,
-// so the popup passes the time.
+// so the panel passes the time.
 export const due = query({
   args: { now: v.number() },
   handler: async (ctx, { now }) => {

@@ -4,24 +4,27 @@
     <meta charset="utf-8" />
     <title>Pitlane</title>
     <link rel="stylesheet" href="style.css" />
-    <script type="module" src="popup.js"></script>
+    <script type="module" src="panel.js"></script>
   </head>
-  <body class="popup">
+  <body>
     <main>
-      <h1><span class="mark">Pitlane</span></h1>
+      <header>
+        <h1><span class="mark">Pitlane</span></h1>
+        <button id="read" type="button">Read this page</button>
+      </header>
 
       <section id="connect" hidden>
-        <p>Sign in to Pitlane in this browser, then click Pitlane again. The extension uses that sign-in.</p>
+        <p>Sign in to Pitlane in this browser, then press Read this page. The extension uses that sign-in.</p>
         <p id="connect-status" class="error" role="status"></p>
         <button id="open-app" class="primary" type="button">Open Pitlane</button>
       </section>
 
       <section id="idle" hidden>
-        <p>Open a car listing, then click Pitlane to save it or record a re-check.</p>
+        <p>Open a car listing, then press Read this page to save it or record a re-check.</p>
         <p id="idle-status" class="error" role="status"></p>
         <div id="due-box" hidden>
           <h2 id="due-heading">Due for a re-check</h2>
-          <p class="muted">Open one, check the page loaded, then click Pitlane again.</p>
+          <p class="muted">Open one, check the page loaded, then press Read this page.</p>
           <ul id="due" class="due" aria-labelledby="due-heading"></ul>
         </div>
       </section>
