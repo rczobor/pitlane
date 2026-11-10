@@ -14,7 +14,8 @@
     "test": "vitest run",
     "typecheck": "tsc",
     "mcp": "node mcp/server.ts",
-    "build:mcpb": "node mcp/build.ts"
+    "build:mcpb": "node mcp/build.ts",
+    "build:extension": "node extension/build.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -40,12 +41,14 @@
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.5",
+    "@types/chrome": "^0.3.7",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "convex-test": "^0.0.67",
     "esbuild": "^0.28.2",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { isAllowedPhotoUrl, listingSite, resolveListingUrl } from "./sources.ts";
+import { fullSizePhotoUrl, isAllowedPhotoUrl, listingSite, resolveListingUrl } from "./sources.ts";
 
 const id = "10000000000001";
 const canonicalUrl = listingSite.canonicalUrl(id);
@@ -39,4 +39,11 @@ describe("isAllowedPhotoUrl", () => {
     expect(isAllowedPhotoUrl(listingSite.id, "https://127.0.0.1:3212/x.jpg")).toBe(false);
     expect(isAllowedPhotoUrl("unknown", "https://img.classistatic.de/x.jpg")).toBe(false);
   });
+});
+
+test("upgrades photos to full size and drops other hosts", () => {
+  expect(fullSizePhotoUrl(listingSite.id, "https://img.classistatic.de/x?rule=mo-240.jpg")).toBe(
+    "https://img.classistatic.de/x?rule=mo-1600.jpg",
+  );
+  expect(fullSizePhotoUrl(listingSite.id, "https://example.com/x.jpg")).toBeNull();
 });

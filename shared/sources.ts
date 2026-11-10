@@ -14,6 +14,8 @@ type ListingSource = {
   photoHostPattern: RegExp;
   externalId(url: URL): string | null;
   canonicalUrl(externalId: string): string;
+  /** The same photo at the largest size the image host serves. */
+  fullSizePhoto(url: URL): string;
 };
 
 // The one listing site Pitlane reads today. Tests and fixtures build their URLs
@@ -30,6 +32,11 @@ export const listingSite: ListingSource = {
     return url.pathname.match(/[/-](\d{6,})\.html$/)?.[1] ?? null;
   },
   canonicalUrl: (id) => `https://suchen.mobile.de/fahrzeuge/details.html?id=${id}`,
+  // The size is in the `rule` parameter, e.g. ?rule=mo-640.jpg.
+  fullSizePhoto(url) {
+    url.search = url.search.replace(/rule=mo-\d+/, "rule=mo-1600");
+    return url.href;
+  },
 };
 
 const sources = [listingSite];
@@ -60,4 +67,11 @@ export function isAllowedPhotoUrl(sourceId: string, raw: string): boolean {
   const url = parseUrl(raw);
   const source = sources.find((s) => s.id === sourceId);
   return !!url && !!source && url.protocol === "https:" && source.photoHostPattern.test(url.hostname);
+}
+
+/** The full-size URL of a photo from the source's image host, or null for any other URL. */
+export function fullSizePhotoUrl(sourceId: string, raw: string): string | null {
+  const source = sources.find((s) => s.id === sourceId);
+  if (!source || !isAllowedPhotoUrl(sourceId, raw)) return null;
+  return source.fullSizePhoto(new URL(raw));
 }

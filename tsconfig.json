@@ -7,7 +7,8 @@
       "DOM.Iterable"
     ],
     "types": [
-      "node"
+      "node",
+      "chrome"
     ],
     "module": "preserve",
     "moduleResolution": "bundler",
@@ -29,6 +30,7 @@
     "convex",
     "shared",
     "mcp",
+    "extension",
     "src",
     "*.ts"
   ],
