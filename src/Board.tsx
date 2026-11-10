@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Ellipsis, Trash2, X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
@@ -212,7 +212,8 @@ export function Board() {
           ))}
         </div>
         <DragOverlay>
-          {active && <ListingCard listing={active} {...cardProps(active)} lifted />}
+          {/* Lanes size their own cards; the lifted card takes the size of the one it lifts. */}
+          {active && <ListingCard listing={active} {...cardProps(active)} lifted className="w-full" />}
         </DragOverlay>
       </DndContext>
       {/* Keyed by car, so one car's pending or failed removal never carries over to the next. */}
@@ -240,8 +241,9 @@ function Lane({
   onRemove: (car: RemovableCar) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: tier });
-  const { frame, lane } = useLaneScroll(listings.length);
+  const { frame, lane, view } = useLaneScroll(listings.length);
   const isLetter = label.length === 1;
+  const total = listings.length === 1 ? "1 car" : `${listings.length} cars`;
   return (
     <section
       ref={setNodeRef}
@@ -261,22 +263,27 @@ function Lane({
         <h2 className={cn("condensed text-4xl leading-none font-extrabold", isLetter ? "sm:text-7xl" : "sm:text-2xl")}>
           {label}
         </h2>
-        {/* Pinned to the slab's foot, so it sits in the same place whatever the label. */}
-        <p className="text-sm opacity-75 sm:mt-auto sm:pt-3">
-          {listings.length === 1 ? "1 car" : `${listings.length} cars`}
+        {/* Pinned to the slab's foot, so it sits in the same place whatever the label. A lane
+            that hides cars says which ones are on screen. */}
+        <p className="text-sm tabular-nums opacity-75 sm:mt-auto sm:pt-3">
+          {view
+            ? `${view.first + 1}${view.last > view.first ? `–${view.last + 1}` : ""} of ${total}`
+            : total}
         </p>
       </div>
       {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         ref={frame}
+        data-more-start={view?.start || undefined}
+        data-more-end={view?.end || undefined}
         className={cn(
           "group/lane relative flex min-w-0 flex-1 rounded-b-lg transition-colors sm:rounded-r-lg sm:rounded-bl-none",
           target && "bg-muted",
         )}
       >
-        {/* The lane fades out at an end that hides cars; the rail below shows how much is
-            hidden and where the view is. The scroll padding keeps a card scrolled into view
+        {/* The lane fades out at an end that hides cars; the ticks below show each car and
+            which are on screen. The scroll padding keeps a card scrolled into view
             (by the arrows or by tabbing) clear of the fade. Phones fade less, so the peek of
             the next card stays legible. */}
         <div
@@ -297,46 +304,111 @@ function Lane({
         </div>
         <LaneArrow direction="back" onClick={() => lane.current && pageLane(lane.current, "back")} />
         <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-3 bottom-1 hidden h-1 rounded-full bg-foreground/15 group-data-overflow/lane:block"
-        >
-          <div className="absolute inset-y-0 left-(--thumb-left) w-(--thumb-width) rounded-full bg-muted-foreground" />
-        </div>
+        {view && (
+          // One tick per car, filled for the cars on screen; a click brings that car into view.
+          <div aria-hidden className="absolute inset-x-3 bottom-0 flex h-3 gap-1">
+            {listings.map((listing, index) => (
+              <button
+                key={listing.listingId}
+                type="button"
+                tabIndex={-1}
+                onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
+                className="group/tick flex flex-1 items-end pb-1"
+              >
+                <span
+                  className={cn(
+                    "h-1 w-full rounded-full",
+                    index >= view.first && index <= view.last
+                      ? "bg-muted-foreground"
+                      : "bg-foreground/15 group-hover/tick:bg-foreground/30",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-// Marks the lane's frame with the ends that hide cars (`data-more-start`, `data-more-end`)
-// and sizes the rail's thumb. It writes to the DOM directly, so scrolling never re-renders
-// the cards. `cars` re-measures when cars come or go: the lane's own box keeps its size.
+// What a lane that hides cars shows: whether cars are hidden at each end, and the first and
+// last car on screen (centre clear of the fades). Null when every car fits.
+type LaneView = { start: boolean; end: boolean; first: number; last: number };
+
+// Measures the lane on scroll and resize, and sizes its cards. Re-renders only when the view
+// changes, not on every scroll event. `cars` re-measures when cars come or go: the lane's
+// own box keeps its size.
 function useLaneScroll(cars: number) {
   const frame = useRef<HTMLDivElement>(null);
   const lane = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  const [view, setView] = useState<LaneView | null>(null);
+  useLayoutEffect(() => {
     const frameEl = frame.current;
     const laneEl = lane.current;
     if (!frameEl || !laneEl) return;
     const update = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = laneEl;
-      const hidden = scrollWidth - clientWidth;
-      frameEl.toggleAttribute("data-overflow", hidden > 1);
-      frameEl.toggleAttribute("data-more-start", scrollLeft > 1);
-      frameEl.toggleAttribute("data-more-end", scrollLeft < hidden - 1);
-      frameEl.style.setProperty("--thumb-width", `${(clientWidth / scrollWidth) * 100}%`);
-      frameEl.style.setProperty("--thumb-left", `${(scrollLeft / scrollWidth) * 100}%`);
+      const next = measureLane(laneEl);
+      setView((current) =>
+        current && next && (Object.keys(next) as (keyof LaneView)[]).every((key) => current[key] === next[key])
+          ? current
+          : next,
+      );
     };
-    update();
-    laneEl.addEventListener("scroll", update, { passive: true });
-    const resize = new ResizeObserver(update);
+    const resize = new ResizeObserver(() => {
+      frameEl.style.setProperty("--board-card", `${cardWidth(laneEl)}px`);
+      update();
+    });
     resize.observe(laneEl);
+    laneEl.addEventListener("scroll", update, { passive: true });
     return () => {
       laneEl.removeEventListener("scroll", update);
       resize.disconnect();
     };
   }, [cars]);
-  return { frame, lane };
+  return { frame, lane, view };
+}
+
+function measureLane(lane: HTMLElement): LaneView | null {
+  const hidden = lane.scrollWidth - lane.clientWidth;
+  if (hidden <= 1) return null;
+  const start = lane.scrollLeft > 1;
+  const end = lane.scrollLeft < hidden - 1;
+  // The scroll padding is the fade's width.
+  const box = lane.getBoundingClientRect();
+  const { scrollPaddingLeft, scrollPaddingRight } = getComputedStyle(lane);
+  const from = box.left + (start ? parseFloat(scrollPaddingLeft) : 0);
+  const to = box.right - (end ? parseFloat(scrollPaddingRight) : 0);
+  const shown = [...lane.children].flatMap((card, index) => {
+    const { left, width } = card.getBoundingClientRect();
+    return left + width / 2 >= from && left + width / 2 <= to ? [index] : [];
+  });
+  if (shown.length === 0) return null;
+  return { start, end, first: shown[0], last: shown[shown.length - 1] };
+}
+
+// A card cut near its end passes for a whole one, so the lane's last card on screen shows
+// about 40% of itself. Of the widths that do that within the card range, the widest one
+// no wider than usual wins, since more cars on screen beats bigger photos; a lane too narrow
+// for any keeps the usual width. The range and the usual width match --board-card in
+// styles.css.
+function cardWidth(lane: HTMLElement) {
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const [min, max] = [16 * rem, 22.5 * rem];
+  const usual = Math.min(max, Math.max(min, 0.22 * window.innerWidth));
+  const { columnGap, paddingLeft } = getComputedStyle(lane);
+  const gap = parseFloat(columnGap);
+  const room = lane.clientWidth - parseFloat(paddingLeft);
+  // More whole cards make each one narrower, so the first width at or under usual is the widest.
+  for (let whole = 1; ; whole++) {
+    const width = (room - whole * gap) / (whole + 0.4);
+    if (width < min) return usual;
+    if (width <= usual) return width;
+  }
+}
+
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
 }
 
 // Brings the next cars into view: the card cut off at that end moves to the other end, so
@@ -351,9 +423,8 @@ function pageLane(lane: HTMLElement, direction: "back" | "forward") {
     direction === "forward"
       ? cards.find((card) => card.getBoundingClientRect().right > end + 1)
       : cards.findLast((card) => card.getBoundingClientRect().left < start - 1);
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   target?.scrollIntoView({
-    behavior: reduce ? "instant" : "smooth",
+    behavior: scrollBehavior(),
     block: "nearest",
     inline: direction === "forward" ? "start" : "end",
   });
