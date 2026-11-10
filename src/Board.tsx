@@ -18,7 +18,7 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Ellipsis, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ellipsis, ImageOff, Trash2, X } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -317,7 +317,9 @@ function Lane({
         </div>
         <LaneArrow direction="back" onClick={() => lane.current && pageLane(lane.current, "back")} />
         <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
-        {view && <LaneIndex listings={listings} view={view} lane={lane} />}
+        {view && (
+          <LaneIndex listings={listings} view={view} lane={lane} modelName={(listing) => cardProps(listing).modelName} />
+        )}
       </div>
     </section>
   );
@@ -333,38 +335,60 @@ function LaneIndex({
   listings,
   view,
   lane,
+  modelName,
 }: {
   listings: BoardListing[];
   view: LaneView;
   lane: RefObject<HTMLDivElement | null>;
+  /** Undefined when the board shows one model. */
+  modelName: (listing: BoardListing) => string | undefined;
 }) {
+  // The car under the pointer, marked on both its tick and its photo: the strip's photos are
+  // wider than the ticks, so the two rows do not line up.
+  const [pointed, setPointed] = useState<number>();
   const jump = (index: number) =>
     lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
   const shown = (index: number) => index >= view.first && index <= view.last;
+  const point = (index: number) => ({
+    onPointerEnter: () => setPointed(index),
+    onPointerLeave: () => setPointed((current) => (current === index ? undefined : current)),
+  });
   return (
     <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6 gap-1">
       {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
       <div className="pointer-events-auto absolute bottom-full left-0 hidden max-w-full pb-1 group-hover/index:block pointer-coarse:hidden">
-        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/25">
           {listings.map((listing, index) => (
             <button
               key={listing.listingId}
               type="button"
               tabIndex={-1}
+              title={listing.title}
               onClick={() => jump(index)}
-              className="flex w-16 min-w-0 shrink flex-col gap-1 text-left"
+              {...point(index)}
+              className={cn(
+                "flex w-16 min-w-0 shrink flex-col gap-1 rounded-sm text-left",
+                pointed === index && "bg-muted outline-4 outline-muted",
+              )}
             >
               <span
                 className={cn(
-                  "block aspect-video w-full overflow-hidden rounded-sm bg-muted",
+                  "flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground",
                   shown(index) && "ring-2 ring-foreground",
                 )}
               >
-                {listing.coverUrl && <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />}
+                {listing.coverUrl ? (
+                  <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />
+                ) : (
+                  <ImageOff className="size-4" />
+                )}
               </span>
               <span className="condensed truncate text-xs leading-none font-bold tabular-nums">
                 {formatPrice(listing.price)}
               </span>
+              {modelName(listing) && (
+                <span className="condensed truncate text-xs leading-none text-muted-foreground">{modelName(listing)}</span>
+              )}
             </button>
           ))}
         </div>
@@ -375,12 +399,14 @@ function LaneIndex({
           type="button"
           tabIndex={-1}
           onClick={() => jump(index)}
-          className="group/tick pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
+          {...point(index)}
+          className="pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
         >
           <span
             className={cn(
-              "h-1 w-full rounded-full",
-              shown(index) ? "bg-foreground" : "bg-foreground/50 group-hover/tick:bg-foreground/70",
+              "w-full rounded-full",
+              pointed === index ? "h-1.5" : "h-1",
+              shown(index) ? "bg-foreground" : pointed === index ? "bg-foreground/80" : "bg-foreground/50",
             )}
           />
         </button>
