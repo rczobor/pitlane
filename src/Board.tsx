@@ -300,7 +300,7 @@ function Lane({
           aria-hidden
           className="pointer-events-none absolute inset-x-3 bottom-1 hidden h-1 rounded-full bg-foreground/10 group-data-overflow/lane:block"
         >
-          <div className="absolute inset-y-0 left-(--thumb-left) w-(--thumb-width) rounded-full bg-foreground/35" />
+          <div className="absolute inset-y-0 left-(--thumb-left) w-(--thumb-width) rounded-full bg-muted-foreground" />
         </div>
       </div>
     </section>
@@ -371,7 +371,7 @@ function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onCl
       onClick={onClick}
       className={cn(
         // Centred on the photos (16:9, below the lane's padding), clear of prices and titles.
-        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 shadow-md opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
+        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 shadow-sm opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
         direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
       )}
     >
