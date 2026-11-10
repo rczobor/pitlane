@@ -1,4 +1,4 @@
-// The popup's one way to Pitlane: Convex over HTTP, with the web app's Clerk session.
+// The panel's one way to Pitlane: Convex over HTTP, with the web app's Clerk session.
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 

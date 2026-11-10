@@ -164,11 +164,12 @@ check; a page that failed to load is retried after six hours.
 
 ### Chrome extension
 
-The manual route: open a listing, click the Pitlane button, check the form and
-save. Saving a listing that is already on the board records a re-check, and keeps
-values you typed in on an earlier save when the page does not show them. With no
-listing open, the popup lists the cars due for a re-check. Like agents, only the
-board's owner can save.
+The manual route: open a listing, click the Pitlane button to open its side panel,
+check the form and save. The panel stays open while you browse; press **Read this
+page** after opening another listing. Saving a listing that is already on the board
+records a re-check, and keeps values you typed in on an earlier save when the page
+does not show them. With no listing open, the panel lists the cars due for a
+re-check. Like agents, only the board's owner can save.
 
 The extension has no sign-in of its own: it uses the web app's Clerk session in
 the same browser (Clerk's sync host), and calls the Convex functions in
@@ -203,8 +204,10 @@ The manifest pins the extension's key, so its ID is always
 `pjlklbfihokmiojkbpfnhnomoeddphie`. Each Clerk instance must list
 `chrome-extension://pjlklbfihokmiojkbpfnhnomoeddphie` in its allowed origins.
 
-The extension reads the open page only when you click its button, and fills the
-form from structured data and the labels the page shows. Anything it could not
+The extension reads the open page only when you open the panel or press **Read this
+page**, and fills the form from structured data and the labels the page shows. To
+read a page from the panel without another click on its icon, it asks for access to
+the listing site. Anything it could not
 find stays empty for you to fill in.
 
 ## Deployment

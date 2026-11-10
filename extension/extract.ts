@@ -28,7 +28,7 @@ export type PageDraft = {
   previousOwners?: number;
   options: string[];
   description?: string;
-  /** Every candidate photo URL, unfiltered; the popup keeps the image host's. */
+  /** Every candidate photo URL, unfiltered; the panel keeps the image host's. */
   photoUrls: string[];
 };
 
@@ -129,11 +129,15 @@ export function extract(): PageDraft {
   for (const script of visible.querySelectorAll("script, style")) script.remove();
   const bodyText = clean(visible.textContent) ?? "";
   const net = bodyText.match(/([\d.,]+)\s*€\s*\(?\s*(netto|net)\b/i)?.[1] ?? bodyText.match(/€\s*([\d.,]+)\s*\(?\s*(netto|net)\b/i)?.[1];
+  // Listing pages show a net price ("€176,378 Net, 19% VAT") only when the VAT is shown
+  // separately, i.e. reclaimable, so a net price counts unless the page says otherwise.
   const vatDeductible = /mwst\.?\s*ausweisbar|vat\s*(deductible|reclaimable)/i.test(bodyText)
     ? true
     : /mwst\.?\s*nicht\s*ausweisbar|vat\s*(is\s*)?not\s*(deductible|reclaimable)/i.test(bodyText)
       ? false
-      : undefined;
+      : net
+        ? true
+        : undefined;
 
   // --- Options: the list under an equipment heading.
   const headings = [...document.querySelectorAll("h1, h2, h3, h4")];
@@ -157,13 +161,15 @@ export function extract(): PageDraft {
     return text?.replace(/[ \t]+/g, " ").replace(/\n\s*\n\s*/g, "\n\n").trim() || undefined;
   };
 
-  // --- Photos: structured data and OpenGraph, then gallery images. Images inside links
-  // to other pages are skipped, since those are usually other cars' thumbnails.
+  // --- Photos: structured data and OpenGraph, then the listing's own gallery. Without a
+  // gallery, every image on the page except those inside links to other pages, which are
+  // usually other cars' thumbnails. The gallery keeps out ads and badges on the same host.
   const here = location.href.split("#")[0];
+  const gallery = document.querySelector('[data-testid="gallery-main-focus-container"], [data-testid="image-gallery"]') ?? document;
   const photoUrls = [
     ...[product?.image].flat().flatMap((image) => (isObject(image) ? clean(image.url ?? image.contentUrl) : clean(image)) ?? []),
     ...[...document.querySelectorAll('meta[property="og:image"]')].flatMap((m) => m.getAttribute("content") ?? []),
-    ...[...document.querySelectorAll("img")].flatMap((img) => {
+    ...[...gallery.querySelectorAll("img")].flatMap((img) => {
       const link = img.closest("a[href]") as HTMLAnchorElement | null;
       if (link && link.href.split("#")[0] !== here) return [];
       const srcset = img.getAttribute("srcset")?.split(",").at(-1)?.trim().split(/\s+/)[0];

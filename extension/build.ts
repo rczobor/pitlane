@@ -31,21 +31,21 @@ const config: PitlaneConfig = { convexUrl, publishableKey, syncHost, appUrl };
 const out = "dist/extension";
 await rm(out, { recursive: true, force: true });
 await build({
-  entryPoints: ["extension/popup.ts", "extension/background.ts"],
+  entryPoints: ["extension/panel.ts", "extension/background.ts"],
   outdir: out,
   bundle: true,
   format: "esm",
   minify: true,
-  // Clerk's sign-in UI: only its in-popup client loads it, and the extension never signs
+  // Clerk's sign-in UI: only its in-panel client loads it, and the extension never signs
   // in itself (see background.ts).
   external: ["@clerk/ui/*"],
   target: "chrome120",
   define: { PITLANE: JSON.stringify(config) },
 });
-for (const file of ["popup.html", "style.css"]) {
+for (const file of ["panel.html", "style.css"]) {
   await cp(`extension/${file}`, `${out}/${file}`);
 }
 const manifest = JSON.parse(await readFile("extension/manifest.json", "utf8"));
-manifest.host_permissions = [...new Set([`${syncHost}/*`, `https://${frontendApi}/*`])];
+manifest.host_permissions = [...new Set([...manifest.host_permissions, `${syncHost}/*`, `https://${frontendApi}/*`])];
 await writeFile(`${out}/manifest.json`, JSON.stringify(manifest, null, 2));
 console.log(`Built ${out} for ${production ? "production" : "development"} (${convexUrl})`);

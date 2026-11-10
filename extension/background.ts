@@ -1,6 +1,9 @@
 import { createClerkClient } from "@clerk/chrome-extension/client";
 
-// The popup asks here for a Clerk session token. Only Clerk's background client shares
+// The icon opens the side panel, which stays beside the page while you browse.
+void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+
+// The panel asks here for a Clerk session token. Only Clerk's background client shares
 // the sign-in from the web app (its sync host), so the extension never signs in itself.
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message !== "token") return false;
