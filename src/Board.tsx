@@ -310,7 +310,7 @@ function Lane({
           // ticks shrink only when a long lane would not fit them.
           // The click area reaches into the gap below the lane, so it is 24px tall without
           // covering the cards.
-          <div aria-hidden className="absolute inset-x-3 -bottom-3 flex h-6 gap-1">
+          <div aria-hidden className="pointer-events-none absolute inset-x-3 -bottom-3 flex h-6 gap-1">
             {listings.map((listing, index) => (
               <button
                 key={listing.listingId}
@@ -319,7 +319,7 @@ function Lane({
                 // Names the car on hover, so the user can aim at one without counting.
                 title={`${index + 1} · ${formatPrice(listing.price)} · ${listing.title}`}
                 onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
-                className="group/tick flex max-w-6 min-w-0 flex-1 items-end pb-4"
+                className="group/tick pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
               >
                 <span
                   className={cn(
@@ -362,10 +362,13 @@ function useLaneScroll(cars: number) {
           : next,
       );
     };
-    const resize = new ResizeObserver(() => {
+    const fit = () => {
       frameEl.style.setProperty("--board-card", `${cardWidth(laneEl)}px`);
       update();
-    });
+    };
+    // Once now, so the first paint already shows the count, fades and ticks.
+    fit();
+    const resize = new ResizeObserver(fit);
     resize.observe(laneEl);
     laneEl.addEventListener("scroll", update, { passive: true });
     return () => {
