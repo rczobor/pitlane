@@ -207,7 +207,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
           <div className="flex flex-wrap gap-2">
             <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
-              Open on mobile.de
+              Open the listing
             </a>
             <Link to="/compare" search={{ ids: listing.listingId }} className={buttonVariants({ variant: "outline" })}>
               <Columns3 data-icon="inline-start" aria-hidden />

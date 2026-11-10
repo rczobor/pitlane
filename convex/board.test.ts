@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
+import { listingSite } from "../shared/sources";
 
 const car = {
   title: "Porsche 911 GT3",
@@ -27,7 +28,7 @@ async function setup() {
   const { listingId } = await t.mutation(internal.listings.save, {
     boardId: board!._id,
     capturedBy: "test",
-    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000002",
+    url: listingSite.canonicalUrl("10000000000002"),
     data: car,
   });
   return { t, token, listingId };
@@ -87,7 +88,7 @@ async function setupWithSpecs(options: string[]) {
   const { listingId } = await t.mutation(internal.listings.save, {
     boardId: board!._id,
     capturedBy: "test",
-    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000002",
+    url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, options } },
   });
   await t.mutation(api.board.saveSettings, { token, models, keySpecs });
@@ -156,7 +157,7 @@ test("a choice shared by two specs is not filled in from the listing", async () 
   await t.mutation(internal.listings.save, {
     boardId: board!._id,
     capturedBy: "test",
-    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000002",
+    url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, color: "Chalk", options: ["Guards Red seat belts"] } },
   });
   await t.mutation(api.board.saveSettings, {

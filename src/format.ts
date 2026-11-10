@@ -49,7 +49,7 @@ export function dealBreakerLabel(
 
 export const formatKm = (km: number) => `${km.toLocaleString("en-IE")} km`;
 
-// mobile.de shows power in kW and hp; hp is what people compare by.
+// Listings give power in kW and hp; hp is what people compare by.
 export const formatPower = (kw: number) => `${Math.round(kw * 1.35962)} hp`;
 
 export function formatRegistration(yyyyMm: string | undefined) {

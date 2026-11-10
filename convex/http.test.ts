@@ -3,9 +3,12 @@ import { afterEach, expect, test, vi } from "vitest";
 import { internal } from "./_generated/api";
 import schema from "./schema";
 import { modules } from "./test.setup";
+import { listingSite } from "../shared/sources";
 
-const url = "https://suchen.mobile.de/fahrzeuge/details.html?lang=en&id=10000000000001&utm_source=linkcopy";
-const photo = (n: number) => `https://img.classistatic.de/api/v1/mo-prod/images/aa/photo-${n}?rule=mo-1600.jpg`;
+const canonicalUrl = listingSite.canonicalUrl("10000000000001");
+// A share link: extra parameters around the id that the intake must strip.
+const url = canonicalUrl.replace("?id=", "?lang=en&id=") + "&utm_source=linkcopy";
+const photo = (n: number) => `https://img.classistatic.de/photo-${n}.jpg`;
 
 function listing(overrides: Record<string, unknown> = {}) {
   return {
@@ -101,7 +104,7 @@ test("adds a new listing to Watching and archives its photos", async () => {
   expect(detail.body).toMatchObject({
     tier: "watching",
     status: "available",
-    url: "https://suchen.mobile.de/fahrzeuge/details.html?id=10000000000001",
+    url: canonicalUrl,
   });
   expect(detail.body.photos.map((p: { status: string }) => p.status)).toEqual(["stored", "failed"]);
   expect(detail.body.photos[0].url).not.toBe(photo(1));

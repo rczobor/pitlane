@@ -84,7 +84,7 @@ export type ListingData = z.infer<typeof listingData>;
 export const listingUrl = z
   .url()
   .max(2_000)
-  .refine((url) => resolveListingUrl(url) !== null, "Not a supported listing URL (mobile.de vehicle listings only)")
+  .refine((url) => resolveListingUrl(url) !== null, "Not a supported car listing URL")
   .describe("The listing page URL.");
 
 export const snapshotInput = z.discriminatedUnion("status", [

@@ -116,14 +116,8 @@ export function Board() {
             <Link to="/settings" className="text-foreground underline underline-offset-4">
               models and key specs
             </Link>{" "}
-            you are hunting, so cards show what decides a car's tier. Then ask Claude to open a mobile.de listing and
-            save it to Pitlane; new cars land in Watching.
-          </p>
-          <p className="text-muted-foreground">
-            For example:{" "}
-            <span className="text-foreground">
-              “Open this listing and save it to Pitlane: https://suchen.mobile.de/fahrzeuge/details.html?id=…”
-            </span>
+            you are hunting, so cards show what decides a car's tier. Then ask Claude to open a listing and save it to
+            Pitlane; new cars land in Watching.
           </p>
         </div>
       )}

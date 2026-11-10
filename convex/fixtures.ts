@@ -7,6 +7,7 @@ import { internalAction, internalMutation, internalQuery } from "./_generated/se
 import { sha256 } from "./tokens";
 import { tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
+import { listingSite } from "../shared/sources";
 
 // Sign the browser in during captures. They only ever exist on a local fixture deployment.
 export const fixtureToken = `pit_${"f".repeat(64)}`;
@@ -215,7 +216,7 @@ export const seed = internalAction({
     });
 
     for (const [index, car] of cars.entries()) {
-      const url = `https://suchen.mobile.de/fahrzeuge/details.html?id=${car.id}`;
+      const url = listingSite.canonicalUrl(car.id);
       let listingId: Id<"listings"> | undefined;
       for (const amount of car.prices) {
         const data = toListing(car, amount, photoUrls);
