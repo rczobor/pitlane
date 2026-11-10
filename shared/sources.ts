@@ -16,7 +16,9 @@ type ListingSource = {
   canonicalUrl(externalId: string): string;
 };
 
-const mobileDe: ListingSource = {
+// The one listing site Pitlane reads today. Tests and fixtures build their URLs
+// from it rather than repeating its host.
+export const listingSite: ListingSource = {
   id: "mobile.de",
   hostPattern: /(^|\.)mobile\.de$/,
   photoHostPattern: /(^|\.)classistatic\.de$/,
@@ -30,7 +32,7 @@ const mobileDe: ListingSource = {
   canonicalUrl: (id) => `https://suchen.mobile.de/fahrzeuge/details.html?id=${id}`,
 };
 
-const sources = [mobileDe];
+const sources = [listingSite];
 
 function parseUrl(raw: string): URL | null {
   try {
