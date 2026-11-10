@@ -25,7 +25,7 @@ export function Settings() {
           <ArrowLeft data-icon="inline-start" aria-hidden />
           Board
         </Link>
-      <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Specs</h1>
+      <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Models and key specs</h1>
       <p className="mt-2 max-w-prose text-muted-foreground">
         Models split the board into one tier list per model, each with its own budget, years and mileage. Key specs
         are what decide a car's tier; the order here is the order they show on cards.
