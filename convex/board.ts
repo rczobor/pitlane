@@ -1,10 +1,12 @@
 import { v, type Infer } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { action, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { appError } from "./errors";
+import { geocode } from "./geo";
 import { boardItem, boardListings, listingDetail } from "./listings";
 import { viewerAccess } from "./users";
-import { boardModel, keySpec, tiers } from "./validators";
+import { boardModel, homeLocation, keySpec, tiers } from "./validators";
 
 // Functions for the web app, for the signed-in user's board. Signed out, or before
 // `users:ensureUser` has set the user up, the board reads as null.
@@ -15,8 +17,10 @@ export const get = query({
     const access = await viewerAccess(ctx);
     if (!access) return null;
     const board = (await ctx.db.get(access.boardId))!;
+    const user = await ctx.db.get(access.userId);
     return {
       name: board.name,
+      home: user?.home ?? null,
       models: board.models ?? [],
       keySpecs: board.keySpecs ?? [],
       listings: await boardListings(ctx, access.boardId),
@@ -194,6 +198,41 @@ export const setNotes = mutation({
       ...(pros !== undefined && { pros: takeItems(pros) }),
       ...(cons !== undefined && { cons: takeItems(cons) }),
     });
+  },
+});
+
+// The user's home, looked up from a place name; an empty query clears it.
+export const setHome = action({
+  args: { query: v.string() },
+  handler: async (ctx, { query }) => {
+    const access = await ctx.runQuery(internal.users.viewerForWeb, {});
+    if (!access) throw appError("not_found", "Board not found");
+    const clean = query.trim();
+    if (clean.length > 200) throw appError("invalid", "Use up to 200 characters");
+    if (!clean) {
+      await ctx.runMutation(internal.board.storeHome, { userId: access.userId, home: null });
+      return null;
+    }
+    let found;
+    try {
+      found = await geocode(clean);
+    } catch {
+      throw appError("invalid", "The map search is not answering. Try again in a minute.");
+    }
+    if (!found) throw appError("invalid", "No place found. Try a postcode and city, or add the country.");
+    const home = { query: clean, ...found };
+    await ctx.runMutation(internal.board.storeHome, { userId: access.userId, home });
+    return home;
+  },
+});
+
+export const storeHome = internalMutation({
+  args: {
+    userId: v.id("users"),
+    home: v.union(homeLocation, v.null()),
+  },
+  handler: async (ctx, { userId, home }) => {
+    await ctx.db.patch(userId, { home: home ?? undefined });
   },
 });
 

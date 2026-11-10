@@ -18,6 +18,7 @@ make the decisions. Personal use first, shared with friends later.
 5. Change tracking: price history, listing removed/sold, days listed.
 6. Side-by-side comparison of 2–3 cars.
 7. Agent API (REST + MCP server) to add, update and re-check listings.
+8. A map of where the sellers are, and each car's distance from your home.
 
 ## Constraints
 
@@ -70,6 +71,15 @@ notes and pros/cons are yours.
 limited to each source's own image host, and
 redirects are refused.
 
+**Locations come from OpenStreetMap; maps come from Mapbox.** A seller's postcode
+and city (plus the country, when the listing shows it) are turned into coordinates
+by OpenStreetMap's Nominatim. Unlike Mapbox's free geocoding, its results may be
+stored. One queue, run every minute, looks up new or moved sellers at no more than
+one request per second, as Nominatim's usage policy asks. A listing saved before
+this existed is located on its next re-check. Distances are straight lines from
+the home you set on the map page. The map page and the car page's map image use
+Mapbox; both stay within its free tier for one person's watchlist.
+
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, REST and the MCP
 server via HTTP actions, scheduled jobs, file storage). The web app is Vite, React,
 TanStack Router and shadcn/ui (Base UI). People sign in with Clerk, and so does
@@ -99,6 +109,10 @@ pnpm dev:web      # web app on :5173, also reachable over Tailscale at http://ho
 pnpm test
 pnpm typecheck
 ```
+
+Maps need a public Mapbox token (`pk.…`), restricted to the app's URLs in the
+Mapbox account. Put it in `.env.local` as `VITE_MAPBOX_TOKEN`, and set the same
+variable in Vercel. Without it the app works, just without maps.
 
 ### Sign-in
 

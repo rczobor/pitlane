@@ -1,6 +1,7 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "../convex/_generated/api";
 import type { Check } from "../shared/fit";
+import { distanceKm, type Point } from "../shared/geo";
 
 export type BoardData = NonNullable<FunctionReturnType<typeof api.board.get>>;
 export type BoardListing = BoardData["listings"][number];
@@ -48,6 +49,10 @@ export function dealBreakerLabel(
 }
 
 export const formatKm = (km: number) => `${km.toLocaleString("en-IE")} km`;
+
+// Straight-line distance from home, e.g. "355 km"; null until both places are known.
+export const formatDistance = (home: Point | null | undefined, geo: Point | null) =>
+  home && geo ? formatKm(Math.round(distanceKm(home, geo))) : null;
 
 // Listings give power in kW and hp; hp is what people compare by.
 export const formatPower = (kw: number) => `${Math.round(kw * 1.35962)} hp`;

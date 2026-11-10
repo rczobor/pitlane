@@ -6,6 +6,11 @@ export const listingDataValidator = zodToConvex(listingData);
 
 export const listingStatus = v.union(v.literal("available"), v.literal("removed"));
 
+export const point = v.object({ lat: v.number(), lng: v.number() });
+
+// Where distances to sellers are measured from: what the user typed, and the place it resolved to.
+export const homeLocation = v.object({ query: v.string(), place: v.string(), lat: v.number(), lng: v.number() });
+
 // What the user tracks: car models, and the key specs that decide a car's tier.
 // Both are defined per board; ids are stable, array order is display priority.
 export const boardModel = v.object({

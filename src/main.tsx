@@ -1,6 +1,6 @@
 import { ClerkProvider, useAuth } from "@clerk/react";
 import { shadcn } from "@clerk/ui/themes";
-import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, RouterProvider } from "@tanstack/react-router";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
@@ -35,6 +35,14 @@ const compareRoute = createRoute({
     return <Compare ids={ids?.split(",").filter(Boolean) ?? []} />;
   },
 });
+// `car` selects the place of that car. The map library is large, so it loads with this page only.
+const mapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/map",
+  validateSearch: (search: Record<string, unknown>): { car?: string } =>
+    typeof search.car === "string" ? { car: search.car } : {},
+  component: lazyRouteComponent(() => import("./MapPage"), "MapPage"),
+});
 const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings });
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -46,7 +54,7 @@ const listingRoute = createRoute({
   },
 });
 
-const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, settingsRoute]) });
+const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, mapRoute, settingsRoute]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

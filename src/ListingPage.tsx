@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   formatDate,
   formatDateTime,
+  formatDistance,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -20,9 +21,11 @@ import {
   tiers,
 } from "./format";
 import { toCheck } from "../shared/fit";
+import type { Point } from "../shared/geo";
 import { CheckMode } from "./CheckMode";
 import { FitList } from "./Fit";
 import { Gallery } from "./Gallery";
+import { mapboxToken, staticMapUrl } from "./mapbox";
 import { PriceChart } from "./PriceChart";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
@@ -65,6 +68,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
   const unchecked = toCheck(listing.keySpecs);
   const model = board?.models.find((m) => m.id === listing.modelId);
+  const distance = formatDistance(board?.home, listing.geo);
 
   if (checking && board) {
     return (
@@ -200,7 +204,22 @@ export function ListingPage({ listingId }: { listingId: string }) {
               {[seller.name, seller.location].filter(Boolean).join(", ")}
               <span className="text-muted-foreground"> ({seller.type === "dealer" ? "dealer" : "private seller"})</span>
             </dd>
+            {distance && (
+              <>
+                <dt className="text-muted-foreground">From home</dt>
+                <dd>{distance}, in a straight line</dd>
+              </>
+            )}
           </dl>
+          {listing.geo && mapboxToken && (
+            <SellerMap
+              token={mapboxToken}
+              listingId={listing.listingId}
+              geo={listing.geo}
+              home={board?.home ?? null}
+              location={seller.location}
+            />
+          )}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -299,6 +318,42 @@ function Description({ original, translation }: { original: string; translation?
         {translated ? translation.text : original}
       </p>
     </section>
+  );
+}
+
+// A static image, so the car page loads no map library; it opens the full map at this car.
+function SellerMap({
+  token,
+  listingId,
+  geo,
+  home,
+  location,
+}: {
+  token: string;
+  listingId: string;
+  geo: Point;
+  home: Point | null;
+  location: string | undefined;
+}) {
+  return (
+    <Link
+      to="/map"
+      search={{ car: listingId }}
+      className="mt-4 block overflow-hidden rounded-lg bg-muted outline-offset-2"
+      aria-label={`Open the map${location ? ` at ${location}` : ""}`}
+    >
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcSet={staticMapUrl(token, geo, home, true)} />
+        <img
+          src={staticMapUrl(token, geo, home, false)}
+          alt=""
+          width={640}
+          height={320}
+          loading="lazy"
+          className="aspect-[2/1] w-full object-cover"
+        />
+      </picture>
+    </Link>
   );
 }
 

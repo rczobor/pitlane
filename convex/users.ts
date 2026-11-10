@@ -20,6 +20,11 @@ export async function viewerAccess(ctx: QueryCtx, via: Via = "web") {
 }
 
 // For actions, which have no database access of their own.
+export const viewerForWeb = internalQuery({
+  args: {},
+  handler: (ctx) => viewerAccess(ctx),
+});
+
 // For the MCP server. Only the owner (the oldest user, who also holds the API tokens)
 // may use it for now: a car's listing facts are shared by every board that tracks it,
 // so another account's agent could rewrite the owner's prices or mark a car removed.

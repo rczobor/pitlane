@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate, toCheck } from "../shared/fit";
+import type { Point } from "../shared/geo";
 import { KeySpecLedger } from "./KeySpecLedger";
 import {
   type BoardListing,
   type KeySpecDef,
   formatAge,
   formatDate,
+  formatDistance,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -24,6 +26,8 @@ export type CardProps = {
   criteria?: Criteria;
   /** The board's key specs, in priority order (or a settings draft, for the preview). */
   specDefs: KeySpecDef[];
+  /** The user's home, for the distance to the seller. */
+  home?: Point | null;
 };
 
 export function ListingCard({
@@ -31,6 +35,7 @@ export function ListingCard({
   modelName,
   criteria,
   specDefs,
+  home,
   lifted = false,
   preview = false,
 }: CardProps & {
@@ -49,6 +54,7 @@ export function ListingCard({
     listing.modelId,
   );
   const unchecked = toCheck(listing.keySpecs);
+  const distance = formatDistance(home, listing.geo);
   const change =
     listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
   const card = (
@@ -118,9 +124,15 @@ export function ListingCard({
               Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
             </p>
           )}
-          <p className="flex justify-between gap-2 text-xs text-muted-foreground">
+          <p className="flex gap-2 text-xs text-muted-foreground">
             <span className="truncate">{listing.location}</span>
-            <span className="shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
+            {distance && (
+              <span className="shrink-0 font-semibold text-foreground">
+                {distance}
+                <span className="sr-only"> from home</span>
+              </span>
+            )}
+            <span className="ml-auto shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
           </p>
         </CardContent>
       </Card>

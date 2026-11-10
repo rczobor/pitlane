@@ -10,8 +10,10 @@
 
 import type * as agent from "../agent.js";
 import type * as board from "../board.js";
+import type * as crons from "../crons.js";
 import type * as errors from "../errors.js";
 import type * as fixtures from "../fixtures.js";
+import type * as geo from "../geo.js";
 import type * as http from "../http.js";
 import type * as keySpecs from "../keySpecs.js";
 import type * as listings from "../listings.js";
@@ -30,8 +32,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   board: typeof board;
+  crons: typeof crons;
   errors: typeof errors;
   fixtures: typeof fixtures;
+  geo: typeof geo;
   http: typeof http;
   keySpecs: typeof keySpecs;
   listings: typeof listings;

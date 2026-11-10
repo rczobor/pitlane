@@ -1,12 +1,13 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { boardModel, keySpec, listingDataValidator, listingStatus, tiers } from "./validators";
+import { boardModel, homeLocation, keySpec, listingDataValidator, listingStatus, point, tiers } from "./validators";
 
 export default defineSchema({
   users: defineTable({
     name: v.string(),
     // The Clerk account that signs in as this user. Unset until its first sign-in.
     tokenIdentifier: v.optional(v.string()),
+    home: v.optional(homeLocation),
   }).index("by_token_identifier", ["tokenIdentifier"]),
 
   boards: defineTable({
@@ -42,7 +43,13 @@ export default defineSchema({
     // A re-check that could not read the page. Never taken to mean the ad is gone.
     lastFailedCheckAt: v.optional(v.number()),
     failureReason: v.optional(v.string()),
-  }).index("by_source_external", ["source", "externalId"]),
+    // The seller's location as coordinates: null when the geocoder found nothing, unset
+    // until it has been looked up. `geoPending` queues the lookup (convex/geo.ts).
+    geo: v.optional(v.union(point, v.null())),
+    geoPending: v.optional(v.literal(true)),
+  })
+    .index("by_source_external", ["source", "externalId"])
+    .index("by_geo_pending", ["geoPending"]),
 
   // Append-only history: one row per capture that changed something.
   snapshots: defineTable({
