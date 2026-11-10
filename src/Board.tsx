@@ -373,7 +373,9 @@ function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onCl
       onClick={onClick}
       className={cn(
         // Centred on the photos (16:9, below the lane's padding), clear of prices and titles.
-        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 size-10 border-foreground/30 bg-card shadow-sm opacity-0 dark:border-foreground/30 dark:bg-card transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
+        // A negative margin centres it, not a translate: the button's pressed state sets the
+        // translate, and the jump would move the release off the button and lose the click.
+        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -mt-5 size-10 border-foreground/30 bg-card shadow-sm opacity-0 dark:border-foreground/30 dark:bg-card transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
         direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
       )}
     >
