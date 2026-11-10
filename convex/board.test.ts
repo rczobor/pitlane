@@ -86,6 +86,37 @@ test("moves a car between tiers and orders by rank", async () => {
   );
 });
 
+test("removing a car keeps a listing another board tracks, and deletes it with the last", async () => {
+  const { t, me, listingId } = await setup();
+  const friend = await signIn(t, "friend");
+  const friendBoard = await t.run((ctx) => ctx.db.query("boards").order("desc").first());
+  await t.mutation(internal.listings.save, {
+    boardId: friendBoard!._id,
+    capturedBy: "test",
+    url: listingSite.canonicalUrl("10000000000002"),
+    data: car,
+  });
+  const storageId = await t.run(async (ctx) => {
+    const id = await ctx.storage.store(new Blob(["jpeg"]));
+    await ctx.db.insert("photos", { listingId, sourceUrl: "https://img.example/1.jpg", position: 0, status: "stored", storageId: id });
+    return id;
+  });
+
+  await me.mutation(api.board.remove, { listingId });
+  expect((await me.query(api.board.get, {}))?.listings).toEqual([]);
+  await expect(me.mutation(api.board.remove, { listingId })).rejects.toThrow(/not on your board/);
+  expect(await friend.query(api.board.listing, { listingId })).toMatchObject({ photos: [{ status: "stored" }] });
+
+  await friend.mutation(api.board.remove, { listingId });
+  const left = await t.run(async (ctx) => ({
+    listing: await ctx.db.get(listingId),
+    snapshots: await ctx.db.query("snapshots").collect(),
+    photos: await ctx.db.query("photos").collect(),
+    file: await ctx.storage.getUrl(storageId),
+  }));
+  expect(left).toEqual({ listing: null, snapshots: [], photos: [], file: null });
+});
+
 const models = [
   { id: "gt3", name: "991.2 GT3" },
   { id: "gt4", name: "718 GT4" },

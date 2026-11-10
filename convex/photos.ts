@@ -47,6 +47,11 @@ export const settle = internalMutation({
     error: v.optional(v.string()),
   },
   handler: async (ctx, { photoId, ...result }) => {
+    // The car was removed while its photo downloaded: drop the copy nothing points to.
+    if (!(await ctx.db.get(photoId))) {
+      if (result.storageId) await ctx.storage.delete(result.storageId);
+      return;
+    }
     await ctx.db.patch(photoId, result);
   },
 });
