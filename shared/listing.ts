@@ -108,7 +108,7 @@ export const listingUrl = z
   .describe("The listing page URL.");
 
 export const snapshotInput = z.discriminatedUnion("status", [
-  listingData.extend({ status: z.literal("available"), url: listingUrl }),
+  listingData.extend({ status: z.literal("available"), url: listingUrl, recheck: z.boolean().optional() }),
   z.object({ status: z.literal("removed"), url: listingUrl }),
   // A re-check that could not read the page: recorded and retried later, never "removed".
   z.object({

@@ -79,7 +79,13 @@ function createServer(ctx: ActionCtx, owner: Owner) {
         "Saving the same URL again is safe: unchanged data only updates the last-checked time, and price changes are recorded in the history.",
         "New listings land in the Watching tier; only the user moves them between tiers.",
       ].join(" "),
-      inputSchema: listingData.extend({ url: listingUrl }),
+      inputSchema: listingData.extend({
+        url: listingUrl,
+        recheck: z
+          .boolean()
+          .optional()
+          .describe("Set to true when re-checking a listing from list_due_rechecks. If the user removed it meanwhile, the save is refused and nothing is added back."),
+      }),
     },
     async (input) => reply(await saveSnapshot(ctx, owner, { status: "available", ...input })),
   );
@@ -101,7 +107,7 @@ function createServer(ctx: ActionCtx, owner: Owner) {
       title: "List due re-checks",
       description: [
         "The saved listings that are due for a re-check, oldest first (at most 10).",
-        "Open each one and save it again with save_listing. If the page says the ad is gone, use mark_listing_removed.",
+        "Open each one and save it again with save_listing and recheck: true. If the page says the ad is gone, use mark_listing_removed.",
         "If the page did not load or looked blocked, use report_check_failed instead.",
         "Only re-check listings from this list.",
       ].join(" "),

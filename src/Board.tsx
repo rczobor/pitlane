@@ -13,15 +13,17 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
+import { Ellipsis, Trash2, X } from "lucide-react";
+import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
 import { type BoardData, type BoardListing, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard } from "./ListingCard";
+import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { slabColor } from "./TierSlab";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -32,6 +34,8 @@ export function Board() {
   const { model, check } = useSearch({ from: "/" });
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
+  const [removing, setRemoving] = useState<RemovableCar | null>(null);
+  const [removeOpen, setRemoveOpen] = useState(false);
   // A short travel threshold keeps a plain click opening the car; on touch a long press
   // starts the drag so swiping still scrolls the lane. Keyboard users move cars with the
   // tier buttons on the car's page.
@@ -133,13 +137,24 @@ export function Board() {
       >
         <div className="space-y-3">
           {lanes.map((lane) => (
-            <Lane key={lane.tier} {...lane} cardProps={cardProps} dragging={active !== undefined} />
+            <Lane
+              key={lane.tier}
+              {...lane}
+              cardProps={cardProps}
+              dragging={active !== undefined}
+              onRemove={(car) => {
+                setRemoving(car);
+                setRemoveOpen(true);
+              }}
+            />
           ))}
         </div>
         <DragOverlay>
           {active && <ListingCard listing={active} {...cardProps(active)} lifted />}
         </DragOverlay>
       </DndContext>
+      {/* Keyed by car, so an error from one car's removal never shows for the next. */}
+      <RemoveCarDialog key={removing?.listingId} car={removing} open={removeOpen} onOpenChange={setRemoveOpen} />
     </main>
   );
 }
@@ -150,12 +165,14 @@ function Lane({
   listings,
   cardProps,
   dragging,
+  onRemove,
 }: {
   tier: Tier;
   label: string;
   listings: BoardListing[];
   cardProps: (listing: BoardListing) => CardProps;
   dragging: boolean;
+  onRemove: (car: RemovableCar) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: tier });
   const isLetter = label.length === 1;
@@ -192,7 +209,7 @@ function Lane({
       >
         <SortableContext items={listings.map((l) => l.listingId)}>
           {listings.map((listing) => (
-            <SortableCard key={listing.listingId} listing={listing} {...cardProps(listing)} />
+            <SortableCard key={listing.listingId} listing={listing} onRemove={onRemove} {...cardProps(listing)} />
           ))}
         </SortableContext>
         {listings.length === 0 && (
@@ -245,7 +262,11 @@ function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
   window.addEventListener("mouseup", onUp);
 }
 
-function SortableCard({ listing, ...props }: { listing: BoardListing } & CardProps) {
+function SortableCard({
+  listing,
+  onRemove,
+  ...props
+}: { listing: BoardListing; onRemove: (car: RemovableCar) => void } & CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: listing.listingId,
   });
@@ -253,10 +274,42 @@ function SortableCard({ listing, ...props }: { listing: BoardListing } & CardPro
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={isDragging ? "opacity-30" : ""}
+      className={cn("group/card relative", isDragging && "opacity-30")}
       {...listeners}
     >
       <ListingCard listing={listing} {...props} />
+      <CardMenu title={listing.title} onRemove={() => onRemove(listing)} />
+    </div>
+  );
+}
+
+// Beside the card's link, which cannot hold a button. Presses stop here so they never
+// start a drag or a lane pan; React events from the menu's portal bubble through here too.
+function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) {
+  const stop = (event: SyntheticEvent) => event.stopPropagation();
+  return (
+    <div className="absolute top-2 right-2" onMouseDown={stop} onTouchStart={stop}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              aria-label={`Actions for ${title}`}
+              // Shown on hover or focus where there is a mouse; always on touch screens.
+              className="shadow-sm opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 pointer-coarse:opacity-100"
+            />
+          }
+        >
+          <Ellipsis aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-auto">
+          <DropdownMenuItem variant="destructive" onClick={onRemove}>
+            <Trash2 aria-hidden />
+            Remove from board…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

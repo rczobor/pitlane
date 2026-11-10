@@ -30,8 +30,8 @@ export async function saveSnapshot(ctx: ActionCtx, owner: Owner, input: unknown)
       const { url, reason } = parsed.data;
       return ok(await ctx.runMutation(internal.listings.markFailed, { boardId: owner.boardId, url, reason }));
     }
-    const { status: _, url, ...data } = parsed.data;
-    return ok(await ctx.runMutation(internal.listings.save, { ...owner, url, data }));
+    const { status: _, url, recheck, ...data } = parsed.data;
+    return ok(await ctx.runMutation(internal.listings.save, { ...owner, url, data, recheck }));
   } catch (error) {
     if (!(error instanceof ConvexError)) throw error;
     const { code, message }: AppErrorData = error.data;

@@ -175,6 +175,21 @@ test("marks a saved listing removed, and only listings on the board", async () =
   expect(detail.body.history.map((h: { status: string }) => h.status)).toEqual(["available", "removed"]);
 });
 
+test("a re-check never adds back a car the user removed meanwhile", async () => {
+  const { t, call } = await setup();
+  await call("save_listing", listing());
+  await t.run(async (ctx) => {
+    for (const item of await ctx.db.query("boardItems").collect()) await ctx.db.delete(item._id);
+  });
+
+  const recheck = await call("save_listing", listing({ recheck: true }));
+  expect(recheck).toMatchObject({ isError: true, body: { error: expect.stringMatching(/no longer on the board/) } });
+  expect((await call("list_listings")).body.listings).toEqual([]);
+  // Adding it on purpose still works.
+  expect((await call("save_listing", listing())).isError).toBe(false);
+  expect((await call("list_listings")).body.listings).toHaveLength(1);
+});
+
 test("lists the board's listings", async () => {
   const { call } = await setup();
   await call("save_listing", listing());
