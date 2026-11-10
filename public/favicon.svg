@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The pit-stop lollipop sign: signal yellow on asphalt. -->
+  <rect width="32" height="32" rx="7" fill="#23272b"/>
+  <rect x="14.25" y="18" width="3.5" height="11" rx="1" fill="#8f9599"/>
+  <circle cx="16" cy="12" r="9.5" fill="#f4be1a"/>
+</svg>
