@@ -268,7 +268,8 @@ function Lane({
           {view ? (
             <>
               <span className="sr-only">
-                Cars {view.first + 1} to {view.last + 1} of {listings.length} on screen
+                {view.last > view.first ? `Cars ${view.first + 1} to ${view.last + 1}` : `Car ${view.first + 1}`} of{" "}
+                {listings.length} on screen
               </span>
               <span aria-hidden className="condensed text-xl leading-none font-bold">
                 {view.first + 1}
@@ -361,10 +362,12 @@ function LaneIndex({
     onPointerLeave: () => setPointed((current) => (current === index ? undefined : current)),
   });
   return (
-    <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6 gap-1">
+    // No gap between the ticks' click areas (the gap is padding inside each), so the pointer
+    // never falls through between ticks and the strip stays open while it sweeps along them.
+    <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6">
       {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
       <div className="pointer-events-auto absolute bottom-full left-0 hidden max-w-full pb-1 group-hover/index:block pointer-coarse:hidden">
-        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/25">
+        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/40">
           {listings.map((listing, index) => (
             <button
               key={listing.listingId}
@@ -407,14 +410,14 @@ function LaneIndex({
           tabIndex={-1}
           onClick={() => jump(index)}
           {...point(index)}
-          className="pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
+          className="pointer-events-auto flex max-w-7 min-w-0 flex-1 items-end pr-1 pb-4"
         >
           <span
             className={cn(
               "h-1 w-full rounded-full bg-foreground/55",
-              // The pointed mark only where a fine pointer can point.
-              pointed === index && "pointer-fine:h-1.5 pointer-fine:bg-foreground/80",
-              shown(index) && "bg-foreground pointer-fine:bg-foreground",
+              shown(index) && "bg-foreground",
+              // The pointed tick grows, keeping its on/off fill; only where a fine pointer points.
+              pointed === index && "pointer-fine:h-2",
             )}
           />
         </button>
