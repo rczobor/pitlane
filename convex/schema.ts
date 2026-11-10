@@ -17,17 +17,6 @@ export default defineSchema({
     keySpecs: v.optional(v.array(keySpec)),
   }).index("by_owner", ["ownerId"]),
 
-  // An agent or extension credential. Only the SHA-256 of the token is stored.
-  apiTokens: defineTable({
-    name: v.string(),
-    tokenHash: v.string(),
-    userId: v.id("users"),
-    boardId: v.id("boards"),
-    createdAt: v.number(),
-  })
-    .index("by_hash", ["tokenHash"])
-    .index("by_user", ["userId"]),
-
   // The external ad itself, shared by every board that tracks it.
   listings: defineTable({
     source: v.string(),

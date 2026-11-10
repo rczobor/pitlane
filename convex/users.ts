@@ -25,9 +25,9 @@ export const viewerForWeb = internalQuery({
   handler: (ctx) => viewerAccess(ctx),
 });
 
-// For the MCP server's actions. Only the owner (the oldest user, who also holds the API tokens)
-// may use it for now: a car's listing facts are shared by every board that tracks it,
-// so another account's agent could rewrite the owner's prices or mark a car removed.
+// For the MCP server's actions. Only the owner (the oldest user) may use it for now:
+// a car's listing facts are shared by every board that tracks it, so another account's
+// agent could rewrite the owner's prices or mark a car removed.
 export const viewerForMcp = internalQuery({
   args: {},
   handler: async (ctx) => {
@@ -38,10 +38,9 @@ export const viewerForMcp = internalQuery({
 });
 
 // Runs when a signed-in account has no board yet. A new account takes over a user
-// that no account owns yet: the one `tokens:create` makes for the owner before they
-// first sign in, so their board and API tokens carry over. Sign-up is invite-only in
-// Clerk, which keeps strangers from claiming it. Anyone else gets a fresh user and an
-// empty board.
+// that no account owns yet, such as the design fixtures' seeded owner, so that board
+// carries over. Sign-up is invite-only in Clerk, which keeps strangers from claiming
+// it. Anyone else gets a fresh user and an empty board.
 export const ensureUser = mutation({
   args: {},
   handler: async (ctx) => {

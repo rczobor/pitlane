@@ -2,15 +2,15 @@
 
 A personal watchlist for cars found on listing sites: a ranked tier board, match
 scores against the user's criteria, and change tracking. AI agents add and re-check
-listings through a REST API and an MCP server; the user makes the decisions.
+listings through an MCP server; the user makes the decisions.
 
 [README.md](README.md) holds the product decisions, the build order and how to run
 everything. Read it before changing behaviour.
 
 ## Layout
 
-- `convex/`: the whole backend (schema, intake, REST and the MCP server via HTTP
-  actions, scheduled re-checks, photo storage). `convex/_generated/` is committed.
+- `convex/`: the whole backend (schema, intake, the MCP server via HTTP actions,
+  scheduled re-checks, photo storage). `convex/_generated/` is committed.
 - `shared/`: the listing snapshot schema and fit scoring used by Convex and the web
   app.
 - `src/`: the web app (Vite, React, TanStack Router, shadcn/ui on Base UI).

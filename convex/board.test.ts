@@ -2,7 +2,7 @@ import { convexTest, type TestConvex } from "convex-test";
 import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-import { modules } from "./test.setup";
+import { modules, seedOwner } from "./test.setup";
 import { listingSite } from "../shared/sources";
 
 const car = {
@@ -28,13 +28,12 @@ async function signIn(t: TestConvex<typeof schema>, subject: string) {
   return user;
 }
 
-// `tokens:create` makes the owner's user and board before any account has signed in.
+// The owner's user and board exist before any account has signed in.
 async function setup() {
   const t = convexTest(schema, modules);
-  await t.action(internal.tokens.create, { name: "web" });
-  const board = await t.run((ctx) => ctx.db.query("boards").first());
+  const boardId = await seedOwner(t);
   const { listingId } = await t.mutation(internal.listings.save, {
-    boardId: board!._id,
+    boardId,
     capturedBy: "test",
     url: listingSite.canonicalUrl("10000000000002"),
     data: car,
@@ -60,10 +59,6 @@ test("the first account takes over the owner's board; later accounts get their o
   await signIn(t, "friend");
   const counts = await t.run(async (ctx) => [(await ctx.db.query("users").collect()).length, (await ctx.db.query("boards").collect()).length]);
   expect(counts).toEqual([2, 2]);
-  // API tokens stay with the owner's board.
-  const token = await t.run((ctx) => ctx.db.query("apiTokens").first());
-  const ownerBoard = await t.run((ctx) => ctx.db.query("boards").first());
-  expect(token?.boardId).toEqual(ownerBoard?._id);
 });
 
 test("shows card data without the options list", async () => {
@@ -103,10 +98,9 @@ const keySpecs = [
 
 async function setupWithSpecs(options: string[]) {
   const t = convexTest(schema, modules);
-  await t.action(internal.tokens.create, { name: "web" });
-  const board = await t.run((ctx) => ctx.db.query("boards").first());
+  const boardId = await seedOwner(t);
   const { listingId } = await t.mutation(internal.listings.save, {
-    boardId: board!._id,
+    boardId,
     capturedBy: "test",
     url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, options } },
@@ -173,10 +167,9 @@ test("settings reject duplicate ids and drop links to deleted models", async () 
 
 test("a choice shared by two specs is not filled in from the listing", async () => {
   const t = convexTest(schema, modules);
-  await t.action(internal.tokens.create, { name: "web" });
-  const board = await t.run((ctx) => ctx.db.query("boards").first());
+  const boardId = await seedOwner(t);
   await t.mutation(internal.listings.save, {
-    boardId: board!._id,
+    boardId,
     capturedBy: "test",
     url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, color: "Chalk", options: ["Guards Red seat belts"] } },
