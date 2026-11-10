@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Ellipsis, ImageOff, Trash2, X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
@@ -243,7 +243,6 @@ function Lane({
   const { setNodeRef } = useDroppable({ id: tier });
   const { frame, lane, view } = useLaneScroll(listings.length);
   const isLetter = label.length === 1;
-  const total = listings.length === 1 ? "1 car" : `${listings.length} cars`;
   return (
     <section
       ref={setNodeRef}
@@ -280,7 +279,14 @@ function Lane({
               </span>
             </>
           ) : (
-            <span className="text-sm opacity-75 dark:opacity-100">{total}</span>
+            // A lane that fits says its total in the same lap-board type.
+            <>
+              <span className="condensed text-xl leading-none font-bold">{listings.length}</span>
+              <span className="condensed leading-none font-bold opacity-75 dark:opacity-100">
+                {" "}
+                {listings.length === 1 ? "car" : "cars"}
+              </span>
+            </>
           )}
         </p>
       </div>
@@ -349,8 +355,9 @@ function LaneIndex({
   const jump = (index: number) =>
     lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
   const shown = (index: number) => index >= view.first && index <= view.last;
+  // Only a mouse points: a tap would leave its tick marked.
   const point = (index: number) => ({
-    onPointerEnter: () => setPointed(index),
+    onPointerEnter: (event: ReactPointerEvent) => event.pointerType === "mouse" && setPointed(index),
     onPointerLeave: () => setPointed((current) => (current === index ? undefined : current)),
   });
   return (
@@ -367,8 +374,8 @@ function LaneIndex({
               onClick={() => jump(index)}
               {...point(index)}
               className={cn(
-                "flex w-16 min-w-0 shrink flex-col gap-1 rounded-sm text-left",
-                pointed === index && "bg-muted outline-4 outline-muted",
+                "flex w-20 min-w-0 shrink flex-col gap-1 border-b-2 pb-1 text-left",
+                pointed === index ? "border-foreground" : "border-transparent",
               )}
             >
               <span
@@ -387,7 +394,7 @@ function LaneIndex({
                 {formatPrice(listing.price)}
               </span>
               {modelName(listing) && (
-                <span className="condensed truncate text-xs leading-none text-muted-foreground">{modelName(listing)}</span>
+                <span className="condensed line-clamp-2 text-xs leading-tight text-muted-foreground">{modelName(listing)}</span>
               )}
             </button>
           ))}
@@ -406,7 +413,7 @@ function LaneIndex({
             className={cn(
               "w-full rounded-full",
               pointed === index ? "h-1.5" : "h-1",
-              shown(index) ? "bg-foreground" : pointed === index ? "bg-foreground/80" : "bg-foreground/50",
+              shown(index) ? "bg-foreground" : pointed === index ? "bg-foreground/80" : "bg-foreground/55",
             )}
           />
         </button>
