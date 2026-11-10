@@ -306,6 +306,8 @@ function Lane({
         <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
         {view && (
           // One tick per car, filled for the cars on screen; a click brings that car into view.
+          // A compact index from the lane's start, so no tick reads as the card above it;
+          // ticks shrink only when a long lane would not fit them.
           <div aria-hidden className="absolute inset-x-3 bottom-0 flex h-3 gap-1">
             {listings.map((listing, index) => (
               <button
@@ -313,14 +315,14 @@ function Lane({
                 type="button"
                 tabIndex={-1}
                 onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
-                className="group/tick flex flex-1 items-end pb-1"
+                className="group/tick flex max-w-6 min-w-0 flex-1 items-end pb-1"
               >
                 <span
                   className={cn(
                     "h-1 w-full rounded-full",
                     index >= view.first && index <= view.last
-                      ? "bg-muted-foreground"
-                      : "bg-foreground/25 group-hover/tick:bg-foreground/40",
+                      ? "bg-foreground"
+                      : "bg-foreground/30 group-hover/tick:bg-foreground/50",
                   )}
                 />
               </button>
