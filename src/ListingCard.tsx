@@ -122,8 +122,14 @@ export function ListingCard({
             </dl>
             <div className="flex gap-1">
               {fuel && <Badge variant="outline">{fuel}</Badge>}
-              {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge. */}
-              {specs.gearbox === "manual" && <Badge variant="outline">Manual</Badge>}
+              {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge.
+                  "MT" keeps the badges on the specs line, where "Manual" wrapped them. */}
+              {specs.gearbox === "manual" && (
+                <Badge variant="outline" title="Manual">
+                  <span aria-hidden>MT</span>
+                  <span className="sr-only">Manual</span>
+                </Badge>
+              )}
               {/* The country is enough to judge the trip at a glance; the place and distance
                   are on hover and on the car page. */}
               {country && (
