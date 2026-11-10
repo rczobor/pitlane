@@ -14,7 +14,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
@@ -36,7 +36,7 @@ export function Board() {
   // starts the drag so swiping still scrolls the lane. Keyboard users move cars with the
   // tier buttons on the car's page.
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(LeftMouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
 
@@ -179,6 +179,7 @@ function Lane({
       </div>
       <div
         ref={setNodeRef}
+        onMouseDown={panWithMiddleButton}
         className={cn(
           "relative flex min-h-20 flex-1 gap-3 overflow-x-auto rounded-b-lg p-3 transition-colors sm:min-h-44 sm:rounded-r-lg sm:rounded-bl-none",
           isOver && "bg-muted",
@@ -197,6 +198,46 @@ function Lane({
       </div>
     </section>
   );
+}
+
+// dnd-kit's MouseSensor only ignores the right button, so the middle button would drag
+// a car; it pans the lane instead (see panWithMiddleButton).
+class LeftMouseSensor extends MouseSensor {
+  static activators: typeof MouseSensor.activators = MouseSensor.activators.map((activator) => ({
+    ...activator,
+    handler: (event, options) => event.nativeEvent.button === 0 && activator.handler(event, options),
+  }));
+}
+
+// Holding the middle button and moving the mouse drags a lane sideways, so a long lane
+// scrolls without a horizontal wheel or the scrollbar.
+function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
+  if (event.button !== 1) return;
+  // Stops the browser's own autoscroll and, on Linux, pasting the primary selection.
+  event.preventDefault();
+  const lane = event.currentTarget;
+  const startX = event.clientX;
+  const startScroll = lane.scrollLeft;
+  let panned = false;
+  const onMove = (move: MouseEvent) => {
+    const dx = move.clientX - startX;
+    if (!panned && Math.abs(dx) < 4) return;
+    panned = true;
+    lane.scrollLeft = startScroll - dx;
+  };
+  const onUp = (up: MouseEvent) => {
+    if (up.button !== 1) return;
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    if (!panned) return;
+    // A middle click on a car opens it in a new tab; after a pan it should not. The
+    // auxclick follows this mouseup in the same task, if it fires at all.
+    const swallow = (click: MouseEvent) => click.preventDefault();
+    window.addEventListener("auxclick", swallow, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("auxclick", swallow, { capture: true }));
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
 }
 
 function SortableCard({ listing, ...props }: { listing: BoardListing } & CardProps) {
