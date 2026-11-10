@@ -132,6 +132,33 @@ test("a re-check only adds history when something changed", async () => {
   expect(detail.body.price.amount).toBe(23_490);
 });
 
+test("keeps a translation until the description it translates changes", async () => {
+  const { call } = await setup();
+  const description = "Scheckheftgepflegt, unfallfrei.";
+  const translation = (text: string) => ({ from: "de", text });
+  const { body: first } = await call(
+    "/api/listings",
+    listing({ description, descriptionTranslation: translation("Full service history, accident-free.") }),
+  );
+  const saved = async () => (await call(`/api/listings/${first.listingId}`)).body.descriptionTranslation;
+
+  // Reworded translation of the same text: not a change, but the newer wording is shown.
+  const reworded = await call(
+    "/api/listings",
+    listing({ description, descriptionTranslation: translation("Full dealer service history, no accidents.") }),
+  );
+  expect(reworded.body).toMatchObject({ changed: false });
+  expect(await saved()).toEqual(translation("Full dealer service history, no accidents."));
+
+  // A capture without a translation keeps the saved one.
+  expect((await call("/api/listings", listing({ description }))).body).toMatchObject({ changed: false });
+  expect(await saved()).toEqual(translation("Full dealer service history, no accidents."));
+
+  // A new description drops the translation of the old one.
+  expect((await call("/api/listings", listing({ description: "Neue Bremsen." }))).body).toMatchObject({ changed: true });
+  expect(await saved()).toBeUndefined();
+});
+
 test("marks a saved listing removed, and only listings on the board", async () => {
   const { call } = await setup();
   expect((await call("/api/listings", { status: "removed", url })).status).toBe(404);

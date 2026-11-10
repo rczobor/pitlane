@@ -38,6 +38,7 @@ server.registerTool(
     description: [
       "Add a listing to the watchlist, or record a re-check of one that is already saved.",
       "Open the listing page first and copy every value exactly as the page shows it; never guess or fill gaps.",
+      "The one exception is descriptionTranslation: write it yourself when the description is not in English.",
       "Saving the same URL again is safe: unchanged data only updates the last-checked time, and price changes are recorded in the history.",
       "New listings land in the Watching tier; only the user moves them between tiers.",
     ].join(" "),

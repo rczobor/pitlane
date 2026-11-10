@@ -77,7 +77,12 @@ const cars: FixtureCar[] = [
       price: { vatDeductible: true, netAmount: 134_453 },
       seller: { name: "Kurvenreich Automobile", location: "80331 München" },
       details: { model: "911 GT3", firstRegistration: "2018-03", mileageKm: 39_500, gearbox: "manual", powerKw: 368, color: "GT Silver Metallic", options: [...options, "LED headlights incl. PDLS+", "Front axle lift", "Clubsport package"] },
-      description: "Porsche Approved warranty until 09.2027. New brakes and tyres at the last service.\n\nViewing by appointment only.",
+      description:
+        "Porsche Approved Garantie bis 09.2027. Scheckheftgepflegt, unfallfrei. Bremsen und Reifen beim letzten Service neu.\n\nBesichtigung nur nach Terminvereinbarung.",
+      descriptionTranslation: {
+        from: "de",
+        text: "Porsche Approved warranty until 09.2027. Full service history (stamped service book), accident-free. New brakes and tyres at the last service.\n\nViewing by appointment only.",
+      },
       photos: { from: 0, count: 12 },
     },
   },

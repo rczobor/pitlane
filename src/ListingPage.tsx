@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Columns3, ScanSearch } from "lucide-react";
+import { ArrowLeft, Columns3, Languages, ScanSearch } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
@@ -265,16 +265,42 @@ export function ListingPage({ listingId }: { listingId: string }) {
         )}
 
         {listing.description && (
-          <section>
-            <h2 className="font-semibold">Seller's description</h2>
-            <Separator className="my-3" />
-            <p className="max-w-[70ch] text-sm leading-relaxed whitespace-pre-line">{listing.description}</p>
-          </section>
+          <Description original={listing.description} translation={listing.descriptionTranslation} />
         )}
         </div>
         </div>
       </div>
     </main>
+  );
+}
+
+const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
+
+// Shows the English translation the capturing agent saved, with the seller's own words a click away.
+function Description({ original, translation }: { original: string; translation?: { from: string; text: string } }) {
+  const [showOriginal, setShowOriginal] = useState(false);
+  const language = translation && languageNames.of(translation.from);
+  const translated = translation && !showOriginal;
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-semibold">Seller's description</h2>
+        {translation && (
+          <Button variant="ghost" size="sm" className="-my-1" onClick={() => setShowOriginal(!showOriginal)}>
+            <Languages data-icon="inline-start" aria-hidden />
+            {showOriginal ? "Show English" : `Show original (${language})`}
+          </Button>
+        )}
+      </div>
+      <Separator className="my-3" />
+      {translated && <p className="mb-2 text-xs text-muted-foreground">Translated from {language}</p>}
+      <p
+        lang={translated ? "en" : translation?.from}
+        className="max-w-[70ch] text-sm leading-relaxed whitespace-pre-line"
+      >
+        {translated ? translation.text : original}
+      </p>
+    </section>
   );
 }
 

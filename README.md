@@ -58,6 +58,11 @@ key specs that decide a car's tier (PDLS+, seats, gearbox, colour, …), with
 preferred values per model. A spec the listing text names shows as an unconfirmed
 suggestion; only values the user confirms count towards a car's fit.
 
+**The capturing agent translates the seller's description** into English and saves
+it beside the original, so no translation service is needed. A translation does not
+count as a change, and a capture without one keeps the saved translation until the
+description itself changes.
+
 **Agents never move cars between tiers.** New listings land in Watching; tiers,
 notes and pros/cons are yours.
 
