@@ -23,7 +23,9 @@ export default defineSchema({
     userId: v.id("users"),
     boardId: v.id("boards"),
     createdAt: v.number(),
-  }).index("by_hash", ["tokenHash"]),
+  })
+    .index("by_hash", ["tokenHash"])
+    .index("by_user", ["userId"]),
 
   // The external ad itself, shared by every board that tracks it.
   listings: defineTable({

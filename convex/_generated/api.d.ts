@@ -8,12 +8,14 @@
  * @module
  */
 
+import type * as agent from "../agent.js";
 import type * as board from "../board.js";
 import type * as errors from "../errors.js";
 import type * as fixtures from "../fixtures.js";
 import type * as http from "../http.js";
 import type * as keySpecs from "../keySpecs.js";
 import type * as listings from "../listings.js";
+import type * as mcp from "../mcp.js";
 import type * as photos from "../photos.js";
 import type * as tokens from "../tokens.js";
 import type * as users from "../users.js";
@@ -26,12 +28,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agent: typeof agent;
   board: typeof board;
   errors: typeof errors;
   fixtures: typeof fixtures;
   http: typeof http;
   keySpecs: typeof keySpecs;
   listings: typeof listings;
+  mcp: typeof mcp;
   photos: typeof photos;
   tokens: typeof tokens;
   users: typeof users;
