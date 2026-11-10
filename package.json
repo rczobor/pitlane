@@ -40,6 +40,7 @@
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/intent": "^0.5.6",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -50,5 +51,11 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
+  },
+  "intent": {
+    "skills": [
+      "@tanstack/react-router",
+      "@tanstack/router-core"
+    ]
   }
 }
