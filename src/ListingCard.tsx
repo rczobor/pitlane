@@ -151,7 +151,8 @@ export function ListingCard({
       </Card>
     </>
   );
-  const frame = "block w-(--board-card) shrink-0 rounded-lg";
+  // Full height, so cards in one row of a lane end together.
+  const frame = "block h-full w-(--board-card) shrink-0 rounded-lg";
   return preview ? (
     <div className={frame}>{card}</div>
   ) : (
