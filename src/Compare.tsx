@@ -95,7 +95,7 @@ function CompareTable({ board, ids, onChange }: { board: BoardData; ids: string[
           cell: (c) => (c.specs.powerKw === undefined ? "—" : formatPower(c.specs.powerKw)),
           key: (c) => String(c.specs.powerKw),
         },
-        { label: "Fuel and gearbox", cell: (c) => formatDrivetrain(c.specs), key: (c) => formatDrivetrain(c.specs) },
+        { label: "Gearbox", cell: (c) => formatDrivetrain(c.specs), key: (c) => formatDrivetrain(c.specs) },
         { label: "Colour", cell: (c) => c.specs.color ?? "—", key: (c) => c.specs.color ?? "" },
         { label: "Previous owners", cell: (c) => c.specs.previousOwners ?? "—", key: (c) => String(c.specs.previousOwners) },
       ],

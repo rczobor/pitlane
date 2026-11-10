@@ -68,7 +68,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
     ["First registration", formatRegistration(details.firstRegistration)],
     ["Mileage", formatKm(details.mileageKm)],
     ["Power", details.powerKw === undefined ? undefined : `${details.powerKw} kW (${formatPower(details.powerKw)})`],
-    ["Fuel and gearbox", formatDrivetrain(details)],
+    ["Gearbox", formatDrivetrain(details)],
     ["Body", details.bodyType],
     ["Colour", details.color],
     ["Previous owners", details.previousOwners?.toString()],

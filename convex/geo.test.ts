@@ -108,3 +108,14 @@ test("home is looked up from a place name and can be cleared", async () => {
   await me.action(api.board.setHome, { query: "" });
   expect((await me.query(api.board.get, {}))!.home).toBeNull();
 });
+
+test("cards get the seller's country, or the one a location starts with", async () => {
+  const { me, save } = await setup();
+  const countryOf = async () => (await me.query(api.board.get, {}))!.listings[0].country;
+  await save({});
+  expect(await countryOf()).toBe("DE");
+  await save({ location: "NL-5688HP Oirschot", country: undefined });
+  expect(await countryOf()).toBe("NL");
+  await save({ location: "5020 Salzburg", country: undefined });
+  expect(await countryOf()).toBeUndefined();
+});

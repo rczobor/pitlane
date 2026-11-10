@@ -3,21 +3,20 @@ import { Ban, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { type Criteria, evaluate, toCheck } from "../shared/fit";
+import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
 import { KeySpecLedger } from "./KeySpecLedger";
 import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
   type KeySpecDef,
-  formatAge,
   formatDate,
   formatDistance,
-  formatDrivetrain,
   formatKm,
   formatPower,
   formatPrice,
-  formatRegistration,
+  formatRegistrationYear,
+  otherFuel,
   dealBreakerLabel,
 } from "./format";
 
@@ -50,15 +49,17 @@ export function ListingCard({
 }) {
   const { specs } = listing;
   const removed = listing.status === "removed";
-  const { met, total, dealBreakers } = evaluate(
+  const { dealBreakers } = evaluate(
     { price: listing.price, firstRegistration: specs.firstRegistration, mileageKm: specs.mileageKm },
     criteria,
     specDefs,
     listing.keySpecs,
     listing.modelId,
   );
-  const unchecked = toCheck(listing.keySpecs);
   const distance = formatDistance(home, listing.geo);
+  const country = listing.country;
+  const place = [listing.location ?? country, distance && `${distance} away`].filter(Boolean).join(" · ");
+  const fuel = otherFuel(specs.fuel);
   const change =
     listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
   const card = (
@@ -111,39 +112,35 @@ export function ListingCard({
           {modelName && <p className="condensed text-lg leading-none font-bold">{modelName}</p>}
           <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {/* Year, mileage and power stay at glance level, above the key specs. */}
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
-            <Spec
-              label="First registration"
-              value={specs.firstRegistration ? `Reg. ${formatRegistration(specs.firstRegistration)}` : "New"}
-            />
-            <Spec label="Mileage" value={formatKm(specs.mileageKm)} />
-            {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
-            <Spec label="Fuel and gearbox" value={formatDrivetrain(specs)} />
-          </dl>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <dl className="flex gap-x-3 tabular-nums">
+              <Spec label="First registration" value={formatRegistrationYear(specs.firstRegistration)} />
+              <Spec label="Mileage" value={formatKm(specs.mileageKm)} />
+              {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
+            </dl>
+            <div className="flex gap-1">
+              {fuel && <Badge variant="outline">{fuel}</Badge>}
+              {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge. */}
+              {specs.gearbox === "manual" && <Badge variant="outline">Manual</Badge>}
+              {/* The country is enough to judge the trip at a glance; the place and distance
+                  are on hover and on the car page. */}
+              {country && (
+                <Badge variant="outline" title={place}>
+                  <span aria-hidden>{country}</span>
+                  <span className="sr-only">Seller: {place}</span>
+                </Badge>
+              )}
+            </div>
+          </div>
           <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} />
-          {(total > 0 || unchecked > 0) && (
-            <p className="flex justify-between gap-2 text-xs tabular-nums">
-              <span className="font-semibold">{total > 0 && `${met} of ${total} met`}</span>
-              <span className="text-muted-foreground">{unchecked > 0 && `${unchecked} to check`}</span>
-            </p>
-          )}
           {dealBreakers.length > 0 && (
             <p className="flex items-center gap-1 text-xs font-semibold text-destructive">
               <Ban className="size-3.5 shrink-0" aria-hidden />
               Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
             </p>
           )}
-          {/* Two fixed lines, so footers line up across a lane. The place wraps rather than
-              truncates: it is what the distance is measured to. */}
-          <div className="space-y-0.5 text-xs text-muted-foreground">
-            <p>
-              {listing.location}
-              {distance && <span className="text-foreground"> · {distance} away</span>}
-            </p>
-            <p>Added {formatAge(listing.firstSeenAt)}</p>
-          </div>
         </CardContent>
       </Card>
     </>
@@ -172,9 +169,9 @@ export function NoPhoto({ className }: { className?: string }) {
 // Values are self-explanatory on the card; the labels are there for screen readers.
 function Spec({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
+    <div className="whitespace-nowrap">
       <dt className="sr-only">{label}</dt>
-      <dd className="truncate">{value}</dd>
+      <dd>{value}</dd>
     </div>
   );
 }

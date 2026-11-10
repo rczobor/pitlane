@@ -198,6 +198,8 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
         price: listing.current.price,
         specs,
         location: listing.current.seller.location,
+        // Some sites prefix the postcode with the country ("DE-30655 Hannover").
+        country: listing.current.seller.country ?? listing.current.seller.location?.match(/^([A-Z]{2})-/)?.[1],
         geo: listing.geo ?? null,
         // A deleted model leaves its cars without one.
         modelId: item.modelId && modelIds.has(item.modelId) ? item.modelId : null,
