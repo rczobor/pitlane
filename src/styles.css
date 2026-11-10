@@ -3,6 +3,11 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/archivo/wdth.css";
 
+/* Agent skills ship example components; keep their classes out of the app's CSS.
+   Tailwind reaches them through .agents and through the .claude/skills link. */
+@source not "../.agents";
+@source not "../.claude";
+
 /* Dark mode follows the system setting. */
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
