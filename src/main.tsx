@@ -7,6 +7,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Board } from "./Board";
 import { Compare } from "./Compare";
+import { Connect } from "./Connect";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
 import { Settings } from "./Settings";
@@ -44,6 +45,7 @@ const mapRoute = createRoute({
   component: lazyRouteComponent(() => import("./MapPage"), "MapPage"),
 });
 const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings });
+const connectRoute = createRoute({ getParentRoute: () => rootRoute, path: "/connect", component: Connect });
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
@@ -54,7 +56,7 @@ const listingRoute = createRoute({
   },
 });
 
-const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, mapRoute, settingsRoute]) });
+const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, mapRoute, settingsRoute, connectRoute]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

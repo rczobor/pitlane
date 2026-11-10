@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
-import { httpAction, type ActionCtx } from "./_generated/server";
+import { httpAction, query, type ActionCtx } from "./_generated/server";
 import { getListing, listDue, listListings, saveSnapshot, type Owner } from "./agent";
 import { listingData, listingUrl } from "../shared/listing";
 
@@ -13,6 +14,14 @@ const siteUrl = () => process.env.CONVEX_SITE_URL!;
 const metadataUrl = () => `${siteUrl()}/.well-known/oauth-protected-resource/mcp`;
 // Pitlane needs no data from the Clerk account itself, but Clerk grants at least one scope.
 const scopes = ["profile"];
+
+// The URL people paste into Claude or ChatGPT. It must equal the `resource` below, since
+// access tokens are issued for that exact URL; the web app only knows the .cloud URL.
+export const serverUrl = query({
+  args: {},
+  returns: v.string(),
+  handler: () => `${siteUrl()}/mcp`,
+});
 
 // Protected resource metadata (RFC 9728): tells clients where to sign in.
 export const protectedResource = httpAction(async () =>

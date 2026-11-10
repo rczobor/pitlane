@@ -123,8 +123,11 @@ export function Board() {
             <Link to="/settings" className="text-foreground underline underline-offset-4">
               models and key specs
             </Link>{" "}
-            you are hunting, so cards show what decides a car's tier. Then ask Claude to open a listing and save it to
-            Pitlane; new cars land in Watching.
+            you are hunting, so cards show what decides a car's tier. Then{" "}
+            <Link to="/connect" className="text-foreground underline underline-offset-4">
+              connect Claude or ChatGPT
+            </Link>{" "}
+            and ask it to save a listing you have open; new cars land in Watching.
           </p>
         </div>
       )}
