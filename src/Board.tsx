@@ -310,7 +310,7 @@ function Lane({
 
 // Marks the lane's frame with the ends that hide cars (`data-more-start`, `data-more-end`)
 // and sizes the rail's thumb. It writes to the DOM directly, so scrolling never re-renders
-// the cards.
+// the cards. `cars` re-measures when cars come or go: the lane's own box keeps its size.
 function useLaneScroll(cars: number) {
   const frame = useRef<HTMLDivElement>(null);
   const lane = useRef<HTMLDivElement>(null);
