@@ -1,0 +1,28 @@
+/* Mapbox sets its own font on the map; pins, controls and attribution use the app's. */
+.mapboxgl-map {
+  font-family: var(--font-sans);
+}
+
+/* Mapbox's own controls follow the app's theme. Loaded after mapbox-gl.css, so equal
+   selectors win. */
+.mapboxgl-ctrl-group:not(:empty) {
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border);
+}
+.mapboxgl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+.mapboxgl-ctrl-attrib.mapboxgl-compact,
+.mapboxgl-ctrl.mapboxgl-ctrl-attrib {
+  background: color-mix(in oklab, var(--card) 80%, transparent);
+}
+.mapboxgl-ctrl-attrib a {
+  color: var(--muted-foreground);
+}
+@media (prefers-color-scheme: dark) {
+  /* The icons are dark SVGs; invert them on the dark card surface. */
+  .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon,
+  .mapboxgl-ctrl-attrib-button {
+    filter: invert(1);
+  }
+}

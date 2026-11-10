@@ -5,7 +5,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { sha256 } from "./tokens";
-import { tiers } from "./validators";
+import { point, tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
 import { listingSite } from "../shared/sources";
 
@@ -135,7 +135,7 @@ const cars: FixtureCar[] = [
     specs: { seats: "Sport seats Plus", pdls: "no" },
     data: {
       title: "Porsche 718 Cayman GT4 PDK, Chalk",
-      seller: { name: "Sportwagenzentrum Leipzig", location: "04109 Leipzig" },
+      seller: { name: "Sportwagenzentrum Salzburg", location: "5020 Salzburg", country: "AT" },
       details: { model: "718 Cayman GT4", firstRegistration: "2021-03", mileageKm: 18_300, gearbox: "automatic", powerKw: 309, color: "Chalk", options: [...options, "PDK"] },
       photos: { from: 4 },
     },
@@ -187,7 +187,7 @@ const cars: FixtureCar[] = [
     specs: { gearbox: "Manual", pdls: "no", seats: "Sport seats Plus" },
     data: {
       title: "Porsche 718 Cayman GT4 manual, one owner",
-      seller: { name: "Sportwagenzentrum Nürnberg", location: "90402 Nürnberg" },
+      seller: { name: "Sportwagenzentrum Amsterdam", location: "1012 Amsterdam", country: "NL" },
       details: { model: "718 Cayman GT4", firstRegistration: "2020-05", mileageKm: 46_500, gearbox: "manual", powerKw: 309, options },
       photos: { from: 7 },
     },
@@ -201,9 +201,22 @@ const toListing = ({ data: { photos, ...data } }: FixtureCar, amount: number, ph
       ? Array.from({ length: photos.count ?? 4 }, (_, i) => photoUrls[(photos.from + i) % photoUrls.length])
       : [],
   price: { currency: "EUR", ...data.price, amount },
-  seller: { type: "dealer", ...data.seller },
+  seller: { type: "dealer", country: "DE", ...data.seller },
   details: { category: "car", make: "Porsche", fuel: "petrol", gearbox: "automatic", options, ...data.details },
 });
+
+// Where the geocoder would place each fixture seller, so seeding never calls it.
+const coordinates: Record<string, { lat: number; lng: number }> = {
+  "80331 München": { lat: 48.1374, lng: 11.5755 },
+  "20095 Hamburg": { lat: 53.5503, lng: 9.993 },
+  "50667 Köln": { lat: 50.9384, lng: 6.9599 },
+  "70173 Stuttgart": { lat: 48.7784, lng: 9.18 },
+  "5020 Salzburg": { lat: 47.8095, lng: 13.055 },
+  "60311 Frankfurt am Main": { lat: 50.1109, lng: 8.6821 },
+  "28195 Bremen": { lat: 53.0793, lng: 8.8017 },
+  "1012 Amsterdam": { lat: 52.373, lng: 4.8924 },
+};
+const demoHome = { query: "1010 Wien", place: "1010, Innere Stadt, Vienna, Austria", lat: 48.2082, lng: 16.3738 };
 
 // Every fixture function wipes or rewrites data, so each refuses to run anywhere but a
 // local deployment, even when called directly with `convex run`.
@@ -237,6 +250,7 @@ export const seed = internalAction({
         rank: index,
         modelId: car.model,
         specValues: car.specs ?? {},
+        geo: coordinates[car.data.seller?.location ?? ""],
         ...car.take,
       });
       if (car.failed) await ctx.runMutation(internal.listings.markFailed, { boardId, url, reason: car.failed });
@@ -262,7 +276,7 @@ export const reset = internalMutation({
       if (doc.storageId) await ctx.storage.delete(doc.storageId);
       await ctx.db.delete(doc._id);
     }
-    const userId = await ctx.db.insert("users", { name: "Demo driver" });
+    const userId = await ctx.db.insert("users", { name: "Demo driver", home: demoHome });
     const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId, models, keySpecs });
     await ctx.db.insert("apiTokens", { name: "design-fixtures", tokenHash, userId, boardId, createdAt: Date.now() });
 
@@ -287,12 +301,14 @@ export const place = internalMutation({
     rank: v.number(),
     modelId: v.string(),
     specValues: v.record(v.string(), v.string()),
+    geo: v.optional(point),
     notes: v.optional(v.string()),
     pros: v.optional(v.array(v.string())),
     cons: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { boardId, listingId, ...placement }) => {
+  handler: async (ctx, { boardId, listingId, geo, ...placement }) => {
     localOnly();
+    if (geo) await ctx.db.patch(listingId, { geo, geoPending: undefined });
     const item = await ctx.db
       .query("boardItems")
       .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))

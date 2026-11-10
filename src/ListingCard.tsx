@@ -4,12 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate, toCheck } from "../shared/fit";
+import type { Point } from "../shared/geo";
 import { KeySpecLedger } from "./KeySpecLedger";
+import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
   type KeySpecDef,
   formatAge,
   formatDate,
+  formatDistance,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -24,6 +27,8 @@ export type CardProps = {
   criteria?: Criteria;
   /** The board's key specs, in priority order (or a settings draft, for the preview). */
   specDefs: KeySpecDef[];
+  /** The user's home, for the distance to the seller. */
+  home?: Point | null;
 };
 
 export function ListingCard({
@@ -31,11 +36,15 @@ export function ListingCard({
   modelName,
   criteria,
   specDefs,
+  home,
   lifted = false,
   preview = false,
+  showTier = false,
 }: CardProps & {
   listing: BoardListing;
   lifted?: boolean;
+  /** Off the board (the map), where no lane says the car's tier. */
+  showTier?: boolean;
   /** A static rendering for the settings preview: no link, so unsaved edits are not lost. */
   preview?: boolean;
 }) {
@@ -49,6 +58,7 @@ export function ListingCard({
     listing.modelId,
   );
   const unchecked = toCheck(listing.keySpecs);
+  const distance = formatDistance(home, listing.geo);
   const change =
     listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
   const card = (
@@ -67,6 +77,12 @@ export function ListingCard({
           ) : (
             <NoPhoto />
           )}
+          {showTier && (
+            <TierSlab
+              tier={listing.tier}
+              className={cn("absolute top-2 left-2 h-8 min-w-8 px-2", listing.tier.length === 1 ? "text-2xl" : "text-base")}
+            />
+          )}
           {removed && (
             <p className="absolute inset-x-0 bottom-0 bg-slab px-3 py-1 text-xs font-semibold text-slab-foreground">
               Ad removed{listing.removedAt && ` ${formatDate(listing.removedAt)}`}
@@ -74,11 +90,12 @@ export function ListingCard({
           )}
         </div>
         <CardHeader>
-          <div className="flex items-center justify-between gap-2">
+          {/* Wraps on narrow cards: the badge drops below the price instead of being clipped. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <p className="flex items-baseline gap-1.5">
               <span className="condensed text-3xl leading-none font-bold">{formatPrice(listing.price)}</span>
               {change !== 0 && (
-                <span className="text-xs font-semibold tabular-nums">
+                <span className="text-xs font-semibold whitespace-nowrap tabular-nums">
                   <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
                   <span aria-hidden>{change < 0 ? "−" : "+"}</span>
                   {formatPrice({ ...listing.price, amount: Math.abs(change) })}
@@ -118,10 +135,15 @@ export function ListingCard({
               Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
             </p>
           )}
-          <p className="flex justify-between gap-2 text-xs text-muted-foreground">
-            <span className="truncate">{listing.location}</span>
-            <span className="shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
-          </p>
+          {/* Two fixed lines, so footers line up across a lane. The place wraps rather than
+              truncates: it is what the distance is measured to. */}
+          <div className="space-y-0.5 text-xs text-muted-foreground">
+            <p>
+              {listing.location}
+              {distance && <span className="text-foreground"> · {distance} away</span>}
+            </p>
+            <p>Added {formatAge(listing.firstSeenAt)}</p>
+          </div>
         </CardContent>
       </Card>
     </>

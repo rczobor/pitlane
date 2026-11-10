@@ -30,6 +30,7 @@
     "convex-helpers": "^0.1.134",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.70.0",
+    "mapbox-gl": "^3.34.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "shadcn": "^4.23.0",

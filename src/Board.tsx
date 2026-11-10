@@ -51,7 +51,12 @@ export function Board() {
   // already shows a single model; the model's limits feed the card's fit count.
   const cardProps = (listing: BoardListing): CardProps => {
     const carModel = modelsById.get(listing.modelId ?? "");
-    return { modelName: filter ? undefined : carModel?.name, criteria: carModel, specDefs: board.keySpecs };
+    return {
+      modelName: filter ? undefined : carModel?.name,
+      criteria: carModel,
+      specDefs: board.keySpecs,
+      home: board.home,
+    };
   };
   const lanes = tiers.map(({ tier, label }) => ({
     tier,

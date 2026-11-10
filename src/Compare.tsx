@@ -15,6 +15,7 @@ import {
   formatAge,
   formatDate,
   formatDateTime,
+  formatDistance,
   formatDrivetrain,
   formatKm,
   formatPower,
@@ -148,6 +149,9 @@ function CompareTable({ board, ids, onChange }: { board: BoardData; ids: string[
       title: "Listing",
       rows: [
         { label: "Location", cell: (c) => c.location || "—", key: (c) => c.location ?? "" },
+        ...(board.home
+          ? [{ label: "From home", cell: (c: BoardListing) => formatDistance(board.home, c.geo) ?? "—" }]
+          : []),
         { label: "Added", cell: (c) => `${formatDate(c.firstSeenAt)}, ${formatAge(c.firstSeenAt)}` },
         {
           label: "Last checked",

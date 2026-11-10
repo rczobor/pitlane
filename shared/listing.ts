@@ -70,6 +70,14 @@ export const listingData = z.object({
     type: z.enum(["dealer", "private"]),
     name: text(200).optional(),
     location: text(200).optional().describe('City or postcode and city, e.g. "10115 Berlin".'),
+    // Agents may send "de"; one optional field should not reject the whole capture.
+    country: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{2}$/, "Use a two-letter country code")
+      .optional()
+      .describe('The seller\'s country as an ISO 3166-1 alpha-2 code, e.g. "DE", when the page shows it.'),
   }),
   details: listingDetails,
   description: z.string().max(20_000).optional().describe("Seller's free-text description."),

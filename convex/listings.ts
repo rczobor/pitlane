@@ -56,6 +56,7 @@ export const save = internalMutation({
         lastFailedCheckAt: undefined,
         failureReason: undefined,
         ...(changed && { lastChangedAt: now }),
+        ...locateUpdate(existing, data.seller),
       });
     } else {
       listingId = await ctx.db.insert("listings", {
@@ -67,6 +68,7 @@ export const save = internalMutation({
         firstSeenAt: now,
         lastCheckedAt: now,
         lastChangedAt: now,
+        ...(data.seller.location && { geoPending: true }),
       });
     }
 
@@ -191,6 +193,7 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
         price: listing.current.price,
         specs,
         location: listing.current.seller.location,
+        geo: listing.geo ?? null,
         // A deleted model leaves its cars without one.
         modelId: item.modelId && modelIds.has(item.modelId) ? item.modelId : null,
         keySpecs: resolveSpecs(board, item, listing),
@@ -237,6 +240,7 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
     removedAt: listing.removedAt,
     lastFailedCheckAt: listing.lastFailedCheckAt,
     failureReason: listing.failureReason,
+    geo: listing.geo ?? null,
     notes: item.notes ?? "",
     pros: item.pros ?? [],
     cons: item.cons ?? [],
@@ -293,6 +297,16 @@ async function queuePhotos(ctx: MutationCtx, listingId: Id<"listings">, urls: st
     }
   }
   if (queued.length) await ctx.scheduler.runAfter(0, internal.photos.archive, { photoIds: queued });
+}
+
+// Queues the seller's location for the geocoder (convex/geo.ts) when it is new or has
+// moved. A listing saved before geocoding existed is queued on its next re-check.
+function locateUpdate(listing: Doc<"listings">, seller: ListingData["seller"]) {
+  const before = listing.current.seller;
+  if (before.location !== seller.location || before.country !== seller.country) {
+    return { geo: undefined, geoPending: seller.location ? (true as const) : undefined };
+  }
+  return listing.geo === undefined && seller.location ? { geoPending: true as const } : {};
 }
 
 // Photo URLs are excluded because CDNs may rotate them without the listing changing.

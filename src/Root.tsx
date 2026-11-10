@@ -1,7 +1,7 @@
 import { SignIn, useClerk } from "@clerk/react";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Columns3, LogOut, SlidersHorizontal } from "lucide-react";
+import { Columns3, LogOut, MapIcon, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -56,6 +56,14 @@ function SignedIn() {
           >
             <Columns3 data-icon="inline-start" aria-hidden />
             <span className="max-sm:sr-only">Compare</span>
+          </Link>
+          <Link
+            to="/map"
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}
+            activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
+          >
+            <MapIcon data-icon="inline-start" aria-hidden />
+            <span className="max-sm:sr-only">Map</span>
           </Link>
           <Link
             to="/settings"
