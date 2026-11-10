@@ -69,7 +69,8 @@ notes and pros/cons are yours.
 
 **Removing a car is the user's call too,** and only the web app offers it. It
 deletes the car's tier, notes and key-spec values; the listing's history and
-photos go once no board tracks it.
+photos go once no board tracks it. A re-check never adds a removed car back:
+agents mark re-check saves, and those are refused for cars no longer on the board.
 
 **Photos are copied into Convex storage** so they outlive the ad. Downloads are
 limited to each source's own image host, and

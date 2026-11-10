@@ -17,8 +17,10 @@ export const save = internalMutation({
     capturedBy: v.string(),
     url: v.string(),
     data: listingDataValidator,
+    // A re-check only updates a car still on the board; one the user removed meanwhile stays gone.
+    recheck: v.optional(v.boolean()),
   },
-  handler: async (ctx, { boardId, capturedBy, url, data: captured }) => {
+  handler: async (ctx, { boardId, capturedBy, url, data: captured, recheck }) => {
     const ref = resolveListingUrl(url);
     if (!ref) throw appError("invalid", "Not a supported listing URL");
     const badPhoto = captured.photoUrls.find((photoUrl) => !isAllowedPhotoUrl(ref.source, photoUrl));
@@ -29,6 +31,9 @@ export const save = internalMutation({
       .query("listings")
       .withIndex("by_source_external", (q) => q.eq("source", ref.source).eq("externalId", ref.externalId))
       .unique();
+    if (recheck && !(existing && (await boardItem(ctx, boardId, existing._id)))) {
+      throw appError("not_found", "This listing is no longer on the board. Skip it.");
+    }
 
     // A capture without a translation (the extension, or an agent that skipped it) keeps the
     // one already saved, as long as the description it translates is unchanged.
