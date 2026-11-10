@@ -30,6 +30,7 @@
     "cn": "^0.5.2",
     "convex": "^1.49.0",
     "convex-helpers": "^0.1.134",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.70.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
