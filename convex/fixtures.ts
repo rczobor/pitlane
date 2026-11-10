@@ -1,9 +1,10 @@
-// Synthetic board for design reviews (`pnpm dev:design`). Seeds only a local
-// deployment, wiping it first, so every capture renders the same cars.
+// Synthetic board for design reviews (`pnpm dev:design`) and PR previews. Seeds a local
+// deployment, wiping it first, so every capture renders the same cars; a preview gets
+// the same board once, when it is created.
 import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { type ActionCtx, internalAction, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import { point, tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
 import { listingSite } from "../shared/sources";
@@ -214,54 +215,75 @@ const coordinates: Record<string, { lat: number; lng: number }> = {
 };
 const demoHome = { query: "1010 Wien", place: "1010, Innere Stadt, Vienna, Austria", lat: 48.2082, lng: 16.3738 };
 
-// Every fixture function wipes or rewrites data, so each refuses to run anywhere but a
-// local deployment, even when called directly with `convex run`.
-function localOnly() {
-  if (!process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) {
-    throw new Error("Fixtures only run on a local deployment");
-  }
+// Every fixture function wipes or rewrites data, so each refuses to run on a cloud
+// deployment anyone has signed in to, even when called directly with `convex run`.
+// Production always has a signed-in owner; a fresh preview has nobody yet.
+async function fixturesOnly(ctx: MutationCtx) {
+  if (process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) return;
+  const signedIn = await ctx.db
+    .query("users")
+    .withIndex("by_token_identifier", (q) => q.gt("tokenIdentifier", ""))
+    .first();
+  if (signedIn) throw new Error("Fixtures only run on a local deployment or a fresh preview");
 }
 
 export const seed = internalAction({
   args: { photoUrls: v.optional(v.array(v.string())) },
-  handler: async (ctx, { photoUrls = [] }) => {
-    localOnly();
-    const boardId = await ctx.runMutation(internal.fixtures.reset, {});
+  handler: (ctx, { photoUrls = [] }) => seedBoard(ctx, photoUrls),
+});
 
-    for (const [index, car] of cars.entries()) {
-      const url = listingSite.canonicalUrl(car.id);
-      let listingId: Id<"listings"> | undefined;
-      for (const amount of car.prices) {
-        const data = toListing(car, amount, photoUrls);
-        ({ listingId } = await ctx.runMutation(internal.listings.save, { boardId, capturedBy: "fixtures", url, data }));
-      }
-      if (car.removed) await ctx.runMutation(internal.listings.markRemoved, { boardId, capturedBy: "fixtures", url });
-      await ctx.runMutation(internal.fixtures.place, {
-        boardId,
-        listingId: listingId!,
-        tier: car.tier,
-        rank: index,
-        modelId: car.model,
-        specValues: car.specs ?? {},
-        geo: coordinates[car.data.seller?.location ?? ""],
-        ...car.take,
-      });
-      if (car.failed) await ctx.runMutation(internal.listings.markFailed, { boardId, url, reason: car.failed });
-    }
-    await ctx.runMutation(internal.fixtures.backdate, {});
-
-    // Captures need every photo in storage, so wait for the archive jobs.
-    for (let waited = 0; (await ctx.runQuery(internal.fixtures.pendingPhotos, {})) > 0; waited += 500) {
-      if (waited > 120_000) throw new Error("Photos did not finish downloading");
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
+// Vercel's preview builds run this (`convex deploy --preview-run`) on every push; only
+// the first, on a preview with no boards yet, seeds it, so later pushes keep the
+// reviewer's changes. Photos stay out of previews.
+export const seedPreview = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    if (await ctx.runQuery(internal.fixtures.hasBoards, {})) return;
+    await seedBoard(ctx, []);
   },
 });
+
+export const hasBoards = internalQuery({
+  args: {},
+  handler: async (ctx) => (await ctx.db.query("boards").first()) !== null,
+});
+
+async function seedBoard(ctx: ActionCtx, photoUrls: string[]) {
+  const boardId = await ctx.runMutation(internal.fixtures.reset, {});
+
+  for (const [index, car] of cars.entries()) {
+    const url = listingSite.canonicalUrl(car.id);
+    let listingId: Id<"listings"> | undefined;
+    for (const amount of car.prices) {
+      const data = toListing(car, amount, photoUrls);
+      ({ listingId } = await ctx.runMutation(internal.listings.save, { boardId, capturedBy: "fixtures", url, data }));
+    }
+    if (car.removed) await ctx.runMutation(internal.listings.markRemoved, { boardId, capturedBy: "fixtures", url });
+    await ctx.runMutation(internal.fixtures.place, {
+      boardId,
+      listingId: listingId!,
+      tier: car.tier,
+      rank: index,
+      modelId: car.model,
+      specValues: car.specs ?? {},
+      geo: coordinates[car.data.seller?.location ?? ""],
+      ...car.take,
+    });
+    if (car.failed) await ctx.runMutation(internal.listings.markFailed, { boardId, url, reason: car.failed });
+  }
+  await ctx.runMutation(internal.fixtures.backdate, {});
+
+  // Captures need every photo in storage, so wait for the archive jobs.
+  for (let waited = 0; (await ctx.runQuery(internal.fixtures.pendingPhotos, {})) > 0; waited += 500) {
+    if (waited > 120_000) throw new Error("Photos did not finish downloading");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
 
 export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
-    localOnly();
+    await fixturesOnly(ctx);
     for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
@@ -292,7 +314,7 @@ export const place = internalMutation({
     cons: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { boardId, listingId, geo, ...placement }) => {
-    localOnly();
+    await fixturesOnly(ctx);
     if (geo) await ctx.db.patch(listingId, { geo, geoPending: undefined });
     const item = await ctx.db
       .query("boardItems")
@@ -307,7 +329,7 @@ export const place = internalMutation({
 export const backdate = internalMutation({
   args: {},
   handler: async (ctx) => {
-    localOnly();
+    await fixturesOnly(ctx);
     const now = Date.now();
     const day = 86_400_000;
     for (const listing of await ctx.db.query("listings").collect()) {

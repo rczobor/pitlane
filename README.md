@@ -174,6 +174,10 @@ first, then build the app against that deployment's URL, so the two never drift
 apart. The integration sets `CONVEX_DEPLOY_KEY` in Vercel, which picks the target
 deployment. Every path is served `index.html` so deep links survive a reload.
 
+A new preview deployment starts with the synthetic fixture board
+([`convex/fixtures.ts`](convex/fixtures.ts), without photos); the first account to
+sign in to the preview takes it over. Later pushes to the branch keep its data.
+
 To link a fresh checkout to the project's dev deployment, run `pnpm dev` and
 choose the existing project in the team the integration created.
 

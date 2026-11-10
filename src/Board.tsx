@@ -1,10 +1,15 @@
 import {
   closestCenter,
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
+  type DragOverEvent,
   DragOverlay,
+  MeasuringStrategy,
   MouseSensor,
+  pointerWithin,
   TouchSensor,
+  type UniqueIdentifier,
   useDroppable,
   useSensor,
   useSensors,
@@ -34,6 +39,19 @@ export function Board() {
   const { model, check } = useSearch({ from: "/" });
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
+  // While a car is dragged, each lane's car ids, with the dragged car in the lane under the
+  // pointer, so the lane it is heading for makes room for it as its own cars would.
+  const [dragLanes, setDragLanes] = useState<LaneIds | null>(null);
+  const lastOver = useRef<UniqueIdentifier | null>(null);
+  // Moving the car to another lane reflows the board; until that settles, the old
+  // measurements could bounce it straight back.
+  const justMoved = useRef(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      justMoved.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [dragLanes]);
   const [removing, setRemoving] = useState<RemovableCar | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   // A short travel threshold keeps a plain click opening the car; on touch a long press
@@ -62,36 +80,70 @@ export function Board() {
       home: board.home,
     };
   };
+  const byId = new Map<UniqueIdentifier, BoardListing>(board.listings.map((l) => [l.listingId, l]));
+  const boardLanes = laneIds(visible);
   const lanes = tiers.map(({ tier, label }) => ({
     tier,
     label,
-    listings: visible.filter((l) => l.tier === tier).sort((a, b) => a.rank - b.rank),
+    listings: (dragLanes ?? boardLanes)[tier].flatMap((id) => byId.get(id) ?? []),
   }));
-  const active = board.listings.find((l) => l.listingId === activeId);
+  const active = activeId ? byId.get(activeId) : undefined;
+
+  // The lane under the pointer decides the tier, so an empty lane takes a car anywhere
+  // along it, slab included. Within a lane the nearest car decides the spot.
+  const collisionDetection: CollisionDetection = (args) => {
+    if (justMoved.current && lastOver.current) return [{ id: lastOver.current }];
+    const lane = pointerWithin({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) => isTier(c.id)),
+    })[0]?.id;
+    // Between two lanes the car stays where it was heading.
+    if (!isTier(lane) || !dragLanes) return lastOver.current ? [{ id: lastOver.current }] : [];
+    const cars = args.droppableContainers.filter((c) => dragLanes[lane].includes(c.id));
+    const hit = cars.length > 0 ? closestCenter({ ...args, droppableContainers: cars })[0]?.id : lane;
+    lastOver.current = hit ?? lane;
+    return [{ id: lastOver.current }];
+  };
+
+  function onDragOver({ active, over }: DragOverEvent) {
+    if (!over) return;
+    const { id } = active;
+    setDragLanes((current) => {
+      if (!current) return current;
+      const from = laneOf(current, id);
+      const to = isTier(over.id) ? over.id : laneOf(current, over.id);
+      if (!from || !to || from === to) return current;
+      // In front of the car it is over, or behind it once past that car's middle.
+      const target = current[to];
+      const overIndex = target.indexOf(over.id);
+      const dragged = active.rect.current.translated;
+      const behind = dragged !== null && dragged.left + dragged.width / 2 > over.rect.left + over.rect.width / 2;
+      const index = overIndex === -1 ? target.length : overIndex + (behind ? 1 : 0);
+      justMoved.current = true;
+      return { ...current, [from]: current[from].filter((l) => l !== id), [to]: target.toSpliced(index, 0, id) };
+    });
+  }
+
+  function endDrag() {
+    setActiveId(null);
+    setDragLanes(null);
+    lastOver.current = null;
+  }
 
   function onDragEnd({ active, over }: DragEndEvent) {
-    setActiveId(null);
-    const dragged = board!.listings.find((l) => l.listingId === active.id);
-    if (!dragged || !over) return;
-    const overListing = board!.listings.find((l) => l.listingId === over.id);
-    const tier = overListing?.tier ?? tiers.find((t) => t.tier === over.id)?.tier;
-    if (!tier) return;
-    const lane = lanes.find((l) => l.tier === tier)!.listings;
-
-    let order: BoardListing[];
-    if (dragged.tier === tier) {
-      const to = overListing ? lane.indexOf(overListing) : lane.length - 1;
-      order = arrayMove(lane, lane.indexOf(dragged), to);
-    } else {
-      // From another lane: land in front of the car it was dropped on, or at the end.
-      order = lane.slice();
-      order.splice(overListing ? lane.indexOf(overListing) : lane.length, 0, dragged);
-    }
-    const index = order.indexOf(dragged);
-    const rank = rankBetween(order[index - 1]?.rank, order[index + 1]?.rank);
-    if (dragged.tier !== tier || rank !== dragged.rank) {
-      void move({ listingId: dragged.listingId, tier, rank });
-    }
+    const finalLanes = dragLanes;
+    endDrag();
+    const dragged = byId.get(active.id);
+    const tier = finalLanes && laneOf(finalLanes, dragged?.listingId);
+    if (!dragged || !over || !tier) return;
+    let ids = finalLanes[tier];
+    const overIndex = ids.indexOf(over.id);
+    if (overIndex !== -1) ids = arrayMove(ids, ids.indexOf(dragged.listingId), overIndex);
+    // Dropped back where it started: nothing to save.
+    if (tier === dragged.tier && ids.join() === boardLanes[tier].join()) return;
+    const index = ids.indexOf(dragged.listingId);
+    const rank = rankBetween(byId.get(ids[index - 1])?.rank, byId.get(ids[index + 1])?.rank);
+    void move({ listingId: dragged.listingId, tier, rank });
   }
 
   return (
@@ -133,9 +185,15 @@ export function Board() {
       )}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={({ active }) => setActiveId(board.listings.find((l) => l.listingId === active.id)?.listingId ?? null)}
-        onDragCancel={() => setActiveId(null)}
+        collisionDetection={collisionDetection}
+        // Cars move between lanes mid-drag, so lanes and cars are measured as they reflow.
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={({ active }) => {
+          setActiveId(byId.get(active.id)?.listingId ?? null);
+          setDragLanes(boardLanes);
+        }}
+        onDragOver={onDragOver}
+        onDragCancel={endDrag}
         onDragEnd={onDragEnd}
       >
         <div className="space-y-3">
@@ -145,6 +203,7 @@ export function Board() {
               {...lane}
               cardProps={cardProps}
               dragging={active !== undefined}
+              target={active !== undefined && lane.listings.includes(active)}
               onRemove={(car) => {
                 setRemoving(car);
                 setRemoveOpen(true);
@@ -168,6 +227,7 @@ function Lane({
   listings,
   cardProps,
   dragging,
+  target,
   onRemove,
 }: {
   tier: Tier;
@@ -175,12 +235,15 @@ function Lane({
   listings: BoardListing[];
   cardProps: (listing: BoardListing) => CardProps;
   dragging: boolean;
+  /** The dragged car would land in this lane. */
+  target: boolean;
   onRemove: (car: RemovableCar) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: tier });
+  const { setNodeRef } = useDroppable({ id: tier });
   const isLetter = label.length === 1;
   return (
     <section
+      ref={setNodeRef}
       aria-label={`${label} tier`}
       className="flex flex-col sm:flex-row"
     >
@@ -203,11 +266,10 @@ function Lane({
         </p>
       </div>
       <div
-        ref={setNodeRef}
         onMouseDown={panWithMiddleButton}
         className={cn(
           "relative flex min-h-20 flex-1 gap-3 overflow-x-auto rounded-b-lg p-3 transition-colors sm:min-h-44 sm:rounded-r-lg sm:rounded-bl-none",
-          isOver && "bg-muted",
+          target && "bg-muted",
         )}
       >
         <SortableContext items={listings.map((l) => l.listingId)}>
@@ -399,6 +461,23 @@ function BoardSkeleton() {
       ))}
     </main>
   );
+}
+
+// Car ids per lane, in board order.
+type LaneIds = Record<Tier, UniqueIdentifier[]>;
+
+function laneIds(listings: BoardListing[]): LaneIds {
+  const lanes = Object.fromEntries(tiers.map(({ tier }) => [tier, [] as UniqueIdentifier[]])) as LaneIds;
+  for (const l of listings.toSorted((a, b) => a.rank - b.rank)) lanes[l.tier].push(l.listingId);
+  return lanes;
+}
+
+function laneOf(lanes: LaneIds, id: UniqueIdentifier | undefined) {
+  return tiers.find(({ tier }) => id !== undefined && lanes[tier].includes(id))?.tier;
+}
+
+function isTier(id: UniqueIdentifier | undefined): id is Tier {
+  return tiers.some(({ tier }) => tier === id);
 }
 
 function rankBetween(before: number | undefined, after: number | undefined) {
