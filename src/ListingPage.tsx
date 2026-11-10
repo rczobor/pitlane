@@ -25,7 +25,7 @@ import { toCheck } from "../shared/fit";
 import type { Point } from "../shared/geo";
 import { CheckMode } from "./CheckMode";
 import { FitList } from "./Fit";
-import { Gallery } from "./Gallery";
+import { Gallery, galleryColumns, useTheatre } from "./Gallery";
 import { fitView, mapboxToken, staticMapUrl } from "./mapbox";
 import { homeClass, notchClass, pinClass, pinFor } from "./pins";
 import { PriceChart } from "./PriceChart";
@@ -40,6 +40,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
   const board = useQuery(api.board.get);
   const move = useMutation(api.board.move);
   const [checking, setChecking] = useState(false);
+  const [theatre, toggleTheatre] = useTheatre();
   // Set while removing: the listing query turns null before the navigation to the board lands.
   const [leaving, setLeaving] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -91,6 +92,8 @@ export function ListingPage({ listingId }: { listingId: string }) {
           removed={removed}
           board={board}
           onDone={() => setChecking(false)}
+          theatre={theatre}
+          onTheatreToggle={toggleTheatre}
         />
       </main>
     );
@@ -103,9 +106,15 @@ export function ListingPage({ listingId }: { listingId: string }) {
           them), and the car's details beside. Phones: one column in task order, with the
           columns dissolved (display: contents) so `order` can interleave them: photos,
           price and tier, key specs, listing details, then options and description. */}
-      <div className="mt-4 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+      <div className={cn("mt-4 flex flex-col gap-8 lg:grid lg:items-start", galleryColumns(theatre && listing.photos.length > 0))}>
         <div className="contents lg:flex lg:flex-col lg:gap-8">
-        <Gallery photos={listing.photos} removed={removed} className="order-1" />
+        <Gallery
+          photos={listing.photos}
+          removed={removed}
+          theatre={theatre}
+          onTheatreToggle={toggleTheatre}
+          className="order-1"
+        />
         {board && (
           <div className="order-3 min-w-0">
             <SpecEditor listingId={listing.listingId} modelId={listing.modelId} keySpecs={listing.keySpecs} board={board} />

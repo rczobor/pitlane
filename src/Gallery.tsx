@@ -1,4 +1,4 @@
-import { Maximize2Icon } from "lucide-react";
+import { Maximize2Icon, RectangleHorizontalIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -6,7 +6,49 @@ import { cn } from "@/lib/utils";
 import { NoPhoto } from "./ListingCard";
 import { type Photo, PhotoViewer, Thumbnails } from "./PhotoViewer";
 
-export function Gallery({ photos, removed, className }: { photos: Photo[]; removed: boolean; className?: string }) {
+// Theatre mode (T) gives the photos more of the page on wide screens. It is a standing
+// preference, like a video player's: it carries over to the next car and into check
+// mode. Storage can be unavailable (private windows); the default is then off.
+const theatreKey = "pitlane:theatre";
+
+export function useTheatre() {
+  const [theatre, setTheatre] = useState(() => {
+    try {
+      return localStorage.getItem(theatreKey) === "on";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(theatreKey, theatre ? "on" : "off");
+    } catch {
+      // Still applies until the page reloads.
+    }
+  }, [theatre]);
+  const toggle = useCallback(() => setTheatre((on) => !on), []);
+  return [theatre, toggle] as const;
+}
+
+// The grid beside the gallery. In theatre mode the photo column grows until the photo
+// fills the screen's height (13.5rem is the header, back link and thumbnails), but never
+// below its usual 3/5 on short screens. The other column keeps at least 22rem. Callers
+// pass false without photos: the gallery then has no toggle to turn it off.
+export function galleryColumns(theatre: boolean) {
+  return theatre
+    ? "lg:grid-cols-[minmax(0,max(calc((100%-2rem)*3/5),calc((100dvh-13.5rem)*4/3)))_minmax(22rem,1fr)]"
+    : "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]";
+}
+
+type Props = {
+  photos: Photo[];
+  removed: boolean;
+  className?: string;
+  theatre: boolean;
+  onTheatreToggle: () => void;
+};
+
+export function Gallery({ photos, removed, className, theatre, onTheatreToggle }: Props) {
   const [api, setApi] = useState<CarouselApi>();
   const [index, setIndex] = useState(0);
   const [viewing, setViewing] = useState(false);
@@ -30,21 +72,25 @@ export function Gallery({ photos, removed, className }: { photos: Photo[]; remov
     };
   }, [api]);
 
-  // F opens and closes the full-screen viewer, as in video players. Typing an "f" into
-  // a field must not.
+  // F opens and closes the full-screen viewer and T toggles theatre mode, as in video
+  // players. Typing either letter into a field must not. T is for the page, so it does
+  // nothing while the viewer is open.
   useEffect(() => {
     if (photos.length === 0) return;
     const onKey = (event: KeyboardEvent) => {
       const t = event.target;
-      if (event.key.toLowerCase() !== "f" || event.repeat || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if ((key !== "f" && key !== "t") || event.repeat || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement) return;
       if (t instanceof HTMLElement && t.isContentEditable) return;
+      if (key === "t" && viewing) return;
       event.preventDefault();
-      setViewing((v) => !v);
+      if (key === "f") setViewing((v) => !v);
+      else onTheatreToggle();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [photos.length]);
+  }, [photos.length, viewing, onTheatreToggle]);
 
   if (photos.length === 0) {
     return (
@@ -82,16 +128,23 @@ export function Gallery({ photos, removed, className }: { photos: Photo[]; remov
               </CarouselItem>
             ))}
           </CarouselContent>
-          <Button
-            variant="secondary"
-            size="icon-lg"
-            onClick={() => setViewing(true)}
-            aria-label="Full screen"
-            title="Full screen (F)"
-            className="absolute top-3 right-3"
-          >
-            <Maximize2Icon />
-          </Button>
+          <div className="absolute top-3 right-3 flex gap-2">
+            {/* Wide screens only: on a phone the photo already has the full width. */}
+            <Button
+              variant="secondary"
+              size="icon-lg"
+              onClick={onTheatreToggle}
+              aria-label="Theatre mode"
+              aria-pressed={theatre}
+              title="Theatre mode (T)"
+              className="hidden aria-pressed:bg-foreground aria-pressed:text-background lg:inline-flex"
+            >
+              <RectangleHorizontalIcon />
+            </Button>
+            <Button variant="secondary" size="icon-lg" onClick={() => setViewing(true)} aria-label="Full screen" title="Full screen (F)">
+              <Maximize2Icon />
+            </Button>
+          </div>
           {photos.length > 1 && (
             <>
               {/* Focusable when disabled: otherwise reaching either end drops focus to the
