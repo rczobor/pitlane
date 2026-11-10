@@ -153,3 +153,26 @@ All routes need `Authorization: Bearer pit_…` and are scoped to the token's bo
 | `GET /api/listings/{listingId}` | One listing with full details, price history and photos |
 
 Invalid input returns `400` with an `issues` list naming each bad field.
+
+## Deployment
+
+The web app is a static build on Vercel; Convex hosts everything else. One
+Convex project, created by Vercel's Convex integration, holds every deployment:
+your own dev deployment for local work (`pnpm dev`), production for the Vercel
+production site, and a preview deployment per branch for PR previews.
+
+[`vercel.json`](vercel.json) makes each Vercel build deploy the Convex functions
+first, then build the app against that deployment's URL, so the two never drift
+apart. The integration sets `CONVEX_DEPLOY_KEY` in Vercel, which picks the target
+deployment. Every path is served `index.html` so deep links survive a reload.
+
+To link a fresh checkout to the project's dev deployment, run `pnpm dev` and
+choose the existing project in the team the integration created.
+
+Production starts empty. Create its tokens and build the Claude Desktop extension
+against it:
+
+```sh
+pnpm convex run --prod tokens:create '{"name": "claude-desktop"}'
+CONVEX_SITE_URL=https://<prod-deployment>.convex.site pnpm build:mcpb
+```
