@@ -4,6 +4,7 @@ import { extract as original } from "./extract.ts";
 
 // Chrome runs the function from its source text in the page, so the tests do too: any
 // reference to something outside the function fails here as it would there.
+// oxlint-disable-next-line typescript/no-implied-eval
 const extract = new Function(`return (${original.toString()})`)() as typeof original;
 
 // Imaginary listings; the markup only mimics the shapes listing pages use.

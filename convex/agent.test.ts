@@ -180,7 +180,7 @@ test("a re-check never adds back a car the user removed meanwhile", async () => 
   await call("save_listing", listing());
   expect((await call("save_listing", listing({ recheck: true }))).isError).toBe(false);
   await t.run(async (ctx) => {
-    for (const item of await ctx.db.query("boardItems").collect()) await ctx.db.delete(item._id);
+    for (const item of await ctx.db.query("boardItems").collect()) await ctx.db.delete("boardItems", item._id);
   });
 
   const recheck = await call("save_listing", listing({ recheck: true }));

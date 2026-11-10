@@ -36,7 +36,7 @@ async function download(url: string) {
 
 export const get = internalQuery({
   args: { photoId: v.id("photos") },
-  handler: (ctx, { photoId }) => ctx.db.get(photoId),
+  handler: (ctx, { photoId }) => ctx.db.get("photos", photoId),
 });
 
 export const settle = internalMutation({
@@ -48,10 +48,10 @@ export const settle = internalMutation({
   },
   handler: async (ctx, { photoId, ...result }) => {
     // The car was removed while its photo downloaded: drop the copy nothing points to.
-    if (!(await ctx.db.get(photoId))) {
+    if (!(await ctx.db.get("photos", photoId))) {
       if (result.storageId) await ctx.storage.delete(result.storageId);
       return;
     }
-    await ctx.db.patch(photoId, result);
+    await ctx.db.patch("photos", photoId, result);
   },
 });

@@ -55,7 +55,7 @@ export const ensureUser = mutation({
     let userId = (await byIdentity(tokenIdentifier).unique())?._id;
     if (!userId) {
       const unclaimed = await byIdentity(undefined).first();
-      if (unclaimed) await ctx.db.patch(unclaimed._id, { tokenIdentifier });
+      if (unclaimed) await ctx.db.patch("users", unclaimed._id, { tokenIdentifier });
       userId =
         unclaimed?._id ??
         (await ctx.db.insert("users", { name: identity.name ?? identity.email ?? "Me", tokenIdentifier }));

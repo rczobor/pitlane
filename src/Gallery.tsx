@@ -113,9 +113,11 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle }
             {photos.map((p, i) => (
               <CarouselItem key={p.sourceUrl} className="pl-0">
                 <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                  {/* A mouse shortcut: keyboards use the Full screen button or F. */}
+                  {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
                   <img
                     src={p.url}
-                    alt={`Photo ${i + 1} of ${photos.length}`}
+                    alt={`${i + 1} of ${photos.length}`}
                     // Off-screen slides sit clipped inside the carousel, so lazy loading would
                     // wait until a slide is already in view; the neighbours load ahead instead.
                     loading={Math.abs(i - index) <= 1 ? "eager" : "lazy"}

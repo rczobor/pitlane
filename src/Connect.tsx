@@ -166,9 +166,10 @@ function CopyField({ value }: { value: string }) {
       <Button
         variant="outline"
         className="h-auto"
-        onClick={() =>
-          navigator.clipboard ? navigator.clipboard.writeText(value).then(() => setCopied(true), select) : select()
-        }
+        onClick={() => {
+          if (navigator.clipboard) void navigator.clipboard.writeText(value).then(() => setCopied(true), select);
+          else select();
+        }}
       >
         {copied ? <Check data-icon="inline-start" aria-hidden /> : <Copy data-icon="inline-start" aria-hidden />}
         <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>

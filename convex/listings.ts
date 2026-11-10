@@ -53,7 +53,7 @@ export const save = internalMutation({
       if (before.amount !== data.price.amount || before.currency !== data.price.currency) {
         priceChange = { from: before, to: data.price };
       }
-      await ctx.db.patch(listingId, {
+      await ctx.db.patch("listings", listingId, {
         status: "available",
         current: data,
         lastCheckedAt: now,
@@ -99,7 +99,7 @@ export const markFailed = internalMutation({
   handler: async (ctx, { boardId, url, reason }) => {
     const listing = await onBoard(ctx, boardId, url);
     const now = Date.now();
-    await ctx.db.patch(listing._id, { lastFailedCheckAt: now, failureReason: reason?.trim().slice(0, 200) || undefined });
+    await ctx.db.patch("listings", listing._id, { lastFailedCheckAt: now, failureReason: reason?.trim().slice(0, 200) || undefined });
     return { listingId: listing._id, retryAfter: now + retryFailedAfterMs };
   },
 });
@@ -114,7 +114,7 @@ export async function dueListings(ctx: QueryCtx, boardId: Id<"boards">, now: num
     .query("boardItems")
     .withIndex("by_board", (q) => q.eq("boardId", boardId))
     .collect();
-  const listings = await Promise.all(items.map((item) => ctx.db.get(item.listingId)));
+  const listings = await Promise.all(items.map((item) => ctx.db.get("listings", item.listingId)));
   return listings
     .filter((l) => l !== null && l.status === "available")
     .filter((l) => now - l!.lastCheckedAt >= recheckEveryMs)
@@ -149,10 +149,10 @@ export const markRemoved = internalMutation({
 
     const now = Date.now();
     if (listing.status === "removed") {
-      await ctx.db.patch(listing._id, { lastCheckedAt: now });
+      await ctx.db.patch("listings", listing._id, { lastCheckedAt: now });
       return { listingId: listing._id, changed: false };
     }
-    await ctx.db.patch(listing._id, { status: "removed", removedAt: now, lastCheckedAt: now, lastChangedAt: now });
+    await ctx.db.patch("listings", listing._id, { status: "removed", removedAt: now, lastCheckedAt: now, lastChangedAt: now });
     await ctx.db.insert("snapshots", { listingId: listing._id, capturedAt: now, capturedBy, status: "removed" });
     return { listingId: listing._id, changed: true };
   },
@@ -175,23 +175,27 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
     .withIndex("by_board", (q) => q.eq("boardId", boardId))
     .collect();
   items.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
-  const board = (await ctx.db.get(boardId))!;
+  const board = (await ctx.db.get("boards", boardId))!;
   const modelIds = new Set((board.models ?? []).map((m) => m.id));
   return Promise.all(
     items.map(async (item) => {
-      const listing = (await ctx.db.get(item.listingId))!;
+      const listing = (await ctx.db.get("listings", item.listingId))!;
       const { options: _, ...specs } = listing.current.details;
       // The first price seen, so cards can show how far it has moved.
       const firstPrice = (
         await ctx.db
           .query("snapshots")
           .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          // One listing's snapshots, oldest first; the first with data is near the start.
+          // oxlint-disable-next-line @convex-dev/no-filter-in-query
           .filter((q) => q.neq(q.field("data"), undefined))
           .first()
       )?.data?.price;
       const cover = await ctx.db
         .query("photos")
         .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+        // One listing's photos, in order: the first stored one is the cover.
+        // oxlint-disable-next-line @convex-dev/no-filter-in-query
         .filter((q) => q.eq(q.field("status"), "stored"))
         .first();
       return {
@@ -229,8 +233,8 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
   const item = listingId && (await boardItem(ctx, boardId, listingId));
   if (!listingId || !item) return null;
 
-  const listing = (await ctx.db.get(listingId))!;
-  const board = (await ctx.db.get(boardId))!;
+  const listing = (await ctx.db.get("listings", listingId))!;
+  const board = (await ctx.db.get("boards", boardId))!;
   const snapshots = await ctx.db
     .query("snapshots")
     .withIndex("by_listing", (q) => q.eq("listingId", listingId))
@@ -303,10 +307,10 @@ async function queuePhotos(ctx: MutationCtx, listingId: Id<"listings">, urls: st
     if (!photo) {
       queued.push(await ctx.db.insert("photos", { listingId, sourceUrl, position, status: "pending" }));
     } else if (photo.status === "failed") {
-      await ctx.db.patch(photo._id, { position, status: "pending", error: undefined });
+      await ctx.db.patch("photos", photo._id, { position, status: "pending", error: undefined });
       queued.push(photo._id);
     } else if (photo.position !== position) {
-      await ctx.db.patch(photo._id, { position });
+      await ctx.db.patch("photos", photo._id, { position });
     }
   }
   if (queued.length) await ctx.scheduler.runAfter(0, internal.photos.archive, { photoIds: queued });

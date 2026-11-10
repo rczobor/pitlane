@@ -55,8 +55,20 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Test
         run: pnpm test
 
       - name: Build
         run: pnpm build
+
+      # The release only builds the extension after merge, so bundle it here to catch a
+      # broken build first. Placeholder values shaped like production's, so the release path
+      # runs; the bundle is never loaded.
+      - name: Build the extension
+        env:
+          VITE_CONVEX_URL: https://example.convex.cloud
+          VITE_CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsuZXhhbXBsZS5jb20k
+        run: pnpm build:extension

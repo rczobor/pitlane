@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { Minus, Plus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,10 @@ export function YourTake({ listingId, notes, pros, cons }: Props) {
     );
   };
   // Flush on leaving the page, so a note typed just before navigating is not lost.
-  const flush = useRef(() => {});
-  flush.current = () => {
+  const flush = useEffectEvent(() => {
     if (pending.current !== null) saveNotes(pending.current);
-  };
-  useEffect(() => () => flush.current(), []);
+  });
+  useEffect(() => () => flush(), []);
 
   return (
     <section aria-labelledby="your-take" className="space-y-4">

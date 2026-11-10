@@ -48,7 +48,9 @@ function Slides({
   // Swiping would fight panning a zoomed photo. Embla asks on every press, so it reads
   // a ref; changing its options instead would re-create the carousel.
   const zoomedRef = useRef(false);
-  zoomedRef.current = zoomed;
+  useEffect(() => {
+    zoomedRef.current = zoomed;
+  }, [zoomed]);
   const [opts] = useState(() => ({ startIndex: index, watchDrag: () => !zoomedRef.current }));
 
   // The second click of a double-click that opened the viewer would zoom straight in.
@@ -73,7 +75,7 @@ function Slides({
       const selected = api.selectedScrollSnap();
       // A photo left zoomed in would still be zoomed when stepped back to. 1 ms, not 0:
       // an instant reset leaves a running zoom animation (a double-click) to finish.
-      zooms.current.forEach((z, i) => i !== selected && z?.resetTransform(1));
+      for (const [i, z] of zooms.current.entries()) if (i !== selected) void z?.resetTransform(1);
       setZoomed(false);
       onIndexChange(selected);
     };
@@ -115,7 +117,7 @@ function Slides({
                 <TransformComponent wrapperClass="size-full!" contentClass="size-full!">
                   <img
                     src={p.url}
-                    alt={`Photo ${i + 1} of ${photos.length}`}
+                    alt={`${i + 1} of ${photos.length}`}
                     loading={Math.abs(i - index) <= 1 ? "eager" : "lazy"}
                     draggable={false}
                     className={cn("size-full object-contain", removed && "grayscale")}
