@@ -69,6 +69,15 @@ test("each token kind works only on its own side", async () => {
   expect((await browser.fetch("/mcp", rpc("tools/list"))).status).toBe(401);
 });
 
+test("only the owner can connect an agent", async () => {
+  const t = convexTest(schema, modules);
+  const client_id = "https://claude.ai/oauth/claude-code-client-metadata";
+  expect((await t.withIdentity({ subject: "owner", client_id }).fetch("/mcp", rpc("tools/list"))).status).toBe(200);
+  // An invited friend signs in fine, but their agent could rewrite shared listing facts.
+  const friend = await t.withIdentity({ subject: "friend", client_id }).fetch("/mcp", rpc("tools/list"));
+  expect(friend.status).toBe(403);
+});
+
 test("API tokens are listed and revoked only by their owner", async () => {
   const t = convexTest(schema, modules);
   const token = await t.action(internal.tokens.create, { name: "extension" });

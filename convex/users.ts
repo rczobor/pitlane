@@ -20,7 +20,17 @@ export async function viewerAccess(ctx: QueryCtx, via: Via = "web") {
 }
 
 // For actions, which have no database access of their own.
-export const viewerForMcp = internalQuery({ args: {}, handler: (ctx) => viewerAccess(ctx, "mcp") });
+// For the MCP server. Only the owner (the oldest user, who also holds the API tokens)
+// may use it for now: a car's listing facts are shared by every board that tracks it,
+// so another account's agent could rewrite the owner's prices or mark a car removed.
+export const viewerForMcp = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const access = await viewerAccess(ctx, "mcp");
+    const owner = access && (await ctx.db.query("users").first());
+    return access && { ...access, isOwner: owner?._id === access.userId };
+  },
+});
 
 // Runs when a signed-in account has no board yet. A new account takes over a user
 // that no account owns yet: the one `tokens:create` makes for the owner before they

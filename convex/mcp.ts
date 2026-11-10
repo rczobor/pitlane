@@ -29,6 +29,10 @@ export const protectedResource = httpAction(async () =>
 // There is no event stream or session, so other methods get 405 once signed in.
 export const handle = httpAction(async (ctx, request) => {
   const owner = await ownerOf(ctx);
+  if (owner === "not_owner") {
+    // Signed in, so not a 401: that would send Claude back to sign-in in a loop.
+    return Response.json({ error: "Only the board's owner can connect an agent for now." }, { status: 403 });
+  }
   if (!owner) {
     // Claude starts sign-in, and refreshes an expired token, only on a 401 with this pointer.
     // A token that was sent but refused also gets RFC 6750's error code.
@@ -43,7 +47,7 @@ export const handle = httpAction(async (ctx, request) => {
 });
 
 // A first sign-in through Claude sets the user up just like the web app's.
-async function ownerOf(ctx: ActionCtx): Promise<Owner | null> {
+async function ownerOf(ctx: ActionCtx): Promise<Owner | "not_owner" | null> {
   // An expired or malformed token throws here; it must still answer 401 so Claude refreshes it.
   const identity = await ctx.auth.getUserIdentity().catch(() => null);
   // Only OAuth access tokens; refused before anything is set up for a web session.
@@ -53,7 +57,8 @@ async function ownerOf(ctx: ActionCtx): Promise<Owner | null> {
     await ctx.runMutation(api.users.ensureUser, {});
     access = await ctx.runQuery(internal.users.viewerForMcp, {});
   }
-  return access && { boardId: access.boardId, capturedBy: "mcp" };
+  if (!access) return null;
+  return access.isOwner ? { boardId: access.boardId, capturedBy: "mcp" } : "not_owner";
 }
 
 function createServer(ctx: ActionCtx, owner: Owner) {
