@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Ellipsis, Trash2, X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
@@ -264,11 +264,24 @@ function Lane({
           {label}
         </h2>
         {/* Pinned to the slab's foot, so it sits in the same place whatever the label. A lane
-            that hides cars says which ones are on screen. */}
-        <p className="text-sm tabular-nums opacity-75 sm:mt-auto sm:pt-3 dark:opacity-100">
-          {view
-            ? `${view.first + 1}${view.last > view.first ? `–${view.last + 1}` : ""} of ${total}`
-            : total}
+            that hides cars reads like a lap board: the cars on screen, then the total. */}
+        <p className="tabular-nums sm:mt-auto sm:pt-3">
+          {view ? (
+            <>
+              <span className="sr-only">
+                Cars {view.first + 1} to {view.last + 1} of {listings.length} on screen
+              </span>
+              <span aria-hidden className="condensed text-xl leading-none font-bold">
+                {view.first + 1}
+                {view.last > view.first && `–${view.last + 1}`}
+              </span>
+              <span aria-hidden className="condensed leading-none font-bold opacity-75 dark:opacity-100">
+                {" "}/{listings.length}
+              </span>
+            </>
+          ) : (
+            <span className="text-sm opacity-75 dark:opacity-100">{total}</span>
+          )}
         </p>
       </div>
       {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
@@ -304,37 +317,75 @@ function Lane({
         </div>
         <LaneArrow direction="back" onClick={() => lane.current && pageLane(lane.current, "back")} />
         <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
-        {view && (
-          // One tick per car, filled for the cars on screen; a click brings that car into view.
-          // A compact index from the lane's start, so no tick reads as the card above it;
-          // ticks shrink only when a long lane would not fit them.
-          // The click area reaches into the gap below the lane, so it is 24px tall without
-          // covering the cards.
-          <div aria-hidden className="pointer-events-none absolute inset-x-3 -bottom-3 flex h-6 gap-1">
-            {listings.map((listing, index) => (
-              <button
-                key={listing.listingId}
-                type="button"
-                tabIndex={-1}
-                // Names the car on hover, so the user can aim at one without counting.
-                title={`${index + 1} · ${formatPrice(listing.price)} · ${listing.title}`}
-                onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
-                className="group/tick pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
-              >
-                <span
-                  className={cn(
-                    "h-1 w-full rounded-full",
-                    index >= view.first && index <= view.last
-                      ? "bg-foreground"
-                      : "bg-foreground/50 group-hover/tick:bg-foreground/70",
-                  )}
-                />
-              </button>
-            ))}
-          </div>
-        )}
+        {view && <LaneIndex listings={listings} view={view} lane={lane} />}
       </div>
     </section>
+  );
+}
+
+// One tick per car under a lane that hides cars, filled for the cars on screen; a click
+// brings that car into view. A compact index from the lane's start, so no tick reads as the
+// card above it; ticks shrink only when a long lane would not fit them. The click area
+// reaches into the gap below the lane, so it is 24px tall without covering the cards.
+// Under a mouse, hovering the ticks opens a strip of the cars' photos and prices, so the
+// user can aim at a car by sight; touch screens tap the ticks.
+function LaneIndex({
+  listings,
+  view,
+  lane,
+}: {
+  listings: BoardListing[];
+  view: LaneView;
+  lane: RefObject<HTMLDivElement | null>;
+}) {
+  const jump = (index: number) =>
+    lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
+  const shown = (index: number) => index >= view.first && index <= view.last;
+  return (
+    <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6 gap-1">
+      {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
+      <div className="pointer-events-auto absolute bottom-full left-0 hidden max-w-full pb-1 group-hover/index:block pointer-coarse:hidden">
+        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+          {listings.map((listing, index) => (
+            <button
+              key={listing.listingId}
+              type="button"
+              tabIndex={-1}
+              onClick={() => jump(index)}
+              className="flex w-16 min-w-0 shrink flex-col gap-1 text-left"
+            >
+              <span
+                className={cn(
+                  "block aspect-video w-full overflow-hidden rounded-sm bg-muted",
+                  shown(index) && "ring-2 ring-foreground",
+                )}
+              >
+                {listing.coverUrl && <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />}
+              </span>
+              <span className="condensed truncate text-xs leading-none font-bold tabular-nums">
+                {formatPrice(listing.price)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {listings.map((listing, index) => (
+        <button
+          key={listing.listingId}
+          type="button"
+          tabIndex={-1}
+          onClick={() => jump(index)}
+          className="group/tick pointer-events-auto flex max-w-6 min-w-0 flex-1 items-end pb-4"
+        >
+          <span
+            className={cn(
+              "h-1 w-full rounded-full",
+              shown(index) ? "bg-foreground" : "bg-foreground/50 group-hover/tick:bg-foreground/70",
+            )}
+          />
+        </button>
+      ))}
+    </div>
   );
 }
 
