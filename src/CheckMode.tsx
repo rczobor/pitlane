@@ -23,7 +23,7 @@ type Props = {
 
 // One spec at a time beside the photos, for checking what the listing claims (or leaves
 // out) against what the pictures show. Keys: 1–9 pick a value, Enter confirms the
-// listing's value, → / J skip, ← / K go back, Esc leaves.
+// listing's value, → / J skip, ← / K go back, T toggles theatre mode, Esc leaves.
 // Keyboard hints are noise on touch screens, where there are no keys to press.
 const Kbd = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <KbdBase className={cn("hidden [@media(hover:hover)]:inline-flex", className)}>{children}</KbdBase>
@@ -34,6 +34,8 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
   // The queue is fixed on entry, so confirming a spec does not reshuffle what is left.
   const [queue] = useState(() => keySpecs.filter((s) => s.source !== "you").map((s) => s.id));
   const [position, setPosition] = useState(0);
+  const [theatre, setTheatre] = useState(() => readTheatre());
+  const toggleTheatre = () => setTheatre(saveTheatre(!theatre));
   // Each step starts with focus on the spec, so a button focused on the previous step
   // cannot be activated by the next key press.
   const stepRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,7 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
       if (event.key === "Escape") onDone();
       else if (event.key === "ArrowRight" || event.key === "j") advance();
       else if (event.key === "ArrowLeft" || event.key === "k") setPosition((p) => Math.max(p - 1, 0));
+      else if (event.key.toLowerCase() === "t" && !event.repeat) toggleTheatre();
       else if (event.key === "Enter" && spec?.source === "listing" && spec.value) pick(spec.value);
       else if (/^[1-9]$/.test(event.key) && options[Number(event.key) - 1]) pick(options[Number(event.key) - 1].value);
       else return;
@@ -82,7 +85,17 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
 
   const preferred = preferredFor(def, modelId);
   return (
-    <div className="mt-4 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+    <div
+      className={cn(
+        "mt-4 grid gap-8 lg:items-start",
+        // Theatre mode: the photo grows until it fills the screen's height (13.5rem is the
+        // header, back link and thumbnails), but never below its usual 3/5 on short
+        // screens. The questions take what is left, at least 22rem.
+        theatre
+          ? "lg:grid-cols-[minmax(0,max(calc((100%-2rem)*3/5),calc((100dvh-13.5rem)*4/3)))_minmax(22rem,1fr)]"
+          : "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]",
+      )}
+    >
       {/* Pinned, so the photo stays in view while answering. */}
       <Gallery photos={photos} removed={removed} className="lg:sticky lg:top-6" />
       <section aria-label="Check key specs" aria-live="polite" className="space-y-6">
@@ -167,11 +180,43 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
             </p>
           </div>
         )}
-        <Button type="button" variant="outline" onClick={onDone}>
-          Done
-          <Kbd className="ml-1">Esc</Kbd>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={onDone}>
+            Done
+            <Kbd className="ml-1">Esc</Kbd>
+          </Button>
+          {/* Wide screens only: a phone already gives the photo the full width. */}
+          <Button
+            type="button"
+            variant="ghost"
+            aria-pressed={theatre}
+            onClick={toggleTheatre}
+            className="hidden aria-pressed:bg-muted lg:inline-flex"
+          >
+            Theatre mode
+            <Kbd className="ml-1">T</Kbd>
+          </Button>
+        </div>
       </section>
     </div>
   );
+}
+
+// Theatre mode is a standing preference, like a video player's: it carries over to the
+// next car. Storage can be unavailable (private windows); the default is then off.
+const theatreKey = "pitlane:theatre";
+function readTheatre() {
+  try {
+    return localStorage.getItem(theatreKey) === "on";
+  } catch {
+    return false;
+  }
+}
+function saveTheatre(on: boolean) {
+  try {
+    localStorage.setItem(theatreKey, on ? "on" : "off");
+  } catch {
+    // Still applies for this check.
+  }
+  return on;
 }
