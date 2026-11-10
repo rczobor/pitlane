@@ -21,8 +21,12 @@ type FixtureCar = {
   id: string;
   tier: Infer<typeof tiers>;
   model: string;
+  /** Asking prices, oldest first; history is spread over the weeks before today. */
   prices: number[];
   removed?: boolean;
+  /** The last re-check could not read the page. */
+  failed?: string;
+  take?: { notes?: string; pros?: string[]; cons?: string[] };
   // The user's own key-spec values; anything else comes from the listing text or stays unknown.
   specs?: Record<string, string>;
   data: Omit<ListingData, "price" | "seller" | "details" | "photoUrls"> & {
@@ -37,16 +41,16 @@ const options = ["Navigation system", "Heated seats", "Apple CarPlay", "Cruise c
 
 // A sample shortlist: the models and the specs that decide a GT car's tier.
 const models = [
-  { id: "gt4", name: "718 GT4" },
+  { id: "gt4", name: "718 GT4", maxPrice: 100_000, maxMileageKm: 30_000 },
   { id: "gt4rs", name: "718 GT4 RS" },
-  { id: "9912-gt3", name: "991.2 GT3" },
+  { id: "9912-gt3", name: "991.2 GT3", maxPrice: 165_000, minYear: 2017, maxYear: 2019, maxMileageKm: 50_000 },
   { id: "9912-gt3t", name: "991.2 GT3 Touring" },
   { id: "9912-gt3rs", name: "991.2 GT3 RS" },
   { id: "9921-gt3", name: "992.1 GT3" },
   { id: "9921-gt3t", name: "992.1 GT3 Touring" },
 ];
 const keySpecs = [
-  { id: "seats", name: "Seats", kind: "choice" as const, choices: ["918 buckets", "Carbon buckets", "Sport seats Plus", "Adaptive sport seats"], models: [], preferred: [{ value: "918 buckets", models: [] }] },
+  { id: "seats", name: "Seats", kind: "choice" as const, choices: ["918 buckets", "Carbon buckets", "Sport seats Plus", "Adaptive sport seats"], models: [], preferred: [{ value: "918 buckets", models: [] }, { value: "Adaptive sport seats", models: [], avoid: true }] },
   { id: "pdls", name: "PDLS+", kind: "check" as const, choices: [], models: [], preferred: [{ value: "yes", models: [] }] },
   // PDK for the 718s, manual for the GT3s; the RS only comes with PDK.
   { id: "gearbox", name: "Gearbox", kind: "choice" as const, choices: ["PDK", "Manual"], models: [], preferred: [{ value: "PDK", models: ["gt4", "gt4rs"] }, { value: "Manual", models: ["9912-gt3", "9912-gt3t", "9921-gt3", "9921-gt3t"] }] },
@@ -60,8 +64,13 @@ const cars: FixtureCar[] = [
     id: "10000000000002",
     tier: "S",
     model: "9912-gt3",
-    prices: [164_900, 159_999],
+    prices: [169_900, 164_900, 159_999],
     specs: { seats: "918 buckets", gearbox: "Manual", colour: "GT Silver", cage: "yes", accent: "Black" },
+    take: {
+      notes: "Ask for the service history and whether the lift was retrofitted.",
+      pros: ["Manual with 918 buckets", "Approved warranty"],
+      cons: ["Clubsport cage makes the rear seats area useless"],
+    },
     data: {
       title: "Porsche 991.2 GT3 Clubsport, Lift, Approved 09.2027",
       price: { vatDeductible: true, netAmount: 134_453 },
@@ -114,6 +123,7 @@ const cars: FixtureCar[] = [
     tier: "watching",
     model: "gt4",
     prices: [99_900, 96_500],
+    failed: "timed out",
     specs: { seats: "Sport seats Plus", pdls: "no" },
     data: {
       title: "Porsche 718 Cayman GT4 PDK, Chalk",
@@ -187,12 +197,18 @@ const toListing = ({ data: { photos, ...data } }: FixtureCar, amount: number, ph
   details: { category: "car", make: "Porsche", fuel: "petrol", gearbox: "automatic", options, ...data.details },
 });
 
+// Every fixture function wipes or rewrites data, so each refuses to run anywhere but a
+// local deployment, even when called directly with `convex run`.
+function localOnly() {
+  if (!process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) {
+    throw new Error("Fixtures only run on a local deployment");
+  }
+}
+
 export const seed = internalAction({
   args: { photoUrls: v.optional(v.array(v.string())) },
   handler: async (ctx, { photoUrls = [] }) => {
-    if (!process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) {
-      throw new Error("Fixtures only seed a local deployment");
-    }
+    localOnly();
     const boardId = await ctx.runMutation(internal.fixtures.reset, {
       tokenHash: await sha256(fixtureToken),
       emptyTokenHash: await sha256(emptyBoardToken),
@@ -213,8 +229,11 @@ export const seed = internalAction({
         rank: index,
         modelId: car.model,
         specValues: car.specs ?? {},
+        ...car.take,
       });
+      if (car.failed) await ctx.runMutation(internal.listings.markFailed, { boardId, url, reason: car.failed });
     }
+    await ctx.runMutation(internal.fixtures.backdate, {});
 
     // Captures need every photo in storage, so wait for the archive jobs.
     for (let waited = 0; (await ctx.runQuery(internal.fixtures.pendingPhotos, {})) > 0; waited += 500) {
@@ -227,6 +246,7 @@ export const seed = internalAction({
 export const reset = internalMutation({
   args: { tokenHash: v.string(), emptyTokenHash: v.string() },
   handler: async (ctx, { tokenHash, emptyTokenHash }) => {
+    localOnly();
     for (const table of ["boardItems", "snapshots", "listings", "apiTokens", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
@@ -259,13 +279,44 @@ export const place = internalMutation({
     rank: v.number(),
     modelId: v.string(),
     specValues: v.record(v.string(), v.string()),
+    notes: v.optional(v.string()),
+    pros: v.optional(v.array(v.string())),
+    cons: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { boardId, listingId, tier, rank, modelId, specValues }) => {
+  handler: async (ctx, { boardId, listingId, ...placement }) => {
     const item = await ctx.db
       .query("boardItems")
       .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))
       .unique();
-    if (item) await ctx.db.patch(item._id, { tier, rank, modelId, specValues });
+    if (item) await ctx.db.patch(item._id, placement);
+  },
+});
+
+// Every save above happened just now; spread each car's history over the weeks before
+// today, two weeks per change, so the price chart and "added" dates have a shape.
+export const backdate = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    localOnly();
+    const now = Date.now();
+    const day = 86_400_000;
+    for (const listing of await ctx.db.query("listings").collect()) {
+      const snapshots = await ctx.db
+        .query("snapshots")
+        .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+        .collect();
+      const at = (i: number) => now - (snapshots.length - i) * 14 * day - 3 * day;
+      for (const [i, snapshot] of snapshots.entries()) await ctx.db.patch(snapshot._id, { capturedAt: at(i) });
+      const last = at(snapshots.length - 1);
+      await ctx.db.patch(listing._id, {
+        firstSeenAt: at(0),
+        lastChangedAt: last,
+        lastCheckedAt: now - day / 4,
+        ...(listing.removedAt !== undefined && { removedAt: last }),
+        // A failed check stays the most recent event.
+        ...(listing.lastFailedCheckAt !== undefined && { lastCheckedAt: now - 2 * day, lastFailedCheckAt: now - day / 8 }),
+      });
+    }
   },
 });
 

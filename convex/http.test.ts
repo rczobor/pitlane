@@ -164,3 +164,31 @@ test("lists the board and hides listings from other boards", async () => {
   expect((await call(`/api/listings/${saved.listingId}`, undefined, asFriend)).status).toBe(404);
   expect((await call("/api/listings", { status: "removed", url }, asFriend)).status).toBe(404);
 });
+
+test("re-checks are due a day after the last check, and a failure waits before retrying", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-03-01T08:00:00Z"));
+  const { call } = await setup();
+  const { body: saved } = await call("/api/listings", listing());
+  expect((await call("/api/rechecks")).body.due).toEqual([]);
+
+  vi.setSystemTime(new Date("2026-03-02T09:00:00Z"));
+  const { body } = await call("/api/rechecks");
+  expect(body.due).toEqual([expect.objectContaining({ listingId: saved.listingId })]);
+
+  // A failed check changes nothing about the listing and holds it back for a while.
+  const failed = await call("/api/listings", { status: "failed", url, reason: "blocked" });
+  expect(failed.status).toBe(200);
+  expect((await call("/api/rechecks")).body.due).toEqual([]);
+  const detail = await call(`/api/listings/${saved.listingId}`);
+  expect(detail.body).toMatchObject({ status: "available", failureReason: "blocked" });
+  expect(detail.body.history).toHaveLength(1);
+
+  vi.setSystemTime(new Date("2026-03-02T15:30:00Z"));
+  expect((await call("/api/rechecks")).body.due).toHaveLength(1);
+
+  // A successful save clears the failure and the listing is no longer due.
+  await call("/api/listings", listing());
+  expect((await call(`/api/listings/${saved.listingId}`)).body.failureReason).toBeUndefined();
+  expect((await call("/api/rechecks")).body.due).toEqual([]);
+});

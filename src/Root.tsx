@@ -1,6 +1,6 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { SlidersHorizontal } from "lucide-react";
+import { Columns3, LogOut, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,19 +26,29 @@ export function Root() {
         >
           Pitlane
         </Link>
-        <div className="flex items-center gap-1">
+        {/* Phones show the icons only; the labels stay for screen readers. */}
+        <nav aria-label="Main" className="flex items-center gap-1">
+          <Link
+            to="/compare"
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}
+            activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
+          >
+            <Columns3 data-icon="inline-start" aria-hidden />
+            <span className="max-sm:sr-only">Compare</span>
+          </Link>
           <Link
             to="/settings"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-            activeProps={{ className: "underline underline-offset-4" }}
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}
+            activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
           >
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
-            Models and key specs
+            <span className="max-sm:sr-only">Models and key specs</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={() => setToken(null)}>
-            Sign out
+          <Button variant="ghost" size="sm" className="relative" onClick={() => setToken(null)}>
+            <LogOut data-icon="inline-start" aria-hidden className="sm:hidden" />
+            <span className="max-sm:sr-only">Sign out</span>
           </Button>
-        </div>
+        </nav>
       </header>
       <Outlet />
     </TokenContext>

@@ -29,7 +29,7 @@ async function callApi(path: string, init: { method: "GET" } | { method: "POST";
   }
 }
 
-const server = new McpServer({ name: "pitlane", version: "0.1.0" });
+const server = new McpServer({ name: "pitlane", version: "0.2.0" });
 
 server.registerTool(
   "save_listing",
@@ -55,6 +55,35 @@ server.registerTool(
     inputSchema: z.object({ url: listingUrl }),
   },
   ({ url }) => callApi("/api/listings", { method: "POST", body: { status: "removed", url } }),
+);
+
+server.registerTool(
+  "list_due_rechecks",
+  {
+    title: "List due re-checks",
+    description: [
+      "The saved listings that are due for a re-check, oldest first (at most 10).",
+      "Open each one and save it again with save_listing. If the page says the ad is gone, use mark_listing_removed.",
+      "If the page did not load or looked blocked, use report_check_failed instead.",
+      "Only re-check listings from this list.",
+    ].join(" "),
+    annotations: { readOnlyHint: true },
+  },
+  () => callApi("/api/rechecks", { method: "GET" }),
+);
+
+server.registerTool(
+  "report_check_failed",
+  {
+    title: "Report failed check",
+    description:
+      "Record that a re-check could not read a saved listing (blocked, timed out, unreadable). The listing stays as it is and is retried later. Never use mark_listing_removed for this.",
+    inputSchema: z.object({
+      url: listingUrl,
+      reason: z.string().max(200).optional().describe('What went wrong, e.g. "blocked", "timed out".'),
+    }),
+  },
+  ({ url, reason }) => callApi("/api/listings", { method: "POST", body: { status: "failed", url, reason } }),
 );
 
 server.registerTool(

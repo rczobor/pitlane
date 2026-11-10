@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Ban, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { ConvexError } from "convex/values";
 import { api } from "../convex/_generated/api";
@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { Preference } from "../shared/fit";
+import { cn } from "@/lib/utils";
+import type { Criteria, Preference } from "../shared/fit";
 import type { BoardData, BoardListing, BoardModel, KeySpecDef, ResolvedSpec } from "./format";
 import { ListingCard } from "./ListingCard";
 import { preferenceLabel } from "./SpecEditor";
@@ -28,8 +29,8 @@ export function Settings() {
         </Link>
       <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Models and key specs</h1>
       <p className="mt-2 max-w-prose text-muted-foreground">
-        Models split the board into one tier list per model. Key specs are what decide a car's tier; the order here is
-        the order they show on cards.
+        Models split the board into one tier list per model, each with its own budget, years and mileage. Key specs
+        are what decide a car's tier; the order here is the order they show on cards.
       </p>
       </div>
       {board ? <SettingsForm board={board} /> : <Skeleton className="mt-8 h-96 max-w-3xl" />}
@@ -48,14 +49,14 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 // "Unsaved changes" forever after saving such a spec.
 const settingsKey = (models: BoardModel[], specs: DraftSpec[]) =>
   JSON.stringify({
-    models: models.map((m) => [m.id, m.name.trim()]),
+    models: models.map((m) => [m.id, m.name.trim(), m.maxPrice, m.minYear, m.maxYear, m.maxMileageKm]),
     specs: specs.map((s) => [
       s.id,
       s.name.trim(),
       s.kind,
       s.kind === "choice" ? s.choices : [],
       s.models,
-      (s.preferred ?? []).map((p) => [p.value, p.models]),
+      (s.preferred ?? []).map((p) => [p.value, p.models, p.avoid === true]),
     ]),
   });
 
@@ -116,28 +117,34 @@ function SettingsForm({ board }: { board: BoardData }) {
       <section className="space-y-3">
         <h2 className="font-semibold">Models</h2>
         <Separator />
-        <ol className="space-y-2">
+        <ol>
           {models.map((model, index) => (
-            <li key={model.id} className="flex items-center gap-2">
-              <Input
-                aria-label={`Model ${index + 1} name`}
-                value={model.name}
-                onChange={(event) =>
-                  editModels(models.map((m) => (m.id === model.id ? { ...m, name: event.target.value } : m)))
-                }
-                className="flex-1"
-              />
-              {/* Removing a model leaves these cars without one; nothing is lost until Save. */}
-              <span className="w-14 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
-                {carCount(model.id) === 1 ? "1 car" : `${carCount(model.id)} cars`}
-              </span>
-              <RowActions
-                name={model.name || "model"}
-                first={index === 0}
-                last={index === models.length - 1}
-                onUp={() => editModels(move(models, index, -1))}
-                onDown={() => editModels(move(models, index, 1))}
-                onRemove={() => editModels(models.filter((m) => m.id !== model.id))}
+            <li key={model.id} className="space-y-2 border-t py-3 first:border-t-0 first:pt-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  aria-label={`Model ${index + 1} name`}
+                  value={model.name}
+                  onChange={(event) =>
+                    editModels(models.map((m) => (m.id === model.id ? { ...m, name: event.target.value } : m)))
+                  }
+                  className="flex-1"
+                />
+                {/* Removing a model leaves these cars without one; nothing is lost until Save. */}
+                <span className="w-14 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
+                  {carCount(model.id) === 1 ? "1 car" : `${carCount(model.id)} cars`}
+                </span>
+                <RowActions
+                  name={model.name || "model"}
+                  first={index === 0}
+                  last={index === models.length - 1}
+                  onUp={() => editModels(move(models, index, -1))}
+                  onDown={() => editModels(move(models, index, 1))}
+                  onRemove={() => editModels(models.filter((m) => m.id !== model.id))}
+                />
+              </div>
+              <Limits
+                model={model}
+                onChange={(patch) => editModels(models.map((m) => (m.id === model.id ? { ...m, ...patch } : m)))}
               />
             </li>
           ))}
@@ -338,6 +345,7 @@ function Preview({ board, specs, models }: { board: BoardData; specs: DraftSpec[
             preview
             listing={{ ...sample, keySpecs: draftSpecsFor(sample, specs) }}
             modelName={models.find((m) => m.id === sample.modelId)?.name}
+            criteria={models.find((m) => m.id === sample.modelId)}
             specDefs={specs}
           />
           <p className="max-w-80 text-sm text-muted-foreground">Updates as you edit; nothing is saved until you save.</p>
@@ -358,6 +366,44 @@ function draftSpecsFor(listing: BoardListing, specs: DraftSpec[]): ResolvedSpec[
     });
 }
 
+// The model's hard limits. Digits only, so a pasted "180,000" still reads as a number;
+// an empty field means no limit. The server checks the ranges on save.
+function Limits({ model, onChange }: { model: BoardModel; onChange: (patch: Criteria) => void }) {
+  const name = model.name || "this model";
+  const field = (key: keyof Criteria, label: string, className: string, maxLength: number) => (
+    <Input
+      aria-label={`${label} for ${name}`}
+      inputMode="numeric"
+      maxLength={maxLength}
+      value={model[key] ?? ""}
+      onChange={(event) => {
+        const digits = event.target.value.replace(/\D/g, "");
+        onChange({ [key]: digits ? Number(digits) : undefined });
+      }}
+      className={cn("h-8 tabular-nums", className)}
+    />
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <span className="flex items-center gap-2">
+        <span className="text-muted-foreground">Budget up to €</span>
+        {field("maxPrice", "Budget", "w-28", 9)}
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="text-muted-foreground">Registered</span>
+        {field("minYear", "First registration year from", "w-16", 4)}
+        <span aria-hidden>–</span>
+        {field("maxYear", "First registration year to", "w-16", 4)}
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="text-muted-foreground">Up to</span>
+        {field("maxMileageKm", "Maximum mileage in km", "w-24", 7)}
+        <span className="text-muted-foreground">km</span>
+      </span>
+    </div>
+  );
+}
+
 const modelsText = (ids: string[], modelName: (id: string) => string) =>
   ids.length === 0 ? "all models" : ids.map(modelName).join(", ");
 
@@ -374,41 +420,57 @@ function PreferredEditor({
   onChange: (preferred: Preference[]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [avoid, setAvoid] = useState(false);
   const [value, setValue] = useState<string | null>(null);
   const [scope, setScope] = useState<string[]>([]);
   const preferred = spec.preferred ?? [];
+  const summary = (list: Preference[]) =>
+    list.map((p) => `${label(p.value)} for ${modelsText(p.models, modelName)}`).join("; ");
+  const breakers = preferred.filter((p) => p.avoid);
   const values = spec.kind === "check" ? ["yes", "no"] : spec.choices;
   const label = (v: string) => preferenceLabel(spec.kind, v);
   const name = spec.name || "this key spec";
 
   if (!open) {
     return (
-      <div className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         <span className="text-muted-foreground">Preferred</span>
-        <span>
-          {preferred.length === 0
-            ? "No preference"
-            : preferred.map((p) => `${label(p.value)} for ${modelsText(p.models, modelName)}`).join("; ")}
-        </span>
+        <span>{summary(preferred.filter((p) => !p.avoid)) || "No preference"}</span>
+        {breakers.length > 0 && (
+          <>
+            <span className="text-muted-foreground">Deal-breaker</span>
+            <span className="text-destructive">{summary(breakers)}</span>
+          </>
+        )}
         <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => setOpen(true)}>
-          Edit<span className="sr-only"> preferred values for {name}</span>
+          Edit<span className="sr-only"> preferred values and deal-breakers for {name}</span>
         </Button>
       </div>
     );
   }
   return (
     <div className="space-y-2 rounded-md border p-3">
-      <p className="text-sm text-muted-foreground">Preferred values</p>
+      <p className="text-sm text-muted-foreground">
+        Preferred values count towards a car's fit. A deal-breaker marks the car once you confirm that value.
+      </p>
       {preferred.length > 0 && (
-        <ul aria-label={`Preferred values for ${name}`} className="flex flex-wrap gap-1.5">
+        <ul aria-label={`Preferred values and deal-breakers for ${name}`} className="flex flex-wrap gap-1.5">
           {preferred.map((p, i) => (
-            <li key={`${p.value}-${i}`} className="inline-flex h-8 items-center gap-1 rounded-md border pr-1 pl-2.5 text-sm">
+            <li
+              key={`${p.value}-${i}`}
+              className={cn(
+                "inline-flex h-8 items-center gap-1 rounded-md border pr-1 pl-2.5 text-sm",
+                p.avoid && "border-destructive text-destructive",
+              )}
+            >
+              {p.avoid && <Ban className="size-3.5" aria-hidden />}
+              {p.avoid && <span className="sr-only">Deal-breaker:</span>}
               {label(p.value)} for {modelsText(p.models, modelName)}
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                aria-label={`Remove preference ${label(p.value)} for ${modelsText(p.models, modelName)}`}
+                aria-label={`Remove ${p.avoid ? "deal-breaker" : "preference"} ${label(p.value)} for ${modelsText(p.models, modelName)}`}
                 onClick={() => onChange(preferred.filter((_, j) => j !== i))}
               >
                 <X aria-hidden />
@@ -422,7 +484,22 @@ function PreferredEditor({
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
-            aria-label={`Preferred value for ${name}`}
+            aria-label={`Add a preference or a deal-breaker for ${name}`}
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={[avoid ? "avoid" : "want"]}
+            onValueChange={(next) => next[0] && setAvoid(next[0] === "avoid")}
+          >
+            <ToggleGroupItem value="want" className="data-pressed:bg-foreground data-pressed:text-background">
+              Prefer
+            </ToggleGroupItem>
+            <ToggleGroupItem value="avoid" className="data-pressed:bg-foreground data-pressed:text-background">
+              Deal-breaker
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <ToggleGroup
+            aria-label={`${avoid ? "Deal-breaker" : "Preferred"} value for ${name}`}
             variant="outline"
             size="sm"
             value={value ? [value] : []}
@@ -439,7 +516,7 @@ function PreferredEditor({
             <>
               <span className="text-sm text-muted-foreground">for</span>
               <ToggleGroup
-                aria-label={`Models the preferred ${name} applies to`}
+                aria-label={`Models this ${avoid ? "deal-breaker" : "preference"} applies to`}
                 multiple
                 variant="outline"
                 size="sm"
@@ -467,12 +544,12 @@ function PreferredEditor({
             disabled={value === null}
             onClick={() => {
               if (value === null) return;
-              onChange([...preferred, { value, models: scope }]);
+              onChange([...preferred, { value, models: scope, ...(avoid && { avoid: true }) }]);
               setValue(null);
               setScope([]);
             }}
           >
-            Add preference
+            {avoid ? "Add deal-breaker" : "Add preference"}
           </Button>
         </div>
       )}

@@ -1,0 +1,153 @@
+import { useMutation } from "convex/react";
+import { Minus, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../convex/_generated/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { useBoardToken } from "./token";
+
+type Props = { listingId: Id<"listings">; notes: string; pros: string[]; cons: string[] };
+
+// The user's own take on a car. Notes save shortly after typing stops and when the field
+// loses focus; pros and cons save on every change.
+export function YourTake({ listingId, notes, pros, cons }: Props) {
+  const token = useBoardToken();
+  const setNotes = useMutation(api.board.setNotes);
+  const [draft, setDraft] = useState(notes);
+  const [state, setState] = useState<"saved" | "saving" | "error" | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The typed value not yet sent, if any.
+  const pending = useRef<string | null>(null);
+
+  const saveNotes = (value: string) => {
+    clearTimeout(timer.current);
+    pending.current = null;
+    if (value === notes) return;
+    setState("saving");
+    setNotes({ token, listingId, notes: value }).then(
+      () => setState("saved"),
+      () => setState("error"),
+    );
+  };
+  // Flush on leaving the page, so a note typed just before navigating is not lost.
+  const flush = useRef(() => {});
+  flush.current = () => {
+    if (pending.current !== null) saveNotes(pending.current);
+  };
+  useEffect(() => () => flush.current(), []);
+
+  return (
+    <section aria-labelledby="your-take" className="space-y-4">
+      <div>
+        <h2 id="your-take" className="font-semibold">
+          Your take
+        </h2>
+        <Separator className="mt-3" />
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <Label htmlFor="notes">Notes</Label>
+          <p role="status" className="text-xs text-muted-foreground">
+            {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : state === "error" ? "Not saved. Try again." : ""}
+          </p>
+        </div>
+        <Textarea
+          id="notes"
+          value={draft}
+          maxLength={5_000}
+          rows={4}
+          placeholder="What you noticed, questions for the seller, what to check at the viewing…"
+          onChange={(event) => {
+            const value = event.target.value;
+            setDraft(value);
+            setState(null);
+            pending.current = value;
+            clearTimeout(timer.current);
+            timer.current = setTimeout(() => saveNotes(value), 800);
+          }}
+          onBlur={() => saveNotes(draft)}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ItemList
+          label="Pros"
+          icon={<Plus className="size-3.5" aria-hidden />}
+          items={pros}
+          onChange={(next) => void setNotes({ token, listingId, pros: next })}
+        />
+        <ItemList
+          label="Cons"
+          icon={<Minus className="size-3.5" aria-hidden />}
+          items={cons}
+          onChange={(next) => void setNotes({ token, listingId, cons: next })}
+        />
+      </div>
+    </section>
+  );
+}
+
+function ItemList({
+  label,
+  icon,
+  items,
+  onChange,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  items: string[];
+  onChange: (items: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const value = draft.trim();
+    if (value) onChange([...items, value]);
+    setDraft("");
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">{label}</p>
+      {items.length > 0 && (
+        <ul aria-label={label} className="space-y-1">
+          {items.map((item, i) => (
+            <li key={`${item}-${i}`} className="flex items-start gap-2 text-sm">
+              <span className="mt-1 shrink-0 text-muted-foreground">{icon}</span>
+              <span className="min-w-0 flex-1 break-words">{item}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`Remove ${label.toLowerCase().slice(0, -1)}: ${item}`}
+                onClick={() => onChange(items.filter((_, j) => j !== i))}
+              >
+                <X aria-hidden />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="flex gap-1"
+        onSubmit={(event) => {
+          event.preventDefault();
+          add();
+        }}
+      >
+        <Input
+          aria-label={`Add to ${label.toLowerCase()}`}
+          value={draft}
+          maxLength={200}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={`Add to ${label.toLowerCase()}`}
+          className="h-9"
+        />
+        <Button type="submit" variant="outline" size="sm" className="h-9" disabled={!draft.trim()}>
+          Add
+        </Button>
+      </form>
+    </div>
+  );
+}
