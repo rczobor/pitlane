@@ -1,9 +1,10 @@
-// Synthetic board for design reviews (`pnpm dev:design`). Seeds only a local
-// deployment, wiping it first, so every capture renders the same cars.
+// Synthetic board for design reviews (`pnpm dev:design`) and PR previews. Seeds a local
+// deployment, wiping it first, so every capture renders the same cars; a preview gets
+// the same board when it is created.
 import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import { point, tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
 import { listingSite } from "../shared/sources";
@@ -214,18 +215,23 @@ const coordinates: Record<string, { lat: number; lng: number }> = {
 };
 const demoHome = { query: "1010 Wien", place: "1010, Innere Stadt, Vienna, Austria", lat: 48.2082, lng: 16.3738 };
 
-// Every fixture function wipes or rewrites data, so each refuses to run anywhere but a
-// local deployment, even when called directly with `convex run`.
-function localOnly() {
-  if (!process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) {
-    throw new Error("Fixtures only run on a local deployment");
-  }
+// Every fixture function wipes or rewrites data, so on a cloud deployment each refuses
+// real data, even when called directly with `convex run`: the wipe runs only on an
+// empty database (a preview the CLI just created), the rest only before anyone signs in.
+async function fixturesOnly(ctx: MutationCtx, { wipe = false } = {}) {
+  if (process.env.CONVEX_CLOUD_URL?.startsWith("http://127.0.0.1")) return;
+  const users = ctx.db.query("users");
+  const blocking = await (wipe
+    ? users.first()
+    : users.withIndex("by_token_identifier", (q) => q.gt("tokenIdentifier", "")).first());
+  if (blocking) throw new Error("Fixtures only run on a local deployment or a fresh preview");
 }
 
+// Vercel's preview builds also run this, without photos, when they create a preview
+// deployment (`convex deploy --preview-run`).
 export const seed = internalAction({
   args: { photoUrls: v.optional(v.array(v.string())) },
   handler: async (ctx, { photoUrls = [] }) => {
-    localOnly();
     const boardId = await ctx.runMutation(internal.fixtures.reset, {});
 
     for (const [index, car] of cars.entries()) {
@@ -261,7 +267,7 @@ export const seed = internalAction({
 export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
-    localOnly();
+    await fixturesOnly(ctx, { wipe: true });
     for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
@@ -292,7 +298,7 @@ export const place = internalMutation({
     cons: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { boardId, listingId, geo, ...placement }) => {
-    localOnly();
+    await fixturesOnly(ctx);
     if (geo) await ctx.db.patch(listingId, { geo, geoPending: undefined });
     const item = await ctx.db
       .query("boardItems")
@@ -307,7 +313,7 @@ export const place = internalMutation({
 export const backdate = internalMutation({
   args: {},
   handler: async (ctx) => {
-    localOnly();
+    await fixturesOnly(ctx);
     const now = Date.now();
     const day = 86_400_000;
     for (const listing of await ctx.db.query("listings").collect()) {
