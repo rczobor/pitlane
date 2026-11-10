@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowDown, ArrowLeft, ArrowUp, Ban, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ban, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { ConvexError } from "convex/values";
 import { api } from "../convex/_generated/api";
@@ -32,6 +32,19 @@ export function Settings() {
       </p>
       </div>
       {board ? <SettingsForm board={board} /> : <Skeleton className="mt-8 h-96 max-w-3xl" />}
+      <section aria-labelledby="agents-heading" className="mt-16 max-w-3xl space-y-3">
+        <h2 id="agents-heading" className="font-semibold">
+          Claude and ChatGPT
+        </h2>
+        <Separator />
+        <p className="text-sm text-muted-foreground">
+          Connect an assistant so it can save the listings you open and re-check them for you.
+        </p>
+        <Link to="/connect" className={buttonVariants({ variant: "outline" })}>
+          Connect Claude or ChatGPT
+          <ArrowRight data-icon="inline-end" aria-hidden />
+        </Link>
+      </section>
     </main>
   );
 }
