@@ -93,7 +93,7 @@ const cars: FixtureCar[] = [
     specs: { pdls: "no", seats: "Carbon buckets" },
     data: {
       title: "Porsche 718 Cayman GT4 RS Weissach package, PDK",
-      seller: { name: "Sportwagenzentrum Hamburg", location: "20095 Hamburg" },
+      seller: { name: "Elbkurve Automobile", location: "20095 Hamburg" },
       details: { model: "718 Cayman GT4 RS", firstRegistration: "2022-09", mileageKm: 8_900, gearbox: "automatic", powerKw: 368, color: "Python Green", options: [...options, "Weissach package", "Roll cage"] },
       photos: { from: 1 },
     },
@@ -106,7 +106,7 @@ const cars: FixtureCar[] = [
     specs: { gearbox: "Manual" },
     data: {
       title: "Porsche 992 GT3 manual, Clubsport, PDLS+",
-      seller: { name: "Sportwagenzentrum Köln", location: "50667 Köln" },
+      seller: { name: "Rheinlinie Sportwagen", location: "50667 Köln" },
       details: { model: "911 GT3", firstRegistration: "2022-04", mileageKm: 14_200, gearbox: "manual", powerKw: 375, color: "Shark Blue", options },
       photos: { from: 2 },
     },
@@ -132,7 +132,7 @@ const cars: FixtureCar[] = [
     specs: { seats: "Sport seats Plus", pdls: "no" },
     data: {
       title: "Porsche 718 Cayman GT4 PDK, Chalk",
-      seller: { name: "Sportwagenzentrum Salzburg", location: "5020 Salzburg", country: "AT" },
+      seller: { name: "Salzachring Automobile", location: "5020 Salzburg", country: "AT" },
       details: { model: "718 Cayman GT4", firstRegistration: "2021-03", mileageKm: 18_300, gearbox: "automatic", powerKw: 309, color: "Chalk", options: [...options, "PDK"] },
       photos: { from: 4 },
     },
@@ -157,7 +157,7 @@ const cars: FixtureCar[] = [
     data: {
       title: "Porsche 911 GT3 (991.2) PDK, Approved",
       price: { vatDeductible: true, netAmount: 125_630 },
-      seller: { name: "Sportwagenzentrum Frankfurt", location: "60311 Frankfurt am Main" },
+      seller: { name: "Mainkurve Sportwagen", location: "60311 Frankfurt am Main" },
       details: { model: "911 GT3", firstRegistration: "2017-11", mileageKm: 33_800, gearbox: "automatic", powerKw: 368, options },
       // No photos: shows how a listing without them looks.
     },
@@ -184,9 +184,111 @@ const cars: FixtureCar[] = [
     specs: { gearbox: "Manual", pdls: "no", seats: "Sport seats Plus" },
     data: {
       title: "Porsche 718 Cayman GT4 manual, one owner",
-      seller: { name: "Sportwagenzentrum Amsterdam", location: "1012 Amsterdam", country: "NL" },
+      seller: { name: "Grachtenring Auto", location: "1012 Amsterdam", country: "NL" },
       details: { model: "718 Cayman GT4", firstRegistration: "2020-05", mileageKm: 46_500, gearbox: "manual", powerKw: 309, options },
       photos: { from: 7 },
+    },
+  },
+  // A and Watching hold more cars than fit across a wide screen, so long lanes show how
+  // they scroll.
+  {
+    id: "55566677788800",
+    tier: "A",
+    model: "9912-gt3",
+    prices: [147_500],
+    specs: { pdls: "yes", seats: "918 buckets" },
+    data: {
+      title: "Porsche 911 GT3 (991.2) PDK, Clubsport package",
+      seller: { name: "Rheinlinie Sportwagen", location: "50667 Köln" },
+      details: { model: "911 GT3", firstRegistration: "2018-04", mileageKm: 47_800, gearbox: "automatic", powerKw: 368, color: "Guards Red", options },
+      photos: { from: 8 },
+    },
+  },
+  {
+    id: "55566677788811",
+    tier: "A",
+    model: "9912-gt3t",
+    prices: [161_000, 156_500],
+    specs: { gearbox: "Manual", colour: "White" },
+    data: {
+      title: "Porsche 911 GT3 Touring (991.2), manual, leather",
+      seller: { name: "Autohaus Schikane", location: "70173 Stuttgart" },
+      details: { model: "911 GT3 Touring", firstRegistration: "2018-11", mileageKm: 57_300, gearbox: "manual", powerKw: 368, color: "White", options },
+      photos: { from: 9 },
+    },
+  },
+  {
+    id: "55566677788822",
+    tier: "A",
+    model: "gt4",
+    prices: [94_800],
+    data: {
+      title: "Porsche 718 Cayman GT4 PDK, Clubsport, Shark Blue",
+      seller: { name: "Salzachring Automobile", location: "5020 Salzburg", country: "AT" },
+      details: { model: "718 Cayman GT4", firstRegistration: "2021-06", mileageKm: 12_400, gearbox: "automatic", powerKw: 309, color: "Shark Blue", options },
+      photos: { from: 10 },
+    },
+  },
+  {
+    id: "55566677788833",
+    tier: "watching",
+    model: "9921-gt3",
+    prices: [209_900],
+    data: {
+      title: "Porsche 911 GT3 (992) PDK, Lift, ceramic brakes",
+      seller: { name: "Kurvenreich Automobile", location: "80331 München" },
+      details: { model: "911 GT3", firstRegistration: "2023-02", mileageKm: 6_800, gearbox: "automatic", powerKw: 375, color: "GT Silver", options },
+      photos: { from: 11 },
+    },
+  },
+  {
+    id: "55566677788844",
+    tier: "watching",
+    model: "9912-gt3rs",
+    prices: [244_500],
+    specs: { cage: "yes" },
+    data: {
+      title: "Porsche 911 GT3 RS (991.2) Weissach, Lift",
+      seller: { name: "Elbkurve Automobile", location: "20095 Hamburg" },
+      details: { model: "911 GT3 RS", firstRegistration: "2019-05", mileageKm: 15_600, gearbox: "automatic", powerKw: 383, color: "White", options },
+      photos: { from: 0 },
+    },
+  },
+  {
+    id: "55566677788855",
+    tier: "watching",
+    model: "gt4rs",
+    prices: [179_000],
+    data: {
+      title: "Porsche 718 Cayman GT4 RS, Clubsport, PDLS+",
+      seller: { name: "Grachtenring Auto", location: "1012 Amsterdam", country: "NL" },
+      details: { model: "718 Cayman GT4 RS", firstRegistration: "2023-04", mileageKm: 4_100, gearbox: "automatic", powerKw: 368, color: "Black", options },
+      photos: { from: 1 },
+    },
+  },
+  {
+    id: "55566677788866",
+    tier: "watching",
+    model: "9912-gt3",
+    prices: [139_500],
+    data: {
+      title: "Porsche 911 GT3 (991.2) manual, unfallfrei",
+      seller: { type: "private", location: "28195 Bremen" },
+      details: { model: "911 GT3", firstRegistration: "2017-08", mileageKm: 61_300, gearbox: "manual", powerKw: 368, options },
+      photos: { from: 2 },
+    },
+  },
+  {
+    id: "55566677788877",
+    tier: "watching",
+    model: "9921-gt3t",
+    prices: [201_000],
+    specs: { pdls: "yes" },
+    data: {
+      title: "Porsche 911 GT3 Touring (992), PDK, leather",
+      seller: { name: "Mainkurve Sportwagen", location: "60311 Frankfurt am Main" },
+      details: { model: "911 GT3 Touring", firstRegistration: "2022-11", mileageKm: 11_900, gearbox: "automatic", powerKw: 375, color: "Chalk", options },
+      photos: { from: 3 },
     },
   },
 ];
