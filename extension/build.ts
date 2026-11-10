@@ -42,8 +42,9 @@ await build({
   target: "chrome120",
   define: { PITLANE: JSON.stringify(config) },
 });
-for (const file of ["panel.html", "style.css"]) {
-  await cp(`extension/${file}`, `${out}/${file}`);
+// icons/ holds public/favicon.svg as PNGs, since Chrome's manifest icons don't take SVG.
+for (const file of ["panel.html", "style.css", "icons"]) {
+  await cp(`extension/${file}`, `${out}/${file}`, { recursive: true });
 }
 const manifest = JSON.parse(await readFile("extension/manifest.json", "utf8"));
 manifest.host_permissions = [...new Set([...manifest.host_permissions, `${syncHost}/*`, `https://${frontendApi}/*`])];
