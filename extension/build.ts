@@ -5,7 +5,9 @@ import { build } from "esbuild";
 import { existsSync } from "node:fs";
 import { cp, readFile, rm, writeFile } from "node:fs/promises";
 
-if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+// Only when neither is set, so a production build never mixes in the dev deployment.
+const fromShell = process.env.VITE_CLERK_PUBLISHABLE_KEY || process.env.VITE_CONVEX_URL;
+if (!fromShell && existsSync(".env.local")) process.loadEnvFile(".env.local");
 const convexUrl = process.env.VITE_CONVEX_URL ?? process.env.CONVEX_URL;
 const publishableKey = process.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!convexUrl || !publishableKey) {

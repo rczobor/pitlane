@@ -35,7 +35,7 @@ export const save = action({
   args: { snapshot: v.any() },
   handler: async (ctx, { snapshot }): Promise<Result> => {
     const access: { boardId: Id<"boards">; isOwner: boolean } | null = await ctx.runQuery(internal.users.viewerForCapture, { via: "web" });
-    if (!access) return { status: 401, body: { error: "Sign in to Pitlane first." } };
+    if (!access) return { status: 401, body: { error: "Open Pitlane once in this browser to set up your board." } };
     if (!access.isOwner) return { status: 403, body: { error: "Only the board's owner can save listings for now." } };
     return saveSnapshot(ctx, { boardId: access.boardId, capturedBy: "extension" }, snapshot);
   },
