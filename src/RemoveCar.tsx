@@ -57,6 +57,8 @@ export function RemoveCarDialog({
     <AlertDialog
       open={open}
       onOpenChange={(next) => {
+        // Closing mid-removal would look like a cancel while the car still goes.
+        if (pending && !next) return;
         setError(null);
         onOpenChange(next);
       }}
@@ -75,7 +77,7 @@ export function RemoveCarDialog({
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>Keep it</AlertDialogCancel>
           <AlertDialogAction variant="destructive" disabled={pending} onClick={() => void confirm()}>
             Remove
           </AlertDialogAction>

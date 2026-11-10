@@ -178,6 +178,7 @@ test("marks a saved listing removed, and only listings on the board", async () =
 test("a re-check never adds back a car the user removed meanwhile", async () => {
   const { t, call } = await setup();
   await call("save_listing", listing());
+  expect((await call("save_listing", listing({ recheck: true }))).isError).toBe(false);
   await t.run(async (ctx) => {
     for (const item of await ctx.db.query("boardItems").collect()) await ctx.db.delete(item._id);
   });

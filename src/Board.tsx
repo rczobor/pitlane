@@ -153,7 +153,7 @@ export function Board() {
           {active && <ListingCard listing={active} {...cardProps(active)} lifted />}
         </DragOverlay>
       </DndContext>
-      {/* Keyed by car, so an error from one car's removal never shows for the next. */}
+      {/* Keyed by car, so one car's pending or failed removal never carries over to the next. */}
       <RemoveCarDialog key={removing?.listingId} car={removing} open={removeOpen} onOpenChange={setRemoveOpen} />
     </main>
   );
@@ -297,7 +297,7 @@ function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) 
               size="icon-sm"
               aria-label={`Actions for ${title}`}
               // Shown on hover or focus where there is a mouse; always on touch screens.
-              className="shadow-sm opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 pointer-coarse:opacity-100"
+              className="shadow-sm opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 any-pointer-coarse:opacity-100"
             />
           }
         >
