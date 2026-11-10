@@ -23,7 +23,7 @@ import { type MouseEvent as ReactMouseEvent, type SyntheticEvent, useEffect, use
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
-import { type BoardData, type BoardListing, type Tier, tiers } from "./format";
+import { type BoardData, type BoardListing, formatPrice, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard } from "./ListingCard";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { slabColor } from "./TierSlab";
@@ -316,6 +316,8 @@ function Lane({
                 key={listing.listingId}
                 type="button"
                 tabIndex={-1}
+                // Names the car on hover, so the user can aim at one without counting.
+                title={`${index + 1} · ${formatPrice(listing.price)} · ${listing.title}`}
                 onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
                 className="group/tick flex max-w-6 min-w-0 flex-1 items-end pb-4"
               >
