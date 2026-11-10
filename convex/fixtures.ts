@@ -284,6 +284,7 @@ export const place = internalMutation({
     cons: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { boardId, listingId, ...placement }) => {
+    localOnly();
     const item = await ctx.db
       .query("boardItems")
       .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))
