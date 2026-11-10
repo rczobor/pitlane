@@ -1,3 +1,4 @@
+import { v } from "convex/values";
 import { internalQuery, mutation, type QueryCtx } from "./_generated/server";
 import { appError } from "./errors";
 
@@ -25,13 +26,14 @@ export const viewerForWeb = internalQuery({
   handler: (ctx) => viewerAccess(ctx),
 });
 
-// For the MCP server's actions. Only the owner (the oldest user) may use it for now:
-// a car's listing facts are shared by every board that tracks it, so another account's
-// agent could rewrite the owner's prices or mark a car removed.
-export const viewerForMcp = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const access = await viewerAccess(ctx, "mcp");
+// For the routes that capture listings: the MCP server (OAuth tokens) and the Chrome
+// extension (web sessions). Only the owner (the oldest user) may capture for now: a
+// car's listing facts are shared by every board that tracks it, so another account
+// could rewrite the owner's prices or mark a car removed.
+export const viewerForCapture = internalQuery({
+  args: { via: v.union(v.literal("web"), v.literal("mcp")) },
+  handler: async (ctx, { via }) => {
+    const access = await viewerAccess(ctx, via);
     const owner = access && (await ctx.db.query("users").first());
     return access && { ...access, isOwner: owner?._id === access.userId };
   },

@@ -1,4 +1,6 @@
 allowBuilds:
   # Its postinstall only prints a funding banner.
   core-js: false
+  # Its postinstall only prints a thank-you banner.
+  browser-tabs-lock: false
   esbuild: true

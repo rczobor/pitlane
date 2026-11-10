@@ -106,23 +106,26 @@ export const markFailed = internalMutation({
 
 export const listDue = internalQuery({
   args: { boardId: v.id("boards"), now: v.number() },
-  handler: async (ctx, { boardId, now }) => {
-    const items = await ctx.db
-      .query("boardItems")
-      .withIndex("by_board", (q) => q.eq("boardId", boardId))
-      .collect();
-    const listings = await Promise.all(items.map((item) => ctx.db.get(item.listingId)));
-    return listings
-      .filter((l) => l !== null && l.status === "available")
-      .filter((l) => now - l!.lastCheckedAt >= recheckEveryMs)
-      .filter((l) => !l!.lastFailedCheckAt || now - l!.lastFailedCheckAt >= retryFailedAfterMs)
-      .sort((a, b) => a!.lastCheckedAt - b!.lastCheckedAt)
-      .slice(0, 10)
-      .map((l) => ({ listingId: l!._id, url: l!.url, title: l!.current.title, lastCheckedAt: l!.lastCheckedAt }));
-  },
+  handler: (ctx, { boardId, now }) => dueListings(ctx, boardId, now),
 });
 
-async function onBoard(ctx: QueryCtx, boardId: Id<"boards">, url: string) {
+export async function dueListings(ctx: QueryCtx, boardId: Id<"boards">, now: number) {
+  const items = await ctx.db
+    .query("boardItems")
+    .withIndex("by_board", (q) => q.eq("boardId", boardId))
+    .collect();
+  const listings = await Promise.all(items.map((item) => ctx.db.get(item.listingId)));
+  return listings
+    .filter((l) => l !== null && l.status === "available")
+    .filter((l) => now - l!.lastCheckedAt >= recheckEveryMs)
+    .filter((l) => !l!.lastFailedCheckAt || now - l!.lastFailedCheckAt >= retryFailedAfterMs)
+    .sort((a, b) => a!.lastCheckedAt - b!.lastCheckedAt)
+    .slice(0, 10)
+    .map((l) => ({ listingId: l!._id, url: l!.url, title: l!.current.title, lastCheckedAt: l!.lastCheckedAt }));
+}
+
+// The listing at this URL as last captured, or null when it is not on the board.
+export async function findOnBoard(ctx: QueryCtx, boardId: Id<"boards">, url: string) {
   const ref = resolveListingUrl(url);
   const listing =
     ref &&
@@ -130,9 +133,12 @@ async function onBoard(ctx: QueryCtx, boardId: Id<"boards">, url: string) {
       .query("listings")
       .withIndex("by_source_external", (q) => q.eq("source", ref.source).eq("externalId", ref.externalId))
       .unique());
-  if (!listing || !(await boardItem(ctx, boardId, listing._id))) {
-    throw appError("not_found", "This listing is not on your board");
-  }
+  return listing && (await boardItem(ctx, boardId, listing._id)) ? listing : null;
+}
+
+async function onBoard(ctx: QueryCtx, boardId: Id<"boards">, url: string) {
+  const listing = await findOnBoard(ctx, boardId, url);
+  if (!listing) throw appError("not_found", "This listing is not on your board");
   return listing;
 }
 

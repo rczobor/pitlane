@@ -1,7 +1,7 @@
 import "./jitless.ts";
-import { fuelTypes, gearboxTypes, listingData } from "../shared/listing.ts";
+import { type SnapshotInput, fuelTypes, gearboxTypes, listingData } from "../shared/listing.ts";
 import { fullSizePhotoUrl, resolveListingUrl } from "../shared/sources.ts";
-import { type Settings, callApi, loadSettings } from "./api.ts";
+import { api, convex, errorText, signIn } from "./api.ts";
 import { type PageDraft, extract } from "./extract.ts";
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
@@ -37,14 +37,20 @@ const say = (text: string, error = false) => {
 };
 
 async function start() {
-  const settings = await loadSettings();
-  if (!settings) {
-    $("#open-options").addEventListener("click", () => chrome.runtime.openOptionsPage());
+  let signedIn: boolean;
+  try {
+    signedIn = await signIn();
+  } catch (error) {
+    signedIn = false;
+    $("#connect-status").textContent = error instanceof Error ? error.message : String(error);
+  }
+  if (!signedIn) {
+    $("#open-app").addEventListener("click", () => void chrome.tabs.create({ url: PITLANE.appUrl }));
     return show("connect");
   }
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const listing = tab?.url ? resolveListingUrl(tab.url) : null;
-  if (!tab?.id || !tab.url || !listing) return showIdle(settings);
+  if (!tab?.id || !tab.url || !listing) return showIdle();
 
   let draft: PageDraft = { options: [], photoUrls: [] };
   try {
@@ -56,7 +62,7 @@ async function start() {
   // A re-check starts from the saved listing, so values typed in by hand on an earlier
   // save survive when the page does not show them. What the page shows wins.
   setUpSelects();
-  const saved = await savedListing(settings, listing.canonicalUrl);
+  const saved = await savedListing(listing.canonicalUrl);
   if (saved) fill(saved);
   fill(draft);
   if (!field("currency").value) field("currency").value = "EUR";
@@ -64,19 +70,24 @@ async function start() {
   show("listing");
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    void save(settings, tab.url!);
+    void save(tab.url!);
   });
-  setUpRemoved(settings, tab.url);
+  setUpRemoved(tab.url);
 }
 
-async function showIdle(settings: Settings) {
+async function showIdle() {
   show("idle");
-  const result = await callApi(settings, "/api/rechecks");
-  if (!result.ok) {
-    $("#idle-status").textContent = result.message;
+  let due;
+  try {
+    due = await convex.query(api.extension.due, { now: Date.now() });
+  } catch (error) {
+    $("#idle-status").textContent = errorText(error);
     return;
   }
-  const due = (result.body as { due: { title: string; url: string }[] }).due;
+  if (!due) {
+    $("#idle-status").textContent = "Open Pitlane once in this browser to set up your board.";
+    return;
+  }
   if (due.length === 0) return;
   $("#due-box").hidden = false;
   $("#due").replaceChildren(
@@ -93,15 +104,10 @@ async function showIdle(settings: Settings) {
 }
 
 // The listing as saved on the board, or null when it is new (or cannot be read).
-async function savedListing(settings: Settings, canonicalUrl: string): Promise<Partial<PageDraft> | null> {
-  const list = await callApi(settings, "/api/listings");
-  const match =
-    list.ok && (list.body as { listings: { listingId: string; url: string }[] }).listings.find((l) => l.url === canonicalUrl);
-  if (!match) return null;
-  const detail = await callApi(settings, `/api/listings/${encodeURIComponent(match.listingId)}`);
-  const parsed = detail.ok ? listingData.omit({ photoUrls: true }).safeParse(detail.body) : null;
-  if (!parsed?.success) return null;
-  const { title, price, seller, details, description } = parsed.data;
+async function savedListing(canonicalUrl: string): Promise<Partial<PageDraft> | null> {
+  const saved = await convex.query(api.extension.saved, { url: canonicalUrl }).catch(() => null);
+  if (!saved) return null;
+  const { title, price, seller, details, description } = saved;
   return {
     title,
     price: price.amount,
@@ -240,7 +246,7 @@ function markInvalid(issues: { path: PropertyKey[]; message: string }[]) {
   first?.focus();
 }
 
-async function save(settings: Settings, url: string) {
+async function save(url: string) {
   const parsed = listingData.safeParse(readForm());
   if (!parsed.success) {
     markInvalid(parsed.error.issues);
@@ -250,7 +256,7 @@ async function save(settings: Settings, url: string) {
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
   button.disabled = true;
   say("Saving…");
-  const result = await callApi(settings, "/api/listings", { status: "available", url, ...parsed.data });
+  const result = await send({ status: "available", url, ...parsed.data });
   button.disabled = false;
   if (!result.ok) {
     const issues = (result.body as { issues?: { path: string; message: string }[] } | undefined)?.issues;
@@ -276,7 +282,7 @@ async function save(settings: Settings, url: string) {
 }
 
 // Two clicks, since a removed ad drops out of re-checks.
-function setUpRemoved(settings: Settings, url: string) {
+function setUpRemoved(url: string) {
   const button = $<HTMLButtonElement>("#removed");
   let armed = false;
   button.addEventListener("click", async () => {
@@ -286,7 +292,7 @@ function setUpRemoved(settings: Settings, url: string) {
       return;
     }
     button.disabled = true;
-    const result = await callApi(settings, "/api/listings", { status: "removed", url });
+    const result = await send({ status: "removed", url });
     button.disabled = false;
     armed = false;
     button.textContent = "Ad is gone";
@@ -295,6 +301,22 @@ function setUpRemoved(settings: Settings, url: string) {
       !result.ok,
     );
   });
+}
+
+type SendResult = { ok: true; body: unknown } | { ok: false; status: number; message: string; body?: unknown };
+
+// Saves through the same intake as the MCP tools, so the result is HTTP-style.
+async function send(snapshot: SnapshotInput): Promise<SendResult> {
+  try {
+    if (!(await signIn())) return { ok: false, status: 401, message: "Sign in to Pitlane in this browser, then try again." };
+    const { status, body } = await convex.action(api.extension.save, { snapshot });
+    if (status < 400) return { ok: true, body };
+    const message =
+      typeof body === "object" && body !== null && "error" in body ? String(body.error) : `Pitlane answered ${status}.`;
+    return { ok: false, status, message, body };
+  } catch (error) {
+    return { ok: false, status: 0, message: errorText(error) };
+  }
 }
 
 void start();
