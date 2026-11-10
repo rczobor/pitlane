@@ -277,11 +277,12 @@ function Lane({
       >
         {/* The lane fades out at an end that hides cars; the rail below shows how much is
             hidden and where the view is. The scroll padding keeps a card scrolled into view
-            (by the arrows or by tabbing) clear of the fade. */}
+            (by the arrows or by tabbing) clear of the fade. Phones fade less, so the peek of
+            the next card stays legible. */}
         <div
           ref={lane}
           onMouseDown={panWithMiddleButton}
-          className="relative flex min-h-20 flex-1 scroll-px-16 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/lane:[--fade-end:4rem] group-data-more-start/lane:[--fade-start:4rem] sm:min-h-44"
+          className="relative flex min-h-20 flex-1 scroll-px-6 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] [--fade:1.5rem] group-data-more-end/lane:[--fade-end:var(--fade)] group-data-more-start/lane:[--fade-start:var(--fade)] sm:min-h-44 sm:scroll-px-16 sm:[--fade:4rem]"
         >
           <SortableContext items={listings.map((l) => l.listingId)}>
             {listings.map((listing) => (
@@ -298,7 +299,7 @@ function Lane({
         <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-3 bottom-1 hidden h-1 rounded-full bg-foreground/10 group-data-overflow/lane:block"
+          className="pointer-events-none absolute inset-x-3 bottom-1 hidden h-1 rounded-full bg-foreground/15 group-data-overflow/lane:block"
         >
           <div className="absolute inset-y-0 left-(--thumb-left) w-(--thumb-width) rounded-full bg-muted-foreground" />
         </div>
@@ -358,20 +359,21 @@ function pageLane(lane: HTMLElement, direction: "back" | "forward") {
   });
 }
 
-// Shown while the mouse is over a lane that hides cars at that end. Tabbing through the
+// Shown while the mouse is over a lane that hides cars at that end. An opaque fill and an
+// ink border keep it visible on pale photos under the fade. Tabbing through the
 // cards already scrolls the lane, so the arrows are for the mouse only; touch screens swipe.
 function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onClick: () => void }) {
   const Icon = direction === "back" ? ChevronLeft : ChevronRight;
   return (
     <Button
-      variant="secondary"
+      variant="outline"
       size="icon-lg"
       tabIndex={-1}
       aria-hidden
       onClick={onClick}
       className={cn(
         // Centred on the photos (16:9, below the lane's padding), clear of prices and titles.
-        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 shadow-sm opacity-0 transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
+        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -translate-y-1/2 size-10 border-foreground/30 bg-card shadow-sm opacity-0 dark:border-foreground/30 dark:bg-card transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
         direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
       )}
     >
