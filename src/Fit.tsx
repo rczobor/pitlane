@@ -18,7 +18,7 @@ const statusText = { met: "met", missed: "missed", unknown: "not known yet" };
 export function FitList({ car, criteria, specDefs, keySpecs, modelId }: Props) {
   const { checks, met, total, dealBreakers } = evaluate(car, criteria, specDefs, keySpecs, modelId);
   if (total === 0 && dealBreakers.length === 0) {
-    return <p className="text-sm text-muted-foreground">Set a budget, years, mileage or preferred values in Models and key specs.</p>;
+    return <p className="text-sm text-muted-foreground">Set a budget, years, mileage or preferred values in Specs.</p>;
   }
   return (
     <div className="space-y-2">

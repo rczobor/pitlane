@@ -71,7 +71,7 @@ function SignedIn() {
             activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
           >
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
-            <span className="max-sm:sr-only">Models and key specs</span>
+            <span className="max-sm:sr-only">Specs</span>
           </Link>
           <Button variant="ghost" size="sm" className="relative" onClick={() => void signOut()}>
             <LogOut data-icon="inline-start" aria-hidden className="sm:hidden" />
