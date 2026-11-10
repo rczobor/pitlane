@@ -3,16 +3,16 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { appError } from "./errors";
 import { boardItem, boardListings, listingDetail } from "./listings";
-import { tokenAccess } from "./tokens";
+import { viewerAccess } from "./users";
 import { boardModel, keySpec, tiers } from "./validators";
 
-// Functions for the web app. Until there are user accounts, the browser holds an
-// API token and passes it to every call; a bad token reads as signed out (null).
+// Functions for the web app, for the signed-in user's board. Signed out, or before
+// `users:ensureUser` has set the user up, the board reads as null.
 
 export const get = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const access = await tokenAccess(ctx, token);
+  args: {},
+  handler: async (ctx) => {
+    const access = await viewerAccess(ctx);
     if (!access) return null;
     const board = (await ctx.db.get(access.boardId))!;
     return {
@@ -25,25 +25,25 @@ export const get = query({
 });
 
 export const listing = query({
-  args: { token: v.string(), listingId: v.string() },
-  handler: async (ctx, { token, listingId }) => {
-    const access = await tokenAccess(ctx, token);
+  args: { listingId: v.string() },
+  handler: async (ctx, { listingId }) => {
+    const access = await viewerAccess(ctx);
     return access && listingDetail(ctx, access.boardId, listingId);
   },
 });
 
 export const move = mutation({
-  args: { token: v.string(), listingId: v.id("listings"), tier: tiers, rank: v.number() },
-  handler: async (ctx, { token, listingId, tier, rank }) => {
-    const { item } = await ownItem(ctx, token, listingId);
+  args: { listingId: v.id("listings"), tier: tiers, rank: v.number() },
+  handler: async (ctx, { listingId, tier, rank }) => {
+    const { item } = await ownItem(ctx, listingId);
     await ctx.db.patch(item._id, { tier, rank });
   },
 });
 
 export const setModel = mutation({
-  args: { token: v.string(), listingId: v.id("listings"), modelId: v.union(v.string(), v.null()) },
-  handler: async (ctx, { token, listingId, modelId }) => {
-    const { board, item } = await ownItem(ctx, token, listingId);
+  args: { listingId: v.id("listings"), modelId: v.union(v.string(), v.null()) },
+  handler: async (ctx, { listingId, modelId }) => {
+    const { board, item } = await ownItem(ctx, listingId);
     if (modelId !== null && !(board.models ?? []).some((m) => m.id === modelId)) {
       throw appError("invalid", "Unknown model");
     }
@@ -55,13 +55,12 @@ export const setModel = mutation({
 // A choice value that is not yet on the list is added to it.
 export const setSpecValue = mutation({
   args: {
-    token: v.string(),
     listingId: v.id("listings"),
     specId: v.string(),
     value: v.union(v.string(), v.null()),
   },
-  handler: async (ctx, { token, listingId, specId, value }) => {
-    const { board, item } = await ownItem(ctx, token, listingId);
+  handler: async (ctx, { listingId, specId, value }) => {
+    const { board, item } = await ownItem(ctx, listingId);
     const specs = board.keySpecs ?? [];
     const spec = specs.find((s) => s.id === specId);
     if (!spec) throw appError("invalid", "Unknown key spec");
@@ -89,9 +88,9 @@ export const setSpecValue = mutation({
 });
 
 export const saveSettings = mutation({
-  args: { token: v.string(), models: v.array(boardModel), keySpecs: v.array(keySpec) },
-  handler: async (ctx, { token, models, keySpecs }) => {
-    const access = await tokenAccess(ctx, token);
+  args: { models: v.array(boardModel), keySpecs: v.array(keySpec) },
+  handler: async (ctx, { models, keySpecs }) => {
+    const access = await viewerAccess(ctx);
     if (!access) throw appError("not_found", "Board not found");
     const clean = cleanSettings(models, keySpecs);
     await ctx.db.patch(access.boardId, clean);
@@ -182,14 +181,13 @@ const takeItems = (items: string[]) => {
 // Notes, pros and cons: the user's own take on a car. Each field is replaced when given.
 export const setNotes = mutation({
   args: {
-    token: v.string(),
     listingId: v.id("listings"),
     notes: v.optional(v.string()),
     pros: v.optional(v.array(v.string())),
     cons: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { token, listingId, notes, pros, cons }) => {
-    const { item } = await ownItem(ctx, token, listingId);
+  handler: async (ctx, { listingId, notes, pros, cons }) => {
+    const { item } = await ownItem(ctx, listingId);
     if (notes !== undefined && notes.length > 5_000) throw appError("invalid", "Notes are up to 5,000 characters");
     await ctx.db.patch(item._id, {
       ...(notes !== undefined && { notes }),
@@ -199,8 +197,8 @@ export const setNotes = mutation({
   },
 });
 
-async function ownItem(ctx: MutationCtx, token: string, listingId: Id<"listings">) {
-  const access = await tokenAccess(ctx, token);
+async function ownItem(ctx: MutationCtx, listingId: Id<"listings">) {
+  const access = await viewerAccess(ctx);
   const item = access && (await boardItem(ctx, access.boardId, listingId));
   if (!access || !item) throw appError("not_found", "This listing is not on your board");
   return { board: (await ctx.db.get(access.boardId))!, item };

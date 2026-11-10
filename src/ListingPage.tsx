@@ -26,14 +26,12 @@ import { Gallery } from "./Gallery";
 import { PriceChart } from "./PriceChart";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
-import { useBoardToken } from "./token";
 import { YourTake } from "./YourTake";
 
 export function ListingPage({ listingId }: { listingId: string }) {
-  const token = useBoardToken();
-  const listing = useQuery(api.board.listing, { token, listingId });
+  const listing = useQuery(api.board.listing, { listingId });
   // Model and key-spec definitions live on the board; this shares the board's subscription.
-  const board = useQuery(api.board.get, { token });
+  const board = useQuery(api.board.get);
   const move = useMutation(api.board.move);
   const [checking, setChecking] = useState(false);
 
@@ -143,7 +141,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
               value={[listing.tier]}
               onValueChange={(value) => {
                 const tier = tiers.find((t) => t.tier === value[0])?.tier;
-                if (tier) void move({ token, listingId: listing.listingId, tier, rank: Date.now() });
+                if (tier) void move({ listingId: listing.listingId, tier, rank: Date.now() });
               }}
               className="flex-wrap"
             >

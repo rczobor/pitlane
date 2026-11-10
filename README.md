@@ -73,8 +73,8 @@ redirects are refused.
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, REST via HTTP
 actions, scheduled jobs, file storage). The MCP server is a small local stdio
 process over the REST API. The web app is Vite, React, TanStack Router and
-shadcn/ui (Base UI). Until there are user accounts, it signs in with an API token
-kept in the browser.
+shadcn/ui (Base UI). People sign in to the web app with Clerk; agents and
+extensions use API tokens.
 
 ## Build order
 
@@ -100,6 +100,25 @@ pnpm dev:web      # web app on :5173, also reachable over Tailscale at http://ho
 pnpm test
 pnpm typecheck
 ```
+
+### Sign-in
+
+The web app signs in with Clerk. Sign-up is invite-only: invite people from the
+Clerk dashboard. A first sign-in takes over the user that `tokens:create` makes for
+the owner, so the board and API tokens carry over. Anyone else gets an empty board.
+API tokens always go to the oldest user, so on a fresh deployment the owner signs
+in or creates a token first.
+
+Each side names one Clerk instance: development for local work and previews,
+production for the production site.
+
+- **Web app:** `VITE_CLERK_PUBLISHABLE_KEY` in `.env.local` locally, and in Vercel
+  per environment.
+- **Convex:** `CLERK_FRONTEND_API_URL` on each deployment (`pnpm convex env set`),
+  and as a default for preview deployments. Clerk's Convex integration must be on,
+  so session tokens carry the `convex` audience.
+
+### API tokens
 
 Create an API token for each agent or extension. It is printed once; only its hash
 is stored:

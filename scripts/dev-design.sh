@@ -19,6 +19,16 @@ if [ -n "${PITLANE_FIXTURE_PHOTOS:-}" ] && [ -f "$PITLANE_FIXTURE_PHOTOS" ]; the
   seed_args=$(node -e 'const urls = require("fs").readFileSync(process.argv[1], "utf8").split("\n").map((l) => l.trim()).filter(Boolean); console.log(JSON.stringify({ photoUrls: urls }))' "$PITLANE_FIXTURE_PHOTOS")
 fi
 export seed_args
+# Sign-in uses the Clerk development instance: the app reads its publishable key
+# (from the environment or the checkout's .env.local), and the deployment trusts the
+# Frontend API host encoded in it. A first run has no deployment yet: --once creates
+# it, and its push fails until the variable is set. The first account to sign in
+# takes over the seeded board.
+key="${VITE_CLERK_PUBLISHABLE_KEY:-$(sed -n 's/^VITE_CLERK_PUBLISHABLE_KEY=//p' "$root/.env.local" 2>/dev/null | head -1)}"
+[ -n "$key" ] || { echo 'Set VITE_CLERK_PUBLISHABLE_KEY (the Clerk development key) in .env.local' >&2; exit 1; }
+clerk_url="https://$(node -e 'console.log(Buffer.from(process.argv[1].split("_")[2], "base64").toString().replace(/\$$/, ""))' "$key")"
+[ -f .env.local ] || pnpm exec convex dev --once --typecheck disable --tail-logs disable >/dev/null 2>&1 || true
+pnpm exec convex env set CLERK_FRONTEND_API_URL "$clerk_url"
 # The CLI names the URL VITE_CONVEX_URL or CONVEX_URL depending on what it detects.
 # A process env var beats the checkout's .env.local in Vite, so the app reads the fixtures.
 start="url=\$(sed -n 's/^\(VITE_\)\{0,1\}CONVEX_URL=//p' .env.local | head -1)

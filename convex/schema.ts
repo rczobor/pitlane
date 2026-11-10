@@ -5,7 +5,9 @@ import { boardModel, keySpec, listingDataValidator, listingStatus, tiers } from 
 export default defineSchema({
   users: defineTable({
     name: v.string(),
-  }),
+    // The Clerk account that signs in as this user. Unset until its first sign-in.
+    tokenIdentifier: v.optional(v.string()),
+  }).index("by_token_identifier", ["tokenIdentifier"]),
 
   boards: defineTable({
     name: v.string(),

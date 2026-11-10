@@ -1,5 +1,8 @@
+import { ClerkProvider, useAuth } from "@clerk/react";
+import { shadcn } from "@clerk/ui/themes";
 import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Board } from "./Board";
@@ -55,8 +58,11 @@ const convex = new ConvexReactClient(import.meta.env.CONVEX_URL);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConvexProvider client={convex}>
-      <RouterProvider router={router} />
-    </ConvexProvider>
+    {/* Reads VITE_CLERK_PUBLISHABLE_KEY. */}
+    <ClerkProvider appearance={{ theme: shadcn }} afterSignOutUrl="/">
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <RouterProvider router={router} />
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
   </StrictMode>,
 );

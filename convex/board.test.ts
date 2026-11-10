@@ -1,4 +1,4 @@
-import { convexTest } from "convex-test";
+import { convexTest, type TestConvex } from "convex-test";
 import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
@@ -21,9 +21,17 @@ const car = {
   photoUrls: [],
 };
 
+// Signs in as a Clerk account and sets its user up, as the web app does.
+async function signIn(t: TestConvex<typeof schema>, subject: string) {
+  const user = t.withIdentity({ subject, name: subject });
+  await user.mutation(api.users.ensureUser, {});
+  return user;
+}
+
+// `tokens:create` makes the owner's user and board before any account has signed in.
 async function setup() {
   const t = convexTest(schema, modules);
-  const token = await t.action(internal.tokens.create, { name: "web" });
+  await t.action(internal.tokens.create, { name: "web" });
   const board = await t.run((ctx) => ctx.db.query("boards").first());
   const { listingId } = await t.mutation(internal.listings.save, {
     boardId: board!._id,
@@ -31,18 +39,36 @@ async function setup() {
     url: listingSite.canonicalUrl("10000000000002"),
     data: car,
   });
-  return { t, token, listingId };
+  return { t, me: await signIn(t, "owner"), listingId };
 }
 
-test("a bad token reads as signed out", async () => {
+test("signed out, or before the user is set up, the board reads as null", async () => {
   const { t } = await setup();
-  expect(await t.query(api.board.get, { token: "pit_nope" })).toBeNull();
-  expect(await t.query(api.board.get, { token: `pit_${"0".repeat(64)}` })).toBeNull();
+  expect(await t.query(api.board.get, {})).toBeNull();
+  expect(await t.withIdentity({ subject: "invited" }).query(api.board.get, {})).toBeNull();
+  await expect(t.mutation(api.users.ensureUser, {})).rejects.toThrow(/Sign in first/);
+});
+
+test("the first account takes over the owner's board; later accounts get their own", async () => {
+  const { t, me } = await setup();
+  expect((await me.query(api.board.get, {}))?.listings).toHaveLength(1);
+
+  const friend = await signIn(t, "friend");
+  expect(await friend.query(api.board.get, {})).toMatchObject({ name: "Watchlist", listings: [] });
+  // Signing in again reuses the same user and board.
+  await signIn(t, "owner");
+  await signIn(t, "friend");
+  const counts = await t.run(async (ctx) => [(await ctx.db.query("users").collect()).length, (await ctx.db.query("boards").collect()).length]);
+  expect(counts).toEqual([2, 2]);
+  // API tokens stay with the owner's board.
+  const token = await t.run((ctx) => ctx.db.query("apiTokens").first());
+  const ownerBoard = await t.run((ctx) => ctx.db.query("boards").first());
+  expect(token?.boardId).toEqual(ownerBoard?._id);
 });
 
 test("shows card data without the options list", async () => {
-  const { t, token } = await setup();
-  const board = await t.query(api.board.get, { token });
+  const { me } = await setup();
+  const board = await me.query(api.board.get, {});
   expect(board?.listings[0]).toMatchObject({
     tier: "watching",
     title: "Porsche 911 GT3",
@@ -54,19 +80,13 @@ test("shows card data without the options list", async () => {
 });
 
 test("moves a car between tiers and orders by rank", async () => {
-  const { t, token, listingId } = await setup();
-  await t.mutation(api.board.move, { token, listingId, tier: "S", rank: 5 });
-  const board = await t.query(api.board.get, { token });
+  const { t, me, listingId } = await setup();
+  await me.mutation(api.board.move, { listingId, tier: "S", rank: 5 });
+  const board = await me.query(api.board.get, {});
   expect(board?.listings[0]).toMatchObject({ tier: "S", rank: 5 });
 
-  const other = await t.action(internal.tokens.create, { name: "other" });
-  await t.run(async (ctx) => {
-    const userId = await ctx.db.insert("users", { name: "Friend" });
-    const boardId = await ctx.db.insert("boards", { name: "Friend's", ownerId: userId });
-    const token = (await ctx.db.query("apiTokens").collect()).find((row) => row.name === "other")!;
-    await ctx.db.patch(token._id, { userId, boardId });
-  });
-  await expect(t.mutation(api.board.move, { token: other, listingId, tier: "rejected", rank: 1 })).rejects.toThrow(
+  const friend = await signIn(t, "friend");
+  await expect(friend.mutation(api.board.move, { listingId, tier: "rejected", rank: 1 })).rejects.toThrow(
     /not on your board/,
   );
 });
@@ -83,7 +103,7 @@ const keySpecs = [
 
 async function setupWithSpecs(options: string[]) {
   const t = convexTest(schema, modules);
-  const token = await t.action(internal.tokens.create, { name: "web" });
+  await t.action(internal.tokens.create, { name: "web" });
   const board = await t.run((ctx) => ctx.db.query("boards").first());
   const { listingId } = await t.mutation(internal.listings.save, {
     boardId: board!._id,
@@ -91,22 +111,23 @@ async function setupWithSpecs(options: string[]) {
     url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, options } },
   });
-  await t.mutation(api.board.saveSettings, { token, models, keySpecs });
-  const specsOf = async () => (await t.query(api.board.get, { token }))!.listings[0].keySpecs;
-  return { t, token, listingId, specsOf };
+  const me = await signIn(t, "owner");
+  await me.mutation(api.board.saveSettings, { models, keySpecs });
+  const specsOf = async () => (await me.query(api.board.get, {}))!.listings[0].keySpecs;
+  return { me, listingId, specsOf };
 }
 
 test("key specs come from the listing until the user sets them", async () => {
-  const { t, token, listingId, specsOf } = await setupWithSpecs(["LED headlights incl. PDLS+", "918 buckets"]);
+  const { me, listingId, specsOf } = await setupWithSpecs(["LED headlights incl. PDLS+", "918 buckets"]);
   expect(await specsOf()).toEqual([
     { id: "pdls", name: "PDLS+", kind: "check", value: "yes", source: "listing" },
     { id: "seats", name: "Seats", kind: "choice", value: "918 buckets", source: "listing" },
   ]);
 
   // The listing can be wrong: the user's value wins, and clearing it falls back.
-  await t.mutation(api.board.setSpecValue, { token, listingId, specId: "pdls", value: "no" });
+  await me.mutation(api.board.setSpecValue, { listingId, specId: "pdls", value: "no" });
   expect((await specsOf())[0]).toMatchObject({ value: "no", source: "you" });
-  await t.mutation(api.board.setSpecValue, { token, listingId, specId: "pdls", value: null });
+  await me.mutation(api.board.setSpecValue, { listingId, specId: "pdls", value: null });
   expect((await specsOf())[0]).toMatchObject({ value: "yes", source: "listing" });
 });
 
@@ -118,41 +139,41 @@ test("listing matches are whole terms: PDLS does not count as PDLS+", async () =
 });
 
 test("model-specific specs apply only to that model", async () => {
-  const { t, token, listingId, specsOf } = await setupWithSpecs([]);
+  const { me, listingId, specsOf } = await setupWithSpecs([]);
   expect((await specsOf()).map((s) => s.id)).toEqual(["pdls", "seats"]);
-  await t.mutation(api.board.setModel, { token, listingId, modelId: "gt4" });
+  await me.mutation(api.board.setModel, { listingId, modelId: "gt4" });
   expect((await specsOf()).map((s) => s.id)).toEqual(["pdls", "seats", "cage"]);
-  await expect(t.mutation(api.board.setModel, { token, listingId, modelId: "nope" })).rejects.toThrow(/Unknown model/);
+  await expect(me.mutation(api.board.setModel, { listingId, modelId: "nope" })).rejects.toThrow(/Unknown model/);
 });
 
 test("a new choice is added to the spec's list", async () => {
-  const { t, token, listingId } = await setupWithSpecs([]);
-  await t.mutation(api.board.setSpecValue, { token, listingId, specId: "seats", value: " Carbon buckets " });
-  const board = await t.query(api.board.get, { token });
+  const { me, listingId } = await setupWithSpecs([]);
+  await me.mutation(api.board.setSpecValue, { listingId, specId: "seats", value: " Carbon buckets " });
+  const board = await me.query(api.board.get, {});
   expect(board!.keySpecs[1].choices).toEqual(["918 buckets", "Sport seats Plus", "Carbon buckets"]);
   expect(board!.listings[0].keySpecs[1]).toMatchObject({ value: "Carbon buckets", source: "you" });
   // A case-only variant reuses the existing choice instead of adding a twin.
-  await t.mutation(api.board.setSpecValue, { token, listingId, specId: "seats", value: "carbon BUCKETS" });
-  const again = await t.query(api.board.get, { token });
+  await me.mutation(api.board.setSpecValue, { listingId, specId: "seats", value: "carbon BUCKETS" });
+  const again = await me.query(api.board.get, {});
   expect(again!.keySpecs[1].choices).toHaveLength(3);
   expect(again!.listings[0].keySpecs[1].value).toBe("Carbon buckets");
-  await expect(t.mutation(api.board.setSpecValue, { token, listingId, specId: "pdls", value: "maybe" })).rejects.toThrow(
+  await expect(me.mutation(api.board.setSpecValue, { listingId, specId: "pdls", value: "maybe" })).rejects.toThrow(
     /yes or no/,
   );
 });
 
 test("settings reject duplicate ids and drop links to deleted models", async () => {
-  const { t, token } = await setupWithSpecs([]);
+  const { me } = await setupWithSpecs([]);
   await expect(
-    t.mutation(api.board.saveSettings, { token, models: [models[0], models[0]], keySpecs: [] }),
+    me.mutation(api.board.saveSettings, { models: [models[0], models[0]], keySpecs: [] }),
   ).rejects.toThrow(/unique/);
-  await t.mutation(api.board.saveSettings, { token, models: [models[0]], keySpecs });
-  expect((await t.query(api.board.get, { token }))!.keySpecs[2].models).toEqual([]);
+  await me.mutation(api.board.saveSettings, { models: [models[0]], keySpecs });
+  expect((await me.query(api.board.get, {}))!.keySpecs[2].models).toEqual([]);
 });
 
 test("a choice shared by two specs is not filled in from the listing", async () => {
   const t = convexTest(schema, modules);
-  const token = await t.action(internal.tokens.create, { name: "web" });
+  await t.action(internal.tokens.create, { name: "web" });
   const board = await t.run((ctx) => ctx.db.query("boards").first());
   await t.mutation(internal.listings.save, {
     boardId: board!._id,
@@ -160,22 +181,21 @@ test("a choice shared by two specs is not filled in from the listing", async () 
     url: listingSite.canonicalUrl("10000000000002"),
     data: { ...car, details: { ...car.details, color: "Chalk", options: ["Guards Red seat belts"] } },
   });
-  await t.mutation(api.board.saveSettings, {
-    token,
+  const me = await signIn(t, "owner");
+  await me.mutation(api.board.saveSettings, {
     models: [],
     keySpecs: [
       { id: "colour", name: "Colour", kind: "choice", choices: ["Guards Red", "Chalk"], models: [] },
       { id: "accent", name: "Interior accent", kind: "choice", choices: ["Guards Red", "Racing Yellow"], models: [] },
     ],
   });
-  const specs = (await t.query(api.board.get, { token }))!.listings[0].keySpecs;
+  const specs = (await me.query(api.board.get, {}))!.listings[0].keySpecs;
   expect(specs.map((s) => s.value)).toEqual(["Chalk", null]);
 });
 
 test("settings keep preferences only for values and models that exist", async () => {
-  const { t, token } = await setupWithSpecs([]);
-  const returned = await t.mutation(api.board.saveSettings, {
-    token,
+  const { me } = await setupWithSpecs([]);
+  const returned = await me.mutation(api.board.saveSettings, {
     models,
     keySpecs: [
       {
@@ -188,13 +208,12 @@ test("settings keep preferences only for values and models that exist", async ()
       { ...keySpecs[0], preferred: [{ value: "maybe", models: [] }, { value: "yes", models: [] }] },
     ],
   });
-  const saved = (await t.query(api.board.get, { token }))!.keySpecs;
+  const saved = (await me.query(api.board.get, {}))!.keySpecs;
   expect(saved[0].preferred).toEqual([{ value: "918 buckets", models: ["gt3"] }]);
   expect(saved[1].preferred).toEqual([{ value: "yes", models: [] }]);
 
   // A preference for deleted models only goes away rather than widening to every model.
-  const onlyGone = await t.mutation(api.board.saveSettings, {
-    token,
+  const onlyGone = await me.mutation(api.board.saveSettings, {
     models,
     keySpecs: [{ ...keySpecs[1], preferred: [{ value: "918 buckets", models: ["gone"] }] }],
   });
@@ -204,9 +223,8 @@ test("settings keep preferences only for values and models that exist", async ()
 });
 
 test("model limits are stored and checked on save, and deal-breakers kept", async () => {
-  const { t, token } = await setupWithSpecs([]);
-  const saved = await t.mutation(api.board.saveSettings, {
-    token,
+  const { me } = await setupWithSpecs([]);
+  const saved = await me.mutation(api.board.saveSettings, {
     models: [{ ...models[0], maxPrice: 180_000, minYear: 2017, maxYear: 2019 }, models[1]],
     keySpecs: [{ ...keySpecs[1], preferred: [{ value: "Sport seats Plus", models: ["gt3"], avoid: true }] }],
   });
@@ -214,21 +232,21 @@ test("model limits are stored and checked on save, and deal-breakers kept", asyn
   expect(saved.keySpecs[0].preferred).toEqual([{ value: "Sport seats Plus", models: ["gt3"], avoid: true }]);
 
   const save = (model: (typeof saved.models)[number]) =>
-    t.mutation(api.board.saveSettings, { token, models: [model], keySpecs: [] });
+    me.mutation(api.board.saveSettings, { models: [model], keySpecs: [] });
   await expect(save({ ...models[0], minYear: 2020, maxYear: 2018 })).rejects.toThrow(/first year for 991.2 GT3 is after the last/);
   await expect(save({ ...models[0], minYear: 20 })).rejects.toThrow(/Year for 991.2 GT3 must be 1950–2100/);
   await expect(save({ ...models[0], maxMileageKm: 0.5 })).rejects.toThrow(/Mileage/);
 });
 
 test("notes, pros and cons are saved per car, each field on its own", async () => {
-  const { t, token, listingId } = await setup();
-  await t.mutation(api.board.setNotes, { token, listingId, notes: "Ask about the IMS", pros: [" Low km ", ""] });
-  await t.mutation(api.board.setNotes, { token, listingId, cons: ["Stone chips"] });
-  expect(await t.query(api.board.listing, { token, listingId })).toMatchObject({
+  const { t, me, listingId } = await setup();
+  await me.mutation(api.board.setNotes, { listingId, notes: "Ask about the IMS", pros: [" Low km ", ""] });
+  await me.mutation(api.board.setNotes, { listingId, cons: ["Stone chips"] });
+  expect(await me.query(api.board.listing, { listingId })).toMatchObject({
     notes: "Ask about the IMS",
     pros: ["Low km"],
     cons: ["Stone chips"],
   });
-  await expect(t.mutation(api.board.setNotes, { token, listingId, pros: ["x".repeat(201)] })).rejects.toThrow(/200/);
-  await expect(t.mutation(api.board.setNotes, { token: "pit_nope", listingId, notes: "" })).rejects.toThrow();
+  await expect(me.mutation(api.board.setNotes, { listingId, pros: ["x".repeat(201)] })).rejects.toThrow(/200/);
+  await expect(t.mutation(api.board.setNotes, { listingId, notes: "" })).rejects.toThrow();
 });

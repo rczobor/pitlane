@@ -1,24 +1,45 @@
+import { SignIn, useClerk } from "@clerk/react";
 import { Link, Outlet } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Columns3, LogOut, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TokenContext, useToken } from "./token";
 
 export function Root() {
-  const [token, setToken] = useToken();
-  const board = useQuery(api.board.get, token ? { token } : "skip");
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  if (isLoading) return null;
+  return isAuthenticated ? <SignedIn /> : <SignInScreen />;
+}
 
-  if (!token || board === null) {
-    return <Connect rejected={board === null ? token : null} onConnect={setToken} />;
+function SignedIn() {
+  const { signOut } = useClerk();
+  const board = useQuery(api.board.get);
+  const ensureUser = useMutation(api.users.ensureUser);
+  const [failed, setFailed] = useState(false);
+
+  // A first sign-in has no user or board yet; set them up, then the board query updates.
+  useEffect(() => {
+    if (board === null) ensureUser().catch(() => setFailed(true));
+  }, [board, ensureUser]);
+
+  if (failed) {
+    return (
+      <main className="mx-auto max-w-md space-y-4 px-4 pt-[24svh]">
+        <Alert variant="destructive">
+          <AlertDescription>Your board couldn't be set up. Reload to try again.</AlertDescription>
+        </Alert>
+        <Button variant="outline" onClick={() => void signOut()}>
+          Sign out
+        </Button>
+      </main>
+    );
   }
+  if (board === null) return null;
 
   return (
-    <TokenContext value={token}>
+    <>
       <header className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8">
         <Link
           to="/"
@@ -44,65 +65,29 @@ export function Root() {
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
             <span className="max-sm:sr-only">Models and key specs</span>
           </Link>
-          <Button variant="ghost" size="sm" className="relative" onClick={() => setToken(null)}>
+          <Button variant="ghost" size="sm" className="relative" onClick={() => void signOut()}>
             <LogOut data-icon="inline-start" aria-hidden className="sm:hidden" />
             <span className="max-sm:sr-only">Sign out</span>
           </Button>
         </nav>
       </header>
       <Outlet />
-    </TokenContext>
+    </>
   );
 }
 
-// `rejected` is the token that failed, kept in the field so it can be checked.
-function Connect({ rejected, onConnect }: { rejected: string | null; onConnect: (token: string) => void }) {
-  const [value, setValue] = useState(rejected ?? "");
+function SignInScreen() {
   return (
     <main className="grid min-h-svh lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       {/* The pit board: the product's signature, the only yellow on the screen. */}
       <div className="flex min-h-[28svh] items-end bg-signal px-4 pt-10 pb-6 text-signal-foreground sm:px-8 lg:min-h-svh lg:px-12 lg:pb-12">
         <p className="condensed text-[clamp(4.5rem,16vw,11rem)] leading-[0.8] font-extrabold tracking-tight">Pitlane</p>
       </div>
-      {/* A fixed top offset, so the form does not jump when the error appears. */}
-      <div className="px-4 pt-10 pb-12 sm:px-8 lg:px-16 lg:pt-[24svh]">
-        <form
-          className="max-w-md space-y-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (value.trim()) onConnect(value.trim());
-          }}
-        >
-          <div className="space-y-1">
-            <h1 className="condensed text-4xl leading-none font-extrabold">Open your board</h1>
-            <p className="text-muted-foreground">Paste an API token. It is kept in this browser only.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="token">API token</Label>
-            <Input
-              id="token"
-              // A rejected token is shown in full so it can be checked.
-              type={rejected === null ? "password" : "text"}
-              autoComplete="off"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              placeholder="pit_…"
-              aria-invalid={rejected !== null || undefined}
-              className="h-10"
-            />
-          </div>
-          {rejected !== null && (
-            <Alert variant="destructive">
-              <AlertDescription>
-                That token doesn't open a board. Check it, or create a new one with{" "}
-                <code className="font-sans font-semibold text-foreground">pnpm convex run tokens:create</code>.
-              </AlertDescription>
-            </Alert>
-          )}
-          <Button type="submit" size="lg" className="h-10 w-full sm:w-auto sm:px-6">
-            Open board
-          </Button>
-        </form>
+      <div className="px-4 pt-10 pb-12 sm:px-8 lg:px-16 lg:pt-[18svh]">
+        {/* Hash routing keeps Clerk's steps out of the app's routes, and signing in
+            returns to the page that was opened. Sign-up is invite-only, so invited
+            people arrive through Clerk's email link. */}
+        <SignIn routing="hash" fallbackRedirectUrl={location.pathname + location.search} />
       </div>
     </main>
   );
