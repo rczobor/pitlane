@@ -5,8 +5,8 @@ import type { ActionCtx } from "./_generated/server";
 import type { AppErrorData } from "./errors";
 import { snapshotInput } from "../shared/listing";
 
-// What agents can do, shared by the REST API (API tokens) and the MCP server (OAuth).
-// Each returns an HTTP status and a JSON body, so both callers report the same errors.
+// What agents can do through the MCP server. Each returns an HTTP-style status and a
+// JSON body; the MCP tools turn any status of 400 or more into an error result.
 
 export type Owner = { boardId: Id<"boards">; capturedBy: string };
 type Result = { status: number; body: unknown };

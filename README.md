@@ -17,7 +17,7 @@ make the decisions. Personal use first, shared with friends later.
 4. Personal notes and pros/cons per car.
 5. Change tracking: price history, listing removed/sold, days listed.
 6. Side-by-side comparison of 2–3 cars.
-7. Agent API (REST + MCP server) to add, update and re-check listings.
+7. An MCP server for agents to add, update and re-check listings.
 8. A map of where the sellers are, and each car's distance from your home.
 
 ## Constraints
@@ -80,10 +80,10 @@ this existed is located on its next re-check. Distances are straight lines from
 the home you set on the map page. The map page and the car page's map image use
 Mapbox; both stay within its free tier for one person's watchlist.
 
-**Stack:** TypeScript, pnpm, Convex as the whole backend (data, REST and the MCP
-server via HTTP actions, scheduled jobs, file storage). The web app is Vite, React,
+**Stack:** TypeScript, pnpm, Convex as the whole backend (data, the MCP server via
+HTTP actions, scheduled jobs, file storage). The web app is Vite, React,
 TanStack Router and shadcn/ui (Base UI). People sign in with Clerk, and so does
-Claude through OAuth; scripts and the extension use API tokens.
+Claude through OAuth.
 
 ## Build order
 
@@ -117,10 +117,9 @@ variable in Vercel. Without it the app works, just without maps.
 ### Sign-in
 
 The web app signs in with Clerk. Sign-up is invite-only: invite people from the
-Clerk dashboard. A first sign-in takes over the user that `tokens:create` makes for
-the owner, so the board and API tokens carry over. Anyone else gets an empty board.
-API tokens always go to the oldest user, so on a fresh deployment the owner signs
-in or creates a token first.
+Clerk dashboard. A first sign-in sets up the account's user and an empty board. The
+oldest user is the owner, the only one who can connect an agent, so on a fresh
+deployment the owner signs in first.
 
 Each side names one Clerk instance: development for local work and previews,
 production for the production site.
@@ -156,29 +155,6 @@ To re-check, ask Claude to "re-check my Pitlane listings": it asks for the due
 list, opens each page and saves it again. A listing is due a day after its last
 check; a page that failed to load is retried after six hours.
 
-### API tokens
-
-Scripts and the browser extension use the REST API with an API token. Create one
-per client; it is printed once, and only its hash is stored. Settings lists them
-and revokes them.
-
-```sh
-pnpm convex run tokens:create '{"name": "chrome-extension"}'
-```
-
-### REST API
-
-All routes need `Authorization: Bearer pit_…` and are scoped to the token's board.
-
-| Route | Purpose |
-| --- | --- |
-| `POST /api/listings` | Save a snapshot: `{ "status": "available", "url", ...listing }`, `{ "status": "removed", "url" }`, or `{ "status": "failed", "url", "reason" }` for a re-check that could not read the page |
-| `GET /api/rechecks` | Up to 10 listings due for a re-check, oldest first |
-| `GET /api/listings` | The board's listings with tier, status, price and last check |
-| `GET /api/listings/{listingId}` | One listing with full details, price history and photos |
-
-Invalid input returns `400` with an `issues` list naming each bad field.
-
 ## Deployment
 
 The web app is a static build on Vercel; Convex hosts everything else. One
@@ -194,9 +170,5 @@ deployment. Every path is served `index.html` so deep links survive a reload.
 To link a fresh checkout to the project's dev deployment, run `pnpm dev` and
 choose the existing project in the team the integration created.
 
-Production starts empty. Sign in to the production site first, then create API
-tokens there if a script or the extension needs one:
-
-```sh
-pnpm convex run --prod tokens:create '{"name": "chrome-extension"}'
-```
+Production starts empty. Sign in to the production site first, so you are its
+owner.

@@ -1,4 +1,4 @@
-// The listing contract shared by every capture route (REST, MCP, the browser
+// The listing contract shared by every capture route (Claude and the browser
 // extension). The descriptions double as extraction instructions for agents.
 import { z } from "zod";
 import { resolveListingUrl } from "./sources.ts";

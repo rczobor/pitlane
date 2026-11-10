@@ -4,16 +4,12 @@ import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
-import { sha256 } from "./tokens";
 import { point, tiers } from "./validators";
 import type { ListingData } from "../shared/listing";
 import { listingSite } from "../shared/sources";
 
-// REST API tokens for the two seeded boards; they only ever exist on a local fixture
-// deployment. The web app signs in with Clerk: the first account takes over the seeded
-// board, a second one the empty board.
-export const fixtureToken = `pit_${"f".repeat(64)}`;
-export const emptyBoardToken = `pit_${"e".repeat(64)}`;
+// Two boards whose users no account owns yet. The web app signs in with Clerk: the first
+// account takes over the seeded board, a second one the empty board.
 
 // Photos are not part of the repository: `scripts/dev-design.sh` passes listing photo
 // URLs from a local file (PITLANE_FIXTURE_PHOTOS). Without them every car shows the
@@ -230,10 +226,7 @@ export const seed = internalAction({
   args: { photoUrls: v.optional(v.array(v.string())) },
   handler: async (ctx, { photoUrls = [] }) => {
     localOnly();
-    const boardId = await ctx.runMutation(internal.fixtures.reset, {
-      tokenHash: await sha256(fixtureToken),
-      emptyTokenHash: await sha256(emptyBoardToken),
-    });
+    const boardId = await ctx.runMutation(internal.fixtures.reset, {});
 
     for (const [index, car] of cars.entries()) {
       const url = listingSite.canonicalUrl(car.id);
@@ -266,10 +259,10 @@ export const seed = internalAction({
 });
 
 export const reset = internalMutation({
-  args: { tokenHash: v.string(), emptyTokenHash: v.string() },
-  handler: async (ctx, { tokenHash, emptyTokenHash }) => {
+  args: {},
+  handler: async (ctx) => {
     localOnly();
-    for (const table of ["boardItems", "snapshots", "listings", "apiTokens", "boards", "users"] as const) {
+    for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
     }
     for (const doc of await ctx.db.query("photos").collect()) {
@@ -278,17 +271,9 @@ export const reset = internalMutation({
     }
     const userId = await ctx.db.insert("users", { name: "Demo driver", home: demoHome });
     const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId, models, keySpecs });
-    await ctx.db.insert("apiTokens", { name: "design-fixtures", tokenHash, userId, boardId, createdAt: Date.now() });
 
     const newUserId = await ctx.db.insert("users", { name: "New user" });
-    const emptyBoardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: newUserId });
-    await ctx.db.insert("apiTokens", {
-      name: "design-fixtures-empty",
-      tokenHash: emptyTokenHash,
-      userId: newUserId,
-      boardId: emptyBoardId,
-      createdAt: Date.now(),
-    });
+    await ctx.db.insert("boards", { name: "Watchlist", ownerId: newUserId });
     return boardId;
   },
 });

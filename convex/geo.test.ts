@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
-import { modules } from "./test.setup";
+import { modules, seedOwner } from "./test.setup";
 import { listingSite } from "../shared/sources";
 
 const car = {
@@ -39,10 +39,10 @@ function stubGeocoder() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-// `tokens:create` makes the owner's user and board; signing in takes them over.
+// The owner's user and board exist before the first sign-in, which takes them over.
 async function setup() {
   const t = convexTest(schema, modules);
-  await t.action(internal.tokens.create, { name: "web" });
+  await seedOwner(t);
   const me = t.withIdentity({ subject: "owner", name: "owner" });
   await me.mutation(api.users.ensureUser, {});
   const board = await t.run((ctx) => ctx.db.query("boards").first());
