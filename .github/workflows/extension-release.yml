@@ -1,14 +1,25 @@
 name: Extension release
 
-# Pushing a tag like extension-v0.2.0 builds the Chrome extension for production and
-# attaches it to a GitHub release. The tag must match the manifest's version.
+# Merging a new version in extension/manifest.json to main builds the Chrome extension
+# for production and attaches it to a GitHub release tagged extension-v<version>. A
+# version that already has a release is skipped. Pushing such a tag by hand also
+# releases, as long as it matches the manifest's version.
 on:
   push:
+    branches:
+      - main
+    paths:
+      - extension/manifest.json
+      - .github/workflows/extension-release.yml
     tags:
       - extension-v*
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -22,31 +33,45 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check the version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version=$(jq -r .version extension/manifest.json)
+          tag="extension-v$version"
+          if [ "$REF_TYPE" = tag ] && [ "$REF_NAME" != "$tag" ]; then
+            echo "::error::Tag $REF_NAME does not match the manifest version $version"
+            exit 1
+          fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "$tag is already released; nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
+        if: steps.version.outputs.release == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 26
 
       - name: Setup pnpm
+        if: steps.version.outputs.release == 'true'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - name: Install dependencies
+        if: steps.version.outputs.release == 'true'
         run: pnpm install --frozen-lockfile
-
-      - name: Check the tag matches the manifest
-        id: version
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          version=$(jq -r .version extension/manifest.json)
-          if [ "$TAG" != "extension-v$version" ]; then
-            echo "::error::Tag $TAG does not match the manifest version $version"
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # Production's public values: the same ones the web app ships.
       - name: Build for production
+        if: steps.version.outputs.release == 'true'
         env:
           VITE_CONVEX_URL: ${{ vars.EXTENSION_CONVEX_URL }}
           VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.EXTENSION_CLERK_PUBLISHABLE_KEY }}
@@ -62,14 +87,15 @@ jobs:
           pnpm build:extension
 
       - name: Publish the release
+        if: steps.version.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           zip_name="pitlane-extension-$VERSION.zip"
           (cd dist/extension && zip -qr "../../$zip_name" .)
-          gh release create "$TAG" "$zip_name" --repo "$GITHUB_REPOSITORY" --title "Chrome extension $VERSION" --notes "$(cat <<'EOF'
+          gh release create "$TAG" "$zip_name" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Chrome extension $VERSION" --notes "$(cat <<'EOF'
           To install: download the zip below and unzip it into a folder you keep. In Chrome, open chrome://extensions, turn on Developer mode, choose Load unpacked and pick that folder. Then sign in to Pitlane in the same browser.
 
           To update: unzip the new version over the same folder and press the reload button on the extension's card.

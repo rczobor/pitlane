@@ -22,6 +22,24 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          # A pull request checks out its merge commit; the base is its first parent.
+          fetch-depth: 2
+
+      # Merging a new extension version releases it, so a change without a bump would
+      # never reach anyone. Tests alone do not need one. The extension also bundles
+      # these shared files.
+      - name: Check the extension version was bumped
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only HEAD^1 HEAD -- extension shared/listing.ts shared/sources.ts ':(exclude)extension/*.test.ts')
+          [ -z "$changed" ] && exit 0
+          before=$(git show HEAD^1:extension/manifest.json | jq -r .version)
+          after=$(jq -r .version extension/manifest.json)
+          if [ "$before" = "$after" ]; then
+            echo "::error file=extension/manifest.json::The extension changed but its version is still $after. Bump version in extension/manifest.json so the merge releases it."
+            echo "$changed"
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7

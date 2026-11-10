@@ -183,11 +183,12 @@ you keep. In Chrome, open `chrome://extensions`, turn on Developer mode, choose
 To update, unzip the new version over the same folder and press reload on the
 extension's card.
 
-To release a version, bump `version` in
-[`extension/manifest.json`](extension/manifest.json), merge, and push a matching
-tag such as `extension-v0.2.0`. The workflow builds for production from the
-`EXTENSION_CONVEX_URL` and `EXTENSION_CLERK_PUBLISHABLE_KEY` repository variables,
-production's public values.
+Merging a new `version` in [`extension/manifest.json`](extension/manifest.json)
+releases it: the workflow tags the merge `extension-v<version>` and attaches the
+zip. If the release fails, push that tag by hand to retry. CI fails a pull request
+that changes the extension (or the shared files it bundles) without bumping the
+version. The build uses the `EXTENSION_CONVEX_URL` and
+`EXTENSION_CLERK_PUBLISHABLE_KEY` repository variables, production's public values.
 
 To build it yourself:
 
