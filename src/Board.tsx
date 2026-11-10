@@ -308,21 +308,23 @@ function Lane({
           // One tick per car, filled for the cars on screen; a click brings that car into view.
           // A compact index from the lane's start, so no tick reads as the card above it;
           // ticks shrink only when a long lane would not fit them.
-          <div aria-hidden className="absolute inset-x-3 bottom-0 flex h-3 gap-1">
+          // The click area reaches into the gap below the lane, so it is 24px tall without
+          // covering the cards.
+          <div aria-hidden className="absolute inset-x-3 -bottom-3 flex h-6 gap-1">
             {listings.map((listing, index) => (
               <button
                 key={listing.listingId}
                 type="button"
                 tabIndex={-1}
                 onClick={() => lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" })}
-                className="group/tick flex max-w-6 min-w-0 flex-1 items-end pb-1"
+                className="group/tick flex max-w-6 min-w-0 flex-1 items-end pb-4"
               >
                 <span
                   className={cn(
                     "h-1 w-full rounded-full",
                     index >= view.first && index <= view.last
                       ? "bg-foreground"
-                      : "bg-foreground/30 group-hover/tick:bg-foreground/50",
+                      : "bg-foreground/50 group-hover/tick:bg-foreground/70",
                   )}
                 />
               </button>
@@ -335,7 +337,7 @@ function Lane({
 }
 
 // What a lane that hides cars shows: whether cars are hidden at each end, and the first and
-// last car on screen (at least 60% clear of the fades, or else the most visible one). Null
+// last car on screen (at least half clear of the fades, or else the most visible one). Null
 // when every car fits.
 type LaneView = { start: boolean; end: boolean; first: number; last: number };
 
@@ -386,7 +388,7 @@ function measureLane(lane: HTMLElement): LaneView | null {
     const { left, right, width } = card.getBoundingClientRect();
     return Math.max(0, Math.min(right, to) - Math.max(left, from)) / width;
   });
-  const shown = clear.flatMap((part, index) => (part >= 0.6 ? [index] : []));
+  const shown = clear.flatMap((part, index) => (part >= 0.5 ? [index] : []));
   if (shown.length === 0) shown.push(clear.indexOf(Math.max(...clear)));
   return { start, end, first: shown[0], last: shown[shown.length - 1] };
 }
