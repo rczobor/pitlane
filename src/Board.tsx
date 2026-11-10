@@ -411,9 +411,10 @@ function LaneIndex({
         >
           <span
             className={cn(
-              "w-full rounded-full",
-              pointed === index ? "h-1.5" : "h-1",
-              shown(index) ? "bg-foreground" : pointed === index ? "bg-foreground/80" : "bg-foreground/55",
+              "h-1 w-full rounded-full bg-foreground/55",
+              // The pointed mark only where a fine pointer can point.
+              pointed === index && "pointer-fine:h-1.5 pointer-fine:bg-foreground/80",
+              shown(index) && "bg-foreground pointer-fine:bg-foreground",
             )}
           />
         </button>
