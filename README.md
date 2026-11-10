@@ -99,7 +99,7 @@ Claude through OAuth.
    missing / unknown) with preferred values and deal-breakers per model; a fit
    count on each card and a "How it fits" breakdown on the car page; a check mode
    for confirming specs against the photos; notes, pros and cons per car.
-4. Chrome extension (manual route).
+4. ✅ Chrome extension (manual route).
 5. ✅ Re-checks (due list, failed checks retried later) and the price history chart.
 6. ✅ Side-by-side comparison of up to three cars.
 
@@ -161,6 +161,51 @@ Tools: `save_listing`, `mark_listing_removed`, `list_due_rechecks`,
 To re-check, ask Claude to "re-check my Pitlane listings": it asks for the due
 list, opens each page and saves it again. A listing is due a day after its last
 check; a page that failed to load is retried after six hours.
+
+### Chrome extension
+
+The manual route: open a listing, click the Pitlane button, check the form and
+save. Saving a listing that is already on the board records a re-check, and keeps
+values you typed in on an earlier save when the page does not show them. With no
+listing open, the popup lists the cars due for a re-check. Like agents, only the
+board's owner can save.
+
+The extension has no sign-in of its own: it uses the web app's Clerk session in
+the same browser (Clerk's sync host), and calls the Convex functions in
+[`convex/extension.ts`](convex/extension.ts), which share the agents' intake.
+
+To install it, download the zip from the latest `extension-v…`
+[release](https://github.com/rczobor/pitlane/releases) and unzip it into a folder
+you keep. In Chrome, open `chrome://extensions`, turn on Developer mode, choose
+**Load unpacked** and pick that folder. Then sign in to Pitlane in the same browser.
+To update, unzip the new version over the same folder and press reload on the
+extension's card.
+
+To release a version, bump `version` in
+[`extension/manifest.json`](extension/manifest.json), merge, and push a matching
+tag such as `extension-v0.2.0`. The workflow builds for production from the
+`EXTENSION_CONVEX_URL` and `EXTENSION_CLERK_PUBLISHABLE_KEY` repository variables,
+production's public values.
+
+To build it yourself:
+
+```sh
+pnpm build:extension   # → dist/extension, for the deployment in .env.local
+```
+
+To build for production instead, set `VITE_CONVEX_URL` and
+`VITE_CLERK_PUBLISHABLE_KEY` to production's values for the command. Load
+`dist/extension` unpacked as above, then sign in to the web app in the same browser: on
+`localhost:5173` for a development build (or the host in `PITLANE_APP_URL`, e.g.
+`http://homelab:5173`, if you open it elsewhere), or on the production site.
+
+The manifest pins the extension's key, so its ID is always
+`pjlklbfihokmiojkbpfnhnomoeddphie`. Each Clerk instance must list
+`chrome-extension://pjlklbfihokmiojkbpfnhnomoeddphie` in its allowed origins.
+
+The extension reads the open page only when you click its button, and fills the
+form from structured data and the labels the page shows. Anything it could not
+find stays empty for you to fill in.
 
 ## Deployment
 

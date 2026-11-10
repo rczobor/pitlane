@@ -12,6 +12,7 @@ import type * as agent from "../agent.js";
 import type * as board from "../board.js";
 import type * as crons from "../crons.js";
 import type * as errors from "../errors.js";
+import type * as extension from "../extension.js";
 import type * as fixtures from "../fixtures.js";
 import type * as geo from "../geo.js";
 import type * as http from "../http.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   board: typeof board;
   crons: typeof crons;
   errors: typeof errors;
+  extension: typeof extension;
   fixtures: typeof fixtures;
   geo: typeof geo;
   http: typeof http;

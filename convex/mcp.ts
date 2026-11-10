@@ -61,10 +61,10 @@ async function ownerOf(ctx: ActionCtx): Promise<Owner | "not_owner" | null> {
   const identity = await ctx.auth.getUserIdentity().catch(() => null);
   // Only OAuth access tokens; refused before anything is set up for a web session.
   if (typeof identity?.client_id !== "string") return null;
-  let access = await ctx.runQuery(internal.users.viewerForMcp, {});
+  let access = await ctx.runQuery(internal.users.viewerForCapture, { via: "mcp" });
   if (!access) {
     await ctx.runMutation(api.users.ensureUser, {});
-    access = await ctx.runQuery(internal.users.viewerForMcp, {});
+    access = await ctx.runQuery(internal.users.viewerForCapture, { via: "mcp" });
   }
   if (!access) return null;
   return access.isOwner ? { boardId: access.boardId, capturedBy: "mcp" } : "not_owner";

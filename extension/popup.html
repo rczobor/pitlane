@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pitlane</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="popup.js"></script>
+  </head>
+  <body class="popup">
+    <main>
+      <h1><span class="mark">Pitlane</span></h1>
+
+      <section id="connect" hidden>
+        <p>Sign in to Pitlane in this browser, then click Pitlane again. The extension uses that sign-in.</p>
+        <p id="connect-status" class="error" role="status"></p>
+        <button id="open-app" class="primary" type="button">Open Pitlane</button>
+      </section>
+
+      <section id="idle" hidden>
+        <p>Open a car listing, then click Pitlane to save it or record a re-check.</p>
+        <p id="idle-status" class="error" role="status"></p>
+        <div id="due-box" hidden>
+          <h2 id="due-heading">Due for a re-check</h2>
+          <p class="muted">Open one, check the page loaded, then click Pitlane again.</p>
+          <ul id="due" class="due" aria-labelledby="due-heading"></ul>
+        </div>
+      </section>
+
+      <p id="loading" class="muted">Reading the page…</p>
+
+      <form id="listing" hidden novalidate>
+        <p class="muted">Check what was read from the page and fill any gaps before saving.</p>
+        <div class="grid">
+          <label class="wide">Title <input name="title" required /></label>
+          <label>Price <input name="price" inputmode="numeric" required /></label>
+          <label>Currency <input name="currency" maxlength="3" required /></label>
+          <label>VAT reclaimable
+            <select name="vatDeductible">
+              <option value="">Not stated</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+          <label>Net price <input name="netPrice" inputmode="numeric" /></label>
+        </div>
+
+        <h2>Car</h2>
+        <div class="grid">
+          <label>Make <input name="make" required /></label>
+          <label>Model <input name="model" required /></label>
+          <label>First registration <input name="firstRegistration" placeholder="YYYY-MM (empty if new)" /></label>
+          <label>Mileage (km) <input name="mileageKm" inputmode="numeric" required /></label>
+          <label>Fuel <select name="fuel" required></select></label>
+          <label>Gearbox <select name="gearbox" required></select></label>
+          <label>Power (kW) <input name="powerKw" inputmode="numeric" /></label>
+          <label>Previous owners <input name="previousOwners" inputmode="numeric" /></label>
+          <label>Body <input name="bodyType" /></label>
+          <label>Colour <input name="color" /></label>
+          <label class="wide">Options, one per line <textarea name="options" rows="4"></textarea></label>
+        </div>
+
+        <h2>Seller</h2>
+        <div class="grid">
+          <label>Type
+            <select name="sellerType">
+              <option value="dealer">Dealer</option>
+              <option value="private">Private seller</option>
+            </select>
+          </label>
+          <label>Name <input name="sellerName" /></label>
+          <label class="wide">Location <input name="location" /></label>
+          <label class="wide">Description <textarea name="description" rows="3"></textarea></label>
+        </div>
+
+        <h2 id="photos-heading">Photos</h2>
+        <div id="photos" class="photos" role="group" aria-labelledby="photos-heading"></div>
+        <p id="no-photos" class="muted" hidden>No photos found on this page.</p>
+
+        <p id="status" role="status"></p>
+        <div class="actions">
+          <button class="primary" type="submit">Save to Pitlane</button>
+          <span class="spacer"></span>
+          <button id="removed" class="danger" type="button">Ad is gone</button>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>

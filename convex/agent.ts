@@ -9,7 +9,7 @@ import { snapshotInput } from "../shared/listing";
 // JSON body; the MCP tools turn any status of 400 or more into an error result.
 
 export type Owner = { boardId: Id<"boards">; capturedBy: string };
-type Result = { status: number; body: unknown };
+export type Result = { status: number; body: unknown };
 
 export async function saveSnapshot(ctx: ActionCtx, owner: Owner, input: unknown): Promise<Result> {
   const parsed = snapshotInput.safeParse(input);
