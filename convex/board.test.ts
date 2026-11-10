@@ -201,3 +201,33 @@ test("settings keep preferences only for values and models that exist", async ()
   // The editor adopts what was stored, so its unsaved state clears after a save.
   expect(returned.keySpecs).toEqual(saved);
 });
+
+test("model limits are stored and checked on save, and deal-breakers kept", async () => {
+  const { t, token } = await setupWithSpecs([]);
+  const saved = await t.mutation(api.board.saveSettings, {
+    token,
+    models: [{ ...models[0], maxPrice: 180_000, minYear: 2017, maxYear: 2019 }, models[1]],
+    keySpecs: [{ ...keySpecs[1], preferred: [{ value: "Sport seats Plus", models: ["gt3"], avoid: true }] }],
+  });
+  expect(saved.models[0]).toEqual({ id: "gt3", name: "991.2 GT3", maxPrice: 180_000, minYear: 2017, maxYear: 2019 });
+  expect(saved.keySpecs[0].preferred).toEqual([{ value: "Sport seats Plus", models: ["gt3"], avoid: true }]);
+
+  const save = (model: (typeof saved.models)[number]) =>
+    t.mutation(api.board.saveSettings, { token, models: [model], keySpecs: [] });
+  await expect(save({ ...models[0], minYear: 2020, maxYear: 2018 })).rejects.toThrow(/first year for 991.2 GT3 is after the last/);
+  await expect(save({ ...models[0], minYear: 20 })).rejects.toThrow(/Year for 991.2 GT3 must be 1950–2100/);
+  await expect(save({ ...models[0], maxMileageKm: 0.5 })).rejects.toThrow(/Mileage/);
+});
+
+test("notes, pros and cons are saved per car, each field on its own", async () => {
+  const { t, token, listingId } = await setup();
+  await t.mutation(api.board.setNotes, { token, listingId, notes: "Ask about the IMS", pros: [" Low km ", ""] });
+  await t.mutation(api.board.setNotes, { token, listingId, cons: ["Stone chips"] });
+  expect(await t.query(api.board.listing, { token, listingId })).toMatchObject({
+    notes: "Ask about the IMS",
+    pros: ["Low km"],
+    cons: ["Stone chips"],
+  });
+  await expect(t.mutation(api.board.setNotes, { token, listingId, pros: ["x".repeat(201)] })).rejects.toThrow(/200/);
+  await expect(t.mutation(api.board.setNotes, { token: "pit_nope", listingId, notes: "" })).rejects.toThrow();
+});

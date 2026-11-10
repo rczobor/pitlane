@@ -18,8 +18,8 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
-import { type BoardData, type BoardListing, type KeySpecDef, type Tier, tiers } from "./format";
-import { ListingCard } from "./ListingCard";
+import { type BoardData, type BoardListing, type Tier, tiers } from "./format";
+import { type CardProps, ListingCard } from "./ListingCard";
 import { slabColor } from "./TierSlab";
 import { useBoardToken } from "./token";
 import { buttonVariants } from "@/components/ui/button";
@@ -47,9 +47,14 @@ export function Board() {
   const filter = model === "none" || board.models.some((m) => m.id === model) ? model : undefined;
   const ofModel = filter ? board.listings.filter((l) => (l.modelId ?? "none") === filter) : board.listings;
   const visible = check ? ofModel.filter((l) => toCheck(l.keySpecs) > 0) : ofModel;
+  const modelsById = new Map(board.models.map((m) => [m.id, m]));
   const modelNames = new Map(board.models.map((m) => [m.id, m.name]));
-  // The model name is noise when the board already shows a single model.
-  const modelName = (listing: BoardListing) => (filter ? undefined : modelNames.get(listing.modelId ?? ""));
+  // What each card needs besides its listing. The model name is noise when the board
+  // already shows a single model; the model's limits feed the card's fit count.
+  const cardProps = (listing: BoardListing): CardProps => {
+    const carModel = modelsById.get(listing.modelId ?? "");
+    return { modelName: filter ? undefined : carModel?.name, criteria: carModel, specDefs: board.keySpecs };
+  };
   const lanes = tiers.map(({ tier, label }) => ({
     tier,
     label,
@@ -131,11 +136,11 @@ export function Board() {
       >
         <div className="space-y-3">
           {lanes.map((lane) => (
-            <Lane key={lane.tier} {...lane} modelName={modelName} specDefs={board.keySpecs} dragging={active !== undefined} />
+            <Lane key={lane.tier} {...lane} cardProps={cardProps} dragging={active !== undefined} />
           ))}
         </div>
         <DragOverlay>
-          {active && <ListingCard listing={active} modelName={modelName(active)} specDefs={board.keySpecs} lifted />}
+          {active && <ListingCard listing={active} {...cardProps(active)} lifted />}
         </DragOverlay>
       </DndContext>
     </main>
@@ -146,15 +151,13 @@ function Lane({
   tier,
   label,
   listings,
-  modelName,
-  specDefs,
+  cardProps,
   dragging,
 }: {
   tier: Tier;
   label: string;
   listings: BoardListing[];
-  modelName: (listing: BoardListing) => string | undefined;
-  specDefs: KeySpecDef[];
+  cardProps: (listing: BoardListing) => CardProps;
   dragging: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: tier });
@@ -191,12 +194,7 @@ function Lane({
       >
         <SortableContext items={listings.map((l) => l.listingId)}>
           {listings.map((listing) => (
-            <SortableCard
-              key={listing.listingId}
-              listing={listing}
-              modelName={modelName(listing)}
-              specDefs={specDefs}
-            />
+            <SortableCard key={listing.listingId} listing={listing} {...cardProps(listing)} />
           ))}
         </SortableContext>
         {listings.length === 0 && (
@@ -209,15 +207,7 @@ function Lane({
   );
 }
 
-function SortableCard({
-  listing,
-  modelName,
-  specDefs,
-}: {
-  listing: BoardListing;
-  modelName?: string;
-  specDefs: KeySpecDef[];
-}) {
+function SortableCard({ listing, ...props }: { listing: BoardListing } & CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: listing.listingId,
   });
@@ -228,7 +218,7 @@ function SortableCard({
       className={isDragging ? "opacity-30" : ""}
       {...listeners}
     >
-      <ListingCard listing={listing} modelName={modelName} specDefs={specDefs} />
+      <ListingCard listing={listing} {...props} />
     </div>
   );
 }

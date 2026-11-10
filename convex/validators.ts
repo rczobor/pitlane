@@ -8,7 +8,15 @@ export const listingStatus = v.union(v.literal("available"), v.literal("removed"
 
 // What the user tracks: car models, and the key specs that decide a car's tier.
 // Both are defined per board; ids are stable, array order is display priority.
-export const boardModel = v.object({ id: v.string(), name: v.string() });
+export const boardModel = v.object({
+  id: v.string(),
+  name: v.string(),
+  // What a car of this model must meet to fit; unset means no limit.
+  maxPrice: v.optional(v.number()),
+  minYear: v.optional(v.number()),
+  maxYear: v.optional(v.number()),
+  maxMileageKm: v.optional(v.number()),
+});
 
 export const keySpec = v.object({
   id: v.string(),
@@ -19,8 +27,10 @@ export const keySpec = v.object({
   // Model ids it applies to; empty means every model.
   models: v.array(v.string()),
   // The values the user wants, each for some models (empty: every model). A car's fit
-  // counts its confirmed values that match.
-  preferred: v.optional(v.array(v.object({ value: v.string(), models: v.array(v.string()) }))),
+  // counts its confirmed values that match. `avoid` marks a deal-breaker instead.
+  preferred: v.optional(
+    v.array(v.object({ value: v.string(), models: v.array(v.string()), avoid: v.optional(v.boolean()) })),
+  ),
 });
 
 export const tiers = v.union(

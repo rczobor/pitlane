@@ -35,6 +35,9 @@ export default defineSchema({
     lastCheckedAt: v.number(),
     lastChangedAt: v.number(),
     removedAt: v.optional(v.number()),
+    // A re-check that could not read the page. Never taken to mean the ad is gone.
+    lastFailedCheckAt: v.optional(v.number()),
+    failureReason: v.optional(v.string()),
   }).index("by_source_external", ["source", "externalId"]),
 
   // Append-only history: one row per capture that changed something.
@@ -68,6 +71,10 @@ export default defineSchema({
     modelId: v.optional(v.string()),
     // The user's own key-spec values by spec id: "yes"/"no" for checks, the choice for choices.
     specValues: v.optional(v.record(v.string(), v.string())),
+    // The user's own take on the car.
+    notes: v.optional(v.string()),
+    pros: v.optional(v.array(v.string())),
+    cons: v.optional(v.array(v.string())),
   })
     .index("by_board", ["boardId", "tier", "rank"])
     .index("by_board_listing", ["boardId", "listingId"]),

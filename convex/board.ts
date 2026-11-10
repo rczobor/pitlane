@@ -119,7 +119,7 @@ function cleanSettings(models: Model[], keySpecs: KeySpec[]) {
   uniqueIds(keySpecs.map((s) => s.id), "Key spec");
   const modelIds = new Set(models.map((m) => m.id));
   return {
-    models: models.map((m) => ({ id: m.id, name: name(m.name, "Model") })),
+    models: models.map((m) => ({ id: m.id, name: name(m.name, "Model"), ...criteria(m) })),
     keySpecs: keySpecs.map((s) => {
       const choices = s.kind === "choice" ? [...new Set(s.choices.map((c) => name(c, "Choice")))] : [];
       const valid = s.kind === "check" ? ["yes", "no"] : choices;
@@ -135,11 +135,69 @@ function cleanSettings(models: Model[], keySpecs: KeySpec[]) {
         preferred: (s.preferred ?? [])
           .filter((p) => valid.includes(p.value))
           .filter((p) => p.models.length === 0 || p.models.some((id) => modelIds.has(id)))
-          .map((p) => ({ value: p.value, models: p.models.filter((id) => modelIds.has(id)) })),
+          .map((p) => ({
+            value: p.value,
+            models: p.models.filter((id) => modelIds.has(id)),
+            ...(p.avoid && { avoid: true }),
+          })),
       };
     }),
   };
 }
+
+// A model's limits: whole positive numbers in a sane range, and a year range that is not
+// inverted. Unset limits are left out.
+function criteria(m: Model) {
+  const name = m.name.trim();
+  const limit = (value: number | undefined, what: string, min: number, max: number) => {
+    if (value === undefined) return undefined;
+    if (!Number.isInteger(value) || value < min || value > max) {
+      // Years stay unformatted; large numbers get separators.
+      const show = (n: number) => (n >= 10_000 ? n.toLocaleString("en-IE") : String(n));
+      throw appError("invalid", `${what} for ${name} must be ${show(min)}–${show(max)}`);
+    }
+    return value;
+  };
+  const maxPrice = limit(m.maxPrice, "Budget", 1, 100_000_000);
+  const minYear = limit(m.minYear, "Year", 1950, 2100);
+  const maxYear = limit(m.maxYear, "Year", 1950, 2100);
+  const maxMileageKm = limit(m.maxMileageKm, "Mileage", 1, 2_000_000);
+  if (minYear !== undefined && maxYear !== undefined && minYear > maxYear) {
+    throw appError("invalid", `The first year for ${name} is after the last`);
+  }
+  return {
+    ...(maxPrice !== undefined && { maxPrice }),
+    ...(minYear !== undefined && { minYear }),
+    ...(maxYear !== undefined && { maxYear }),
+    ...(maxMileageKm !== undefined && { maxMileageKm }),
+  };
+}
+
+const takeItems = (items: string[]) => {
+  const clean = items.map((i) => i.trim()).filter(Boolean);
+  if (clean.length > 30 || clean.some((i) => i.length > 200)) throw appError("invalid", "Up to 30 items of 200 characters");
+  return clean;
+};
+
+// Notes, pros and cons: the user's own take on a car. Each field is replaced when given.
+export const setNotes = mutation({
+  args: {
+    token: v.string(),
+    listingId: v.id("listings"),
+    notes: v.optional(v.string()),
+    pros: v.optional(v.array(v.string())),
+    cons: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { token, listingId, notes, pros, cons }) => {
+    const { item } = await ownItem(ctx, token, listingId);
+    if (notes !== undefined && notes.length > 5_000) throw appError("invalid", "Notes are up to 5,000 characters");
+    await ctx.db.patch(item._id, {
+      ...(notes !== undefined && { notes }),
+      ...(pros !== undefined && { pros: takeItems(pros) }),
+      ...(cons !== undefined && { cons: takeItems(cons) }),
+    });
+  },
+});
 
 async function ownItem(ctx: MutationCtx, token: string, listingId: Id<"listings">) {
   const access = await tokenAccess(ctx, token);

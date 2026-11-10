@@ -13,6 +13,8 @@
     "allowSyntheticDefaultImports": true,
     /* shared/ is also run directly by Node, which needs explicit .ts imports. */
     "allowImportingTsExtensions": true,
+    /* TypeScript 7 no longer includes @types packages by default; functions read process.env. */
+    "types": ["node"],
 
     /* These compiler options are required by Convex */
     "target": "ESNext",

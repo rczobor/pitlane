@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ScanSearch } from "lucide-react";
+import { ArrowLeft, Columns3, ScanSearch } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
@@ -21,10 +21,13 @@ import {
 } from "./format";
 import { toCheck } from "../shared/fit";
 import { CheckMode } from "./CheckMode";
+import { FitList } from "./Fit";
 import { Gallery } from "./Gallery";
+import { PriceChart } from "./PriceChart";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
 import { useBoardToken } from "./token";
+import { YourTake } from "./YourTake";
 
 export function ListingPage({ listingId }: { listingId: string }) {
   const token = useBoardToken();
@@ -47,8 +50,10 @@ export function ListingPage({ listingId }: { listingId: string }) {
   const { details, price, seller } = listing;
   const removed = listing.status === "removed";
   // Price history arrives oldest first; the change is measured from the first price seen.
-  const prices = listing.history.flatMap((entry) => (entry.price ? [entry.price] : []));
+  const prices = listing.history.flatMap((entry) => (entry.price ? [{ ...entry.price, at: entry.capturedAt }] : []));
   const change = prices.length > 1 ? price.amount - prices[0].amount : 0;
+  // A failed re-check leaves the data as it was; say so until a later check succeeds.
+  const failed = listing.lastFailedCheckAt !== undefined && listing.lastFailedCheckAt > listing.lastCheckedAt;
   const history = listing.history.toReversed();
   const specs = [
     ["First registration", formatRegistration(details.firstRegistration)],
@@ -61,6 +66,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
   ].filter((row): row is [string, string] => row[1] !== undefined);
 
   const unchecked = toCheck(listing.keySpecs);
+  const model = board?.models.find((m) => m.id === listing.modelId);
 
   if (checking && board) {
     return (
@@ -95,6 +101,9 @@ export function ListingPage({ listingId }: { listingId: string }) {
             <SpecEditor listingId={listing.listingId} modelId={listing.modelId} keySpecs={listing.keySpecs} board={board} />
           </div>
         )}
+        <div className="order-3 min-w-0">
+          <YourTake listingId={listing.listingId} notes={listing.notes} pros={listing.pros} cons={listing.cons} />
+        </div>
         </div>
 
         <div className="contents lg:flex lg:flex-col lg:gap-6">
@@ -157,6 +166,21 @@ export function ListingPage({ listingId }: { listingId: string }) {
               Check {unchecked === 1 ? "1 key spec" : `${unchecked} key specs`}
             </Button>
           )}
+          {board && (
+            <section aria-labelledby="fit">
+              <h2 id="fit" className="font-semibold">
+                How it fits
+              </h2>
+              <Separator className="my-3" />
+              <FitList
+                car={{ price, firstRegistration: details.firstRegistration, mileageKm: details.mileageKm }}
+                criteria={model}
+                specDefs={board.keySpecs}
+                keySpecs={listing.keySpecs}
+                modelId={listing.modelId}
+              />
+            </section>
+          )}
         </section>
 
         <section aria-labelledby="listing-details" className="order-4 min-w-0 space-y-6">
@@ -181,14 +205,27 @@ export function ListingPage({ listingId }: { listingId: string }) {
           </dl>
           </div>
 
-          <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
-            Open the listing
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
+              Open the listing
+            </a>
+            <Link to="/compare" search={{ ids: listing.listingId }} className={buttonVariants({ variant: "outline" })}>
+              <Columns3 data-icon="inline-start" aria-hidden />
+              Compare with others
+            </Link>
+          </div>
 
           <section>
             <h2 className="font-semibold">Price history</h2>
             <Separator className="my-3" />
-            <ol className="space-y-1">
+            {prices.length > 1 && (
+              <PriceChart
+                points={prices}
+                currency={price.currency}
+                until={(removed && listing.removedAt) || listing.lastCheckedAt}
+              />
+            )}
+            <ol className="mt-3 space-y-1">
                 {history.map((entry, index) => (
                   <li key={entry.capturedAt} className="flex gap-4 tabular-nums">
                     <span className="w-40 text-muted-foreground">{formatDateTime(entry.capturedAt)}</span>
@@ -204,6 +241,12 @@ export function ListingPage({ listingId }: { listingId: string }) {
             <p className="mt-3 text-sm text-muted-foreground">
               Added {formatDate(listing.firstSeenAt)}, last checked {formatDateTime(listing.lastCheckedAt)}.
             </p>
+            {failed && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                The last re-check, {formatDateTime(listing.lastFailedCheckAt!)}, could not read the ad
+                {listing.failureReason && ` (${listing.failureReason})`}. It will be tried again.
+              </p>
+            )}
           </section>
         </section>
         <div className="order-5 min-w-0 space-y-10 lg:mt-4">

@@ -90,6 +90,12 @@ export const listingUrl = z
 export const snapshotInput = z.discriminatedUnion("status", [
   listingData.extend({ status: z.literal("available"), url: listingUrl }),
   z.object({ status: z.literal("removed"), url: listingUrl }),
+  // A re-check that could not read the page: recorded and retried later, never "removed".
+  z.object({
+    status: z.literal("failed"),
+    url: listingUrl,
+    reason: z.string().max(200).optional().describe('What went wrong, e.g. "blocked", "timed out".'),
+  }),
 ]);
 
 export type SnapshotInput = z.infer<typeof snapshotInput>;
