@@ -14,9 +14,10 @@ export function Connect() {
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
       <div className="max-w-3xl">
-        <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
+        {/* Back to where the link to this page lives, unlike the other pages' "Board". */}
+        <Link to="/settings" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
           <ArrowLeft data-icon="inline-start" aria-hidden />
-          Board
+          Models and key specs
         </Link>
         <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Connect Claude or ChatGPT</h1>
         <p className="mt-2 max-w-prose text-muted-foreground">
