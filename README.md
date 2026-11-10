@@ -124,7 +124,9 @@ Customize → Connectors → Add custom connector, with the deployment's URL (fo
 Claude Code: `claude mcp add --transport http pitlane <url>`). Claude signs in with
 OAuth: Clerk is the authorization server and shows a consent screen, and Convex
 checks Clerk's access tokens, whose audience must be that exact URL. A first
-connection sets the user up like a first sign-in on the web app.
+connection sets the user up like a first sign-in on the web app. Access tokens
+last a day and Claude refreshes them. To cut Claude off, revoke its grant in Clerk
+(the user's connected apps); a token already issued works until it expires.
 
 Each deployment's URL is registered as an MCP server in its Clerk instance
 (Agents → MCP servers, or the Clerk MCP's `configure_mcp_server`), which also turns

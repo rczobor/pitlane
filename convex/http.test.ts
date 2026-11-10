@@ -35,7 +35,7 @@ function listing(overrides: Record<string, unknown> = {}) {
 
 async function setup() {
   const t = convexTest(schema, modules);
-  const token = await t.action(internal.tokens.create, { name: "claude-desktop" });
+  const token = await t.action(internal.tokens.create, { name: "chrome-extension" });
   const call = async (path: string, body?: unknown, auth = `Bearer ${token}`) => {
     const response = await t.fetch(path, {
       method: body === undefined ? "GET" : "POST",

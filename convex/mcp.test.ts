@@ -55,6 +55,9 @@ test("a signed-in client works on the owner's board, and a first sign-in sets it
 
 test("each token kind works only on its own side", async () => {
   const t = convexTest(schema, modules);
+  // A web session is refused at /mcp before anything is set up for it.
+  expect((await t.withIdentity({ subject: "stranger" }).fetch("/mcp", rpc("tools/list"))).status).toBe(401);
+  expect(await t.run((ctx) => ctx.db.query("users").collect())).toEqual([]);
   const claude = t.withIdentity({ subject: "owner", client_id: "https://claude.ai/oauth/claude-code-client-metadata" });
   expect((await claude.fetch("/mcp", rpc("tools/list"))).status).toBe(200);
   // Claude's token cannot drive the web app's functions, such as moving cars between tiers.

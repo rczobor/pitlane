@@ -31,7 +31,9 @@ export const handle = httpAction(async (ctx, request) => {
   const owner = await ownerOf(ctx);
   if (!owner) {
     // Claude starts sign-in, and refreshes an expired token, only on a 401 with this pointer.
-    const challenge = `Bearer resource_metadata="${metadataUrl()}", scope="${scopes.join(" ")}"`;
+    // A token that was sent but refused also gets RFC 6750's error code.
+    const error = request.headers.has("authorization") ? ', error="invalid_token"' : "";
+    const challenge = `Bearer resource_metadata="${metadataUrl()}", scope="${scopes.join(" ")}"${error}`;
     return Response.json({ error: "invalid_token" }, { status: 401, headers: { "WWW-Authenticate": challenge } });
   }
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
@@ -44,7 +46,8 @@ export const handle = httpAction(async (ctx, request) => {
 async function ownerOf(ctx: ActionCtx): Promise<Owner | null> {
   // An expired or malformed token throws here; it must still answer 401 so Claude refreshes it.
   const identity = await ctx.auth.getUserIdentity().catch(() => null);
-  if (!identity) return null;
+  // Only OAuth access tokens; refused before anything is set up for a web session.
+  if (typeof identity?.client_id !== "string") return null;
   let access = await ctx.runQuery(internal.users.viewerForMcp, {});
   if (!access) {
     await ctx.runMutation(api.users.ensureUser, {});
