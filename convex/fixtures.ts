@@ -269,11 +269,11 @@ export const reset = internalMutation({
   handler: async (ctx) => {
     await fixturesOnly(ctx, { wipe: true });
     for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
-      for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(doc._id);
+      for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(table, doc._id);
     }
     for (const doc of await ctx.db.query("photos").collect()) {
       if (doc.storageId) await ctx.storage.delete(doc.storageId);
-      await ctx.db.delete(doc._id);
+      await ctx.db.delete("photos", doc._id);
     }
     const userId = await ctx.db.insert("users", { name: "Demo driver", home: demoHome });
     const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId, models, keySpecs });
@@ -299,12 +299,12 @@ export const place = internalMutation({
   },
   handler: async (ctx, { boardId, listingId, geo, ...placement }) => {
     await fixturesOnly(ctx);
-    if (geo) await ctx.db.patch(listingId, { geo, geoPending: undefined });
+    if (geo) await ctx.db.patch("listings", listingId, { geo, geoPending: undefined });
     const item = await ctx.db
       .query("boardItems")
       .withIndex("by_board_listing", (q) => q.eq("boardId", boardId).eq("listingId", listingId))
       .unique();
-    if (item) await ctx.db.patch(item._id, placement);
+    if (item) await ctx.db.patch("boardItems", item._id, placement);
   },
 });
 
@@ -322,9 +322,9 @@ export const backdate = internalMutation({
         .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
         .collect();
       const at = (i: number) => now - (snapshots.length - i) * 14 * day - 3 * day;
-      for (const [i, snapshot] of snapshots.entries()) await ctx.db.patch(snapshot._id, { capturedAt: at(i) });
+      for (const [i, snapshot] of snapshots.entries()) await ctx.db.patch("snapshots", snapshot._id, { capturedAt: at(i) });
       const last = at(snapshots.length - 1);
-      await ctx.db.patch(listing._id, {
+      await ctx.db.patch("listings", listing._id, {
         firstSeenAt: at(0),
         lastChangedAt: last,
         lastCheckedAt: now - day / 4,
@@ -338,5 +338,7 @@ export const backdate = internalMutation({
 
 export const pendingPhotos = internalQuery({
   args: {},
+  // Fixture deployments hold a handful of photos.
+  // oxlint-disable-next-line @convex-dev/no-filter-in-query
   handler: async (ctx) => (await ctx.db.query("photos").filter((q) => q.eq(q.field("status"), "pending")).collect()).length,
 });

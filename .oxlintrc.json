@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "promise", "vitest"],
+  "jsPlugins": ["@convex-dev/eslint-plugin", "@tanstack/eslint-plugin-router"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "ignorePatterns": ["convex/_generated/**", "dist/**", ".design/**", ".agents/**", ".claude/**", "spike/**"],
+  "rules": {
+    "eslint/no-unused-vars": ["error", { "ignoreRestSiblings": true }],
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+
+    // Focusing the field the user just opened is the expected behaviour.
+    "jsx-a11y/no-autofocus": "off",
+    // Not in jsx-a11y's recommended set: an ARIA role is the right tool for an SVG chart
+    // or a carousel slide, and an empty table corner cell needs no label.
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+
+    "@tanstack/router/create-route-property-order": "error",
+    "@tanstack/router/route-param-names": "error"
+  },
+  "overrides": [
+    {
+      "files": ["convex/**/*.ts"],
+      "rules": {
+        "@convex-dev/no-old-registered-function-syntax": "error",
+        "@convex-dev/require-args-validator": "error",
+        "@convex-dev/explicit-table-ids": "error",
+        "@convex-dev/no-filter-in-query": "warn",
+        "@convex-dev/no-top-of-hour-crons": "warn",
+        "@convex-dev/no-schema-import-cycle": "error",
+        "@convex-dev/no-duplicate-indexes": "error"
+      }
+    },
+    {
+      // shadcn's Label is wired to its control by whoever renders it.
+      "files": ["src/components/ui/label.tsx"],
+      "rules": { "jsx-a11y/label-has-associated-control": "off" }
+    }
+  ]
+}

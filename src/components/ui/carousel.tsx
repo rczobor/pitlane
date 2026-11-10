@@ -93,6 +93,8 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
+    // Embla is an outside store: its first state arrives only once the instance exists.
+    // oxlint-disable-next-line react/set-state-in-effect
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)

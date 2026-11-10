@@ -265,6 +265,8 @@ function Lane({
           {listings.length === 1 ? "1 car" : `${listings.length} cars`}
         </p>
       </div>
+      {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
+      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         onMouseDown={panWithMiddleButton}
         className={cn(
@@ -353,6 +355,8 @@ function SortableCard({
 function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) {
   const stop = (event: SyntheticEvent) => event.stopPropagation();
   return (
+    // Only keeps a press on the menu from starting a card drag.
+    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className="absolute top-2 right-2" onMouseDown={stop} onTouchStart={stop}>
       <DropdownMenu>
         <DropdownMenuTrigger

@@ -77,7 +77,7 @@ async function load() {
     const [injection] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: extract });
     draft = injection.result as PageDraft;
   } catch (error) {
-    say(`Could not read the page (${error instanceof Error ? error.message : error}). Fill in the details by hand.`, true);
+    say(`Could not read the page (${error instanceof Error ? error.message : String(error)}). Fill in the details by hand.`, true);
   }
   // A re-check starts from the saved listing, so values typed in by hand on an earlier
   // save survive when the page does not show them. What the page shows wins.
@@ -312,7 +312,8 @@ function resetRemoved() {
   removedArmed = false;
   removedButton.textContent = "Ad is gone";
 }
-removedButton.addEventListener("click", async () => {
+removedButton.addEventListener("click", () => void markRemoved());
+async function markRemoved() {
   if (!removedArmed) {
     removedArmed = true;
     removedButton.textContent = "Confirm: ad is gone";
@@ -326,7 +327,7 @@ removedButton.addEventListener("click", async () => {
     result.ok ? "Marked as removed." : result.status === 404 ? "This listing is not on your board." : result.message,
     !result.ok,
   );
-});
+}
 
 type SendResult = { ok: true; body: unknown } | { ok: false; status: number; message: string; body?: unknown };
 

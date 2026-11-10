@@ -13,6 +13,7 @@
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc",
+    "lint": "oxlint",
     "build:extension": "node extension/build.ts"
   },
   "dependencies": {
@@ -41,9 +42,11 @@
   },
   "devDependencies": {
     "@clerk/chrome-extension": "^3.1.105",
+    "@convex-dev/eslint-plugin": "^5.0.1",
     "@edge-runtime/vm": "^5.0.0",
     "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/eslint-plugin-router": "^1.162.0",
     "@tanstack/intent": "^0.5.6",
     "@types/chrome": "^0.3.7",
     "@types/node": "^26.6.6",
@@ -53,6 +56,8 @@
     "convex-test": "^0.0.67",
     "esbuild": "^0.28.2",
     "happy-dom": "^21.0.4",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2006",
     "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",

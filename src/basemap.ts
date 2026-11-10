@@ -29,7 +29,7 @@ export function createMap(
   map.on("idle", () => container.setAttribute("data-map-ready", ""));
   return {
     map,
-    remove() {
+    remove: () => {
       dark.removeEventListener("change", retheme);
       map.remove();
     },

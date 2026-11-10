@@ -21,6 +21,7 @@ CI runs these on every PR; run them before handing work off:
 
 ```sh
 pnpm typecheck
+pnpm lint
 pnpm test
 pnpm build
 ```

@@ -64,6 +64,7 @@ export default function SellerMap({
     for (const marker of markers) marker.getElement().removeAttribute("role");
     return remove;
     // Coordinates, not objects, so a re-render never rebuilds the map.
+    // oxlint-disable-next-line react/exhaustive-deps
   }, [token, pin, geo.lat, geo.lng, home?.lat, home?.lng]);
 
   return (

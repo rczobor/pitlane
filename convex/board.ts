@@ -16,8 +16,8 @@ export const get = query({
   handler: async (ctx) => {
     const access = await viewerAccess(ctx);
     if (!access) return null;
-    const board = (await ctx.db.get(access.boardId))!;
-    const user = await ctx.db.get(access.userId);
+    const board = (await ctx.db.get("boards", access.boardId))!;
+    const user = await ctx.db.get("users", access.userId);
     return {
       name: board.name,
       home: user?.home ?? null,
@@ -40,7 +40,7 @@ export const move = mutation({
   args: { listingId: v.id("listings"), tier: tiers, rank: v.number() },
   handler: async (ctx, { listingId, tier, rank }) => {
     const { item } = await ownItem(ctx, listingId);
-    await ctx.db.patch(item._id, { tier, rank });
+    await ctx.db.patch("boardItems", item._id, { tier, rank });
   },
 });
 
@@ -50,7 +50,7 @@ export const remove = mutation({
   args: { listingId: v.id("listings") },
   handler: async (ctx, { listingId }) => {
     const { item } = await ownItem(ctx, listingId);
-    await ctx.db.delete(item._id);
+    await ctx.db.delete("boardItems", item._id);
     const tracked = await ctx.db
       .query("boardItems")
       .withIndex("by_listing", (q) => q.eq("listingId", listingId))
@@ -61,16 +61,16 @@ export const remove = mutation({
       .query("snapshots")
       .withIndex("by_listing", (q) => q.eq("listingId", listingId))
       .collect();
-    for (const snapshot of snapshots) await ctx.db.delete(snapshot._id);
+    for (const snapshot of snapshots) await ctx.db.delete("snapshots", snapshot._id);
     const photos = await ctx.db
       .query("photos")
       .withIndex("by_listing", (q) => q.eq("listingId", listingId))
       .collect();
     for (const photo of photos) {
       if (photo.storageId) await ctx.storage.delete(photo.storageId);
-      await ctx.db.delete(photo._id);
+      await ctx.db.delete("photos", photo._id);
     }
-    await ctx.db.delete(listingId);
+    await ctx.db.delete("listings", listingId);
   },
 });
 
@@ -81,7 +81,7 @@ export const setModel = mutation({
     if (modelId !== null && !(board.models ?? []).some((m) => m.id === modelId)) {
       throw appError("invalid", "Unknown model");
     }
-    await ctx.db.patch(item._id, { modelId: modelId ?? undefined });
+    await ctx.db.patch("boardItems", item._id, { modelId: modelId ?? undefined });
   },
 });
 
@@ -101,7 +101,7 @@ export const setSpecValue = mutation({
 
     const { [specId]: _, ...rest } = item.specValues ?? {};
     if (value === null) {
-      await ctx.db.patch(item._id, { specValues: rest });
+      await ctx.db.patch("boardItems", item._id, { specValues: rest });
       return;
     }
     const trimmed = value.trim();
@@ -112,12 +112,12 @@ export const setSpecValue = mutation({
     if (spec.kind === "choice") {
       if (!clean || clean.length > 60) throw appError("invalid", "Choices are 1–60 characters");
       if (!spec.choices.includes(clean)) {
-        await ctx.db.patch(board._id, {
+        await ctx.db.patch("boards", board._id, {
           keySpecs: specs.map((s) => (s.id === specId ? { ...s, choices: [...s.choices, clean] } : s)),
         });
       }
     }
-    await ctx.db.patch(item._id, { specValues: { ...rest, [specId]: clean } });
+    await ctx.db.patch("boardItems", item._id, { specValues: { ...rest, [specId]: clean } });
   },
 });
 
@@ -127,7 +127,7 @@ export const saveSettings = mutation({
     const access = await viewerAccess(ctx);
     if (!access) throw appError("not_found", "Board not found");
     const clean = cleanSettings(models, keySpecs);
-    await ctx.db.patch(access.boardId, clean);
+    await ctx.db.patch("boards", access.boardId, clean);
     // What was stored, so the editor can adopt it (dropped preferences, trimmed names).
     return clean;
   },
@@ -223,7 +223,7 @@ export const setNotes = mutation({
   handler: async (ctx, { listingId, notes, pros, cons }) => {
     const { item } = await ownItem(ctx, listingId);
     if (notes !== undefined && notes.length > 5_000) throw appError("invalid", "Notes are up to 5,000 characters");
-    await ctx.db.patch(item._id, {
+    await ctx.db.patch("boardItems", item._id, {
       ...(notes !== undefined && { notes }),
       ...(pros !== undefined && { pros: takeItems(pros) }),
       ...(cons !== undefined && { cons: takeItems(cons) }),
@@ -262,7 +262,7 @@ export const storeHome = internalMutation({
     home: v.union(homeLocation, v.null()),
   },
   handler: async (ctx, { userId, home }) => {
-    await ctx.db.patch(userId, { home: home ?? undefined });
+    await ctx.db.patch("users", userId, { home: home ?? undefined });
   },
 });
 
@@ -270,5 +270,5 @@ async function ownItem(ctx: MutationCtx, listingId: Id<"listings">) {
   const access = await viewerAccess(ctx);
   const item = access && (await boardItem(ctx, access.boardId, listingId));
   if (!access || !item) throw appError("not_found", "This listing is not on your board");
-  return { board: (await ctx.db.get(access.boardId))!, item };
+  return { board: (await ctx.db.get("boards", access.boardId))!, item };
 }

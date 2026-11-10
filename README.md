@@ -114,6 +114,7 @@ pnpm dev          # Convex dev deployment; writes CONVEX_URL / CONVEX_SITE_URL t
 pnpm dev:web      # web app on :5173, also reachable over Tailscale at http://homelab:5173
 pnpm test
 pnpm typecheck
+pnpm lint         # oxlint, with type-aware rules
 ```
 
 Maps need a public Mapbox token (`pk.…`), restricted to the app's URLs in the

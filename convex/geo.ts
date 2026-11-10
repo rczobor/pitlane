@@ -74,10 +74,10 @@ export const settle = internalMutation({
     geo: v.union(point, v.null()),
   },
   handler: async (ctx, { listingId, location, country, geo }) => {
-    const listing = await ctx.db.get(listingId);
+    const listing = await ctx.db.get("listings", listingId);
     // A save during the lookup may have moved the seller; that location is queued anew.
     const { seller } = listing?.current ?? {};
     if (!listing || seller?.location !== location || seller.country !== country) return;
-    await ctx.db.patch(listingId, { geo, geoPending: undefined });
+    await ctx.db.patch("listings", listingId, { geo, geoPending: undefined });
   },
 });

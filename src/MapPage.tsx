@@ -3,7 +3,7 @@ import { useAction, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import mapboxgl from "mapbox-gl";
 import { ArrowLeft, House, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Point } from "../shared/geo";
 import { type BoardData, type BoardListing, formatDistance, tiers } from "./format";
@@ -170,8 +170,7 @@ function CarMap({
   const markers = useRef(new Map<string, HTMLElement>());
   const framed = useRef(false);
   // Markers are created once per data change; the latest handler is read at click time.
-  const select = useRef(onSelect);
-  select.current = onSelect;
+  const select = useEffectEvent(onSelect);
 
   useEffect(() => {
     const created = createMap(container.current!, token, {
@@ -190,10 +189,11 @@ function CarMap({
 
   useEffect(() => {
     if (!map) return;
+    const placed = markers.current;
     const added = places.map((place) => {
       const element = placeMarker(place);
-      element.addEventListener("click", () => select.current(place));
-      markers.current.set(place.key, element);
+      element.addEventListener("click", () => select(place));
+      placed.set(place.key, element);
       // Anchored above the place, clear of the base map's own city name.
       const marker = new mapboxgl.Marker({ element, anchor: "bottom", offset: pinOffset }).setLngLat(place.point).addTo(map);
       // Mapbox marks every marker as an image; this one is a button.
@@ -214,14 +214,13 @@ function CarMap({
     }
     return () => {
       for (const marker of added) marker.remove();
-      markers.current.clear();
+      placed.clear();
     };
   }, [map, places, home]);
 
   useEffect(() => {
     for (const [key, element] of markers.current) {
-      if (key === selectedKey) element.dataset.selected = "true";
-      else delete element.dataset.selected;
+      element.toggleAttribute("data-selected", key === selectedKey);
     }
   }, [map, places, selectedKey]);
 

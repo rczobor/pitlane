@@ -109,7 +109,7 @@ test("removing a car keeps a listing another board tracks, and deletes it with t
 
   await friend.mutation(api.board.remove, { listingId });
   const left = await t.run(async (ctx) => ({
-    listing: await ctx.db.get(listingId),
+    listing: await ctx.db.get("listings", listingId),
     snapshots: await ctx.db.query("snapshots").collect(),
     photos: await ctx.db.query("photos").collect(),
     file: await ctx.storage.getUrl(storageId),
@@ -272,5 +272,5 @@ test("notes, pros and cons are saved per car, each field on its own", async () =
     cons: ["Stone chips"],
   });
   await expect(me.mutation(api.board.setNotes, { listingId, pros: ["x".repeat(201)] })).rejects.toThrow(/200/);
-  await expect(t.mutation(api.board.setNotes, { listingId, notes: "" })).rejects.toThrow();
+  await expect(t.mutation(api.board.setNotes, { listingId, notes: "" })).rejects.toThrow(/not_found/);
 });
