@@ -3,6 +3,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Board } from "./Board";
+import { Compare } from "./Compare";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
 import { Settings } from "./Settings";
@@ -20,16 +21,29 @@ const boardRoute = createRoute({
   }),
   component: Board,
 });
+// `ids` is a comma-separated list, so a comparison is a plain shareable URL.
+const compareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/compare",
+  validateSearch: (search: Record<string, unknown>): { ids?: string } =>
+    typeof search.ids === "string" ? { ids: search.ids } : {},
+  component: function CompareRoute() {
+    const { ids } = compareRoute.useSearch();
+    return <Compare ids={ids?.split(",").filter(Boolean) ?? []} />;
+  },
+});
 const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings });
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
   component: function Listing() {
-    return <ListingPage listingId={listingRoute.useParams().listingId} />;
+    const { listingId } = listingRoute.useParams();
+    // Keyed so check mode, open editors and unsaved notes never carry over to another car.
+    return <ListingPage key={listingId} listingId={listingId} />;
   },
 });
 
-const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, settingsRoute]) });
+const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, settingsRoute]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

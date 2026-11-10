@@ -30,6 +30,10 @@ http.route({
       if (parsed.data.status === "removed") {
         return json(200, await ctx.runMutation(internal.listings.markRemoved, { ...owner, url: parsed.data.url }));
       }
+      if (parsed.data.status === "failed") {
+        const { url, reason } = parsed.data;
+        return json(200, await ctx.runMutation(internal.listings.markFailed, { boardId: token.boardId, url, reason }));
+      }
       const { status: _, url, ...data } = parsed.data;
       return json(200, await ctx.runMutation(internal.listings.save, { ...owner, url, data }));
     } catch (error) {
@@ -45,6 +49,18 @@ http.route({
     const token = await authenticate(ctx, request);
     if (!token) return unauthorized();
     return json(200, { listings: await ctx.runQuery(internal.listings.listForBoard, { boardId: token.boardId }) });
+  }),
+});
+
+// The listings due for a re-check, oldest first. Agents work through this list rather
+// than choosing what to fetch, so the app sets the pace.
+http.route({
+  path: "/api/rechecks",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const token = await authenticate(ctx, request);
+    if (!token) return unauthorized();
+    return json(200, { due: await ctx.runQuery(internal.listings.listDue, { boardId: token.boardId, now: Date.now() }) });
   }),
 });
 

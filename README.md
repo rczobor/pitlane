@@ -75,13 +75,14 @@ kept in the browser.
 
 1. ✅ Convex data model, the intake and the MCP server.
 2. ✅ Tier board web app.
-3. Criteria and match scores, then notes and pros/cons. Started: models with a
-   per-model tier list, key specs (confirmed / from listing / missing / unknown),
-   preferred values per model with a fit count on each card, and a check mode
-   for confirming specs against the photos.
-4. Chrome extension.
-5. Re-checks and the price history view.
-6. Side-by-side comparison.
+3. ✅ Criteria and match scores, then notes and pros/cons: models with their own
+   tier list, budget, years and mileage; key specs (confirmed / from listing /
+   missing / unknown) with preferred values and deal-breakers per model; a fit
+   count on each card and a "How it fits" breakdown on the car page; a check mode
+   for confirming specs against the photos; notes, pros and cons per car.
+4. Chrome extension (manual route).
+5. ✅ Re-checks (due list, failed checks retried later) and the price history chart.
+6. ✅ Side-by-side comparison of up to three cars.
 
 ## Development
 
@@ -133,7 +134,12 @@ the deployment's `CONVEX_SITE_URL`:
 }
 ```
 
-Tools: `save_listing`, `mark_listing_removed`, `list_listings`, `get_listing`.
+Tools: `save_listing`, `mark_listing_removed`, `list_due_rechecks`,
+`report_check_failed`, `list_listings`, `get_listing`.
+
+To re-check, ask Claude to "re-check my Pitlane listings": it asks for the due
+list, opens each page and saves it again. A listing is due a day after its last
+check; a page that failed to load is retried after six hours.
 
 ### REST API
 
@@ -141,7 +147,8 @@ All routes need `Authorization: Bearer pit_…` and are scoped to the token's bo
 
 | Route | Purpose |
 | --- | --- |
-| `POST /api/listings` | Save a snapshot: `{ "status": "available", "url", ...listing }` or `{ "status": "removed", "url" }` |
+| `POST /api/listings` | Save a snapshot: `{ "status": "available", "url", ...listing }`, `{ "status": "removed", "url" }`, or `{ "status": "failed", "url", "reason" }` for a re-check that could not read the page |
+| `GET /api/rechecks` | Up to 10 listings due for a re-check, oldest first |
 | `GET /api/listings` | The board's listings with tier, status, price and last check |
 | `GET /api/listings/{listingId}` | One listing with full details, price history and photos |
 

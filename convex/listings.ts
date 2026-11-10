@@ -45,6 +45,8 @@ export const save = internalMutation({
         current: data,
         lastCheckedAt: now,
         removedAt: undefined,
+        lastFailedCheckAt: undefined,
+        failureReason: undefined,
         ...(changed && { lastChangedAt: now }),
       });
     } else {
@@ -69,19 +71,60 @@ export const save = internalMutation({
   },
 });
 
+// How often a saved, available listing is due for a re-check, and how long to wait after a
+// check that could not read the page. Agents only re-check what is due, which keeps the
+// load on the listing site to roughly one page view per car per day.
+export const recheckEveryMs = 24 * 60 * 60 * 1000;
+export const retryFailedAfterMs = 6 * 60 * 60 * 1000;
+
+// A re-check that could not read the page (blocked, timed out). Recorded so it is retried
+// later, and never taken to mean the ad is gone.
+export const markFailed = internalMutation({
+  args: { boardId: v.id("boards"), url: v.string(), reason: v.optional(v.string()) },
+  handler: async (ctx, { boardId, url, reason }) => {
+    const listing = await onBoard(ctx, boardId, url);
+    const now = Date.now();
+    await ctx.db.patch(listing._id, { lastFailedCheckAt: now, failureReason: reason?.trim().slice(0, 200) || undefined });
+    return { listingId: listing._id, retryAfter: now + retryFailedAfterMs };
+  },
+});
+
+export const listDue = internalQuery({
+  args: { boardId: v.id("boards"), now: v.number() },
+  handler: async (ctx, { boardId, now }) => {
+    const items = await ctx.db
+      .query("boardItems")
+      .withIndex("by_board", (q) => q.eq("boardId", boardId))
+      .collect();
+    const listings = await Promise.all(items.map((item) => ctx.db.get(item.listingId)));
+    return listings
+      .filter((l) => l !== null && l.status === "available")
+      .filter((l) => now - l!.lastCheckedAt >= recheckEveryMs)
+      .filter((l) => !l!.lastFailedCheckAt || now - l!.lastFailedCheckAt >= retryFailedAfterMs)
+      .sort((a, b) => a!.lastCheckedAt - b!.lastCheckedAt)
+      .slice(0, 10)
+      .map((l) => ({ listingId: l!._id, url: l!.url, title: l!.current.title, lastCheckedAt: l!.lastCheckedAt }));
+  },
+});
+
+async function onBoard(ctx: QueryCtx, boardId: Id<"boards">, url: string) {
+  const ref = resolveListingUrl(url);
+  const listing =
+    ref &&
+    (await ctx.db
+      .query("listings")
+      .withIndex("by_source_external", (q) => q.eq("source", ref.source).eq("externalId", ref.externalId))
+      .unique());
+  if (!listing || !(await boardItem(ctx, boardId, listing._id))) {
+    throw appError("not_found", "This listing is not on your board");
+  }
+  return listing;
+}
+
 export const markRemoved = internalMutation({
   args: { boardId: v.id("boards"), capturedBy: v.string(), url: v.string() },
   handler: async (ctx, { boardId, capturedBy, url }) => {
-    const ref = resolveListingUrl(url);
-    const listing =
-      ref &&
-      (await ctx.db
-        .query("listings")
-        .withIndex("by_source_external", (q) => q.eq("source", ref.source).eq("externalId", ref.externalId))
-        .unique());
-    if (!listing || !(await boardItem(ctx, boardId, listing._id))) {
-      throw appError("not_found", "This listing is not on your board");
-    }
+    const listing = await onBoard(ctx, boardId, url);
 
     const now = Date.now();
     if (listing.status === "removed") {
@@ -117,6 +160,14 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
     items.map(async (item) => {
       const listing = (await ctx.db.get(item.listingId))!;
       const { options: _, ...specs } = listing.current.details;
+      // The first price seen, so cards can show how far it has moved.
+      const firstPrice = (
+        await ctx.db
+          .query("snapshots")
+          .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
+          .filter((q) => q.neq(q.field("data"), undefined))
+          .first()
+      )?.data?.price;
       const cover = await ctx.db
         .query("photos")
         .withIndex("by_listing", (q) => q.eq("listingId", listing._id))
@@ -136,6 +187,10 @@ export async function boardListings(ctx: QueryCtx, boardId: Id<"boards">) {
         modelId: item.modelId && modelIds.has(item.modelId) ? item.modelId : null,
         keySpecs: resolveSpecs(board, item, listing),
         coverUrl: cover?.storageId ? await ctx.storage.getUrl(cover.storageId) : null,
+        firstPrice: firstPrice ?? listing.current.price,
+        notes: item.notes ?? "",
+        pros: item.pros ?? [],
+        cons: item.cons ?? [],
         firstSeenAt: listing.firstSeenAt,
         lastCheckedAt: listing.lastCheckedAt,
         removedAt: listing.removedAt,
@@ -172,6 +227,11 @@ export async function listingDetail(ctx: QueryCtx, boardId: Id<"boards">, rawId:
     lastCheckedAt: listing.lastCheckedAt,
     lastChangedAt: listing.lastChangedAt,
     removedAt: listing.removedAt,
+    lastFailedCheckAt: listing.lastFailedCheckAt,
+    failureReason: listing.failureReason,
+    notes: item.notes ?? "",
+    pros: item.pros ?? [],
+    cons: item.cons ?? [],
     ...listing.current,
     history: snapshots.map((s) => ({
       capturedAt: s.capturedAt,

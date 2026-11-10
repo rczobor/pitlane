@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "pitlane",
   "display_name": "Pitlane",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Save, re-check and read car listings on your Pitlane watchlist.",
   "author": { "name": "Robi" },
   "server": {
@@ -20,6 +20,8 @@
   "tools": [
     { "name": "save_listing", "description": "Add a listing or record a re-check of a saved one." },
     { "name": "mark_listing_removed", "description": "Record that a saved listing's ad is gone." },
+    { "name": "list_due_rechecks", "description": "Saved listings due for a re-check, oldest first." },
+    { "name": "report_check_failed", "description": "Record a re-check that could not read the page." },
     { "name": "list_listings", "description": "List the watchlist with tiers, status and prices." },
     { "name": "get_listing", "description": "Full details, price history and photos of one listing." }
   ],
