@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { type Criteria, evaluate, toCheck } from "../shared/fit";
 import type { Point } from "../shared/geo";
 import { KeySpecLedger } from "./KeySpecLedger";
+import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
   type KeySpecDef,
@@ -38,9 +39,12 @@ export function ListingCard({
   home,
   lifted = false,
   preview = false,
+  showTier = false,
 }: CardProps & {
   listing: BoardListing;
   lifted?: boolean;
+  /** Off the board (the map), where no lane says the car's tier. */
+  showTier?: boolean;
   /** A static rendering for the settings preview: no link, so unsaved edits are not lost. */
   preview?: boolean;
 }) {
@@ -73,6 +77,12 @@ export function ListingCard({
           ) : (
             <NoPhoto />
           )}
+          {showTier && (
+            <TierSlab
+              tier={listing.tier}
+              className={cn("absolute top-2 left-2 h-8 min-w-8 px-2", listing.tier.length === 1 ? "text-2xl" : "text-base")}
+            />
+          )}
           {removed && (
             <p className="absolute inset-x-0 bottom-0 bg-slab px-3 py-1 text-xs font-semibold text-slab-foreground">
               Ad removed{listing.removedAt && ` ${formatDate(listing.removedAt)}`}
@@ -80,11 +90,12 @@ export function ListingCard({
           )}
         </div>
         <CardHeader>
-          <div className="flex items-center justify-between gap-2">
+          {/* Wraps on narrow cards: the badge drops below the price instead of being clipped. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <p className="flex items-baseline gap-1.5">
               <span className="condensed text-3xl leading-none font-bold">{formatPrice(listing.price)}</span>
               {change !== 0 && (
-                <span className="text-xs font-semibold tabular-nums">
+                <span className="text-xs font-semibold whitespace-nowrap tabular-nums">
                   <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
                   <span aria-hidden>{change < 0 ? "−" : "+"}</span>
                   {formatPrice({ ...listing.price, amount: Math.abs(change) })}
@@ -124,16 +135,15 @@ export function ListingCard({
               Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
             </p>
           )}
-          <p className="flex gap-2 text-xs text-muted-foreground">
-            <span className="truncate">{listing.location}</span>
-            {distance && (
-              <span className="shrink-0 font-semibold text-foreground">
-                {distance}
-                <span className="sr-only"> from home</span>
-              </span>
-            )}
-            <span className="ml-auto shrink-0">Added {formatAge(listing.firstSeenAt)}</span>
-          </p>
+          {/* Two fixed lines, so footers line up across a lane. The place wraps rather than
+              truncates: it is what the distance is measured to. */}
+          <div className="space-y-0.5 text-xs text-muted-foreground">
+            <p>
+              {listing.location}
+              {distance && <span className="text-foreground"> · {distance} away</span>}
+            </p>
+            <p>Added {formatAge(listing.firstSeenAt)}</p>
+          </div>
         </CardContent>
       </Card>
     </>

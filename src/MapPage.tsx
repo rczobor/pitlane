@@ -1,15 +1,17 @@
 import "mapbox-gl/dist/mapbox-gl.css";
+import "./map.css";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import mapboxgl from "mapbox-gl";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, House, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Point } from "../shared/geo";
 import { type BoardData, type BoardListing, formatDistance, tiers } from "./format";
 import { ListingCard } from "./ListingCard";
 import { mapboxToken, mapStyle } from "./mapbox";
+import { countClass, homeClass, notchClass, pinClass, pinFor } from "./pins";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,8 +57,18 @@ function MapView({ board }: { board: BoardData }) {
   }, [board.listings]);
   const unplaced = board.listings.length - places.reduce((n, p) => n + p.cars.length, 0);
   const selected = places.find((p) => p.cars.some((c) => c.listingId === car));
-  const select = (place: Place | undefined) =>
+  const results = useRef<HTMLElement>(null);
+  const select = (place: Place | undefined) => {
     void navigate({ search: place ? { car: place.cars[0].listingId } : {}, replace: true });
+    // The cars of a picked place sit below the map: bring them into view. Phones show them
+    // from the top; wide screens scroll only as far as needed, keeping part of the map.
+    if (place) {
+      const phone = window.matchMedia("(max-width: 639px)").matches;
+      requestAnimationFrame(() =>
+        results.current?.scrollIntoView({ block: phone ? "start" : "nearest", behavior: "smooth" }),
+      );
+    }
+  };
   const modelsById = new Map(board.models.map((m) => [m.id, m]));
 
   return (
@@ -72,13 +84,16 @@ function MapView({ board }: { board: BoardData }) {
         <HomeControl home={board.home} />
       </div>
       {mapboxToken ? (
-        <CarMap
-          token={mapboxToken}
-          places={places}
-          home={board.home}
-          selectedKey={selected?.key}
-          onSelect={select}
-        />
+        <>
+          <CarMap
+            token={mapboxToken}
+            places={places}
+            home={board.home}
+            selectedKey={selected?.key}
+            onSelect={select}
+          />
+          <Legend home={board.home !== null} />
+        </>
       ) : (
         <Alert>
           <AlertDescription>
@@ -87,17 +102,22 @@ function MapView({ board }: { board: BoardData }) {
           </AlertDescription>
         </Alert>
       )}
-      <section aria-live="polite" className="mt-6">
+      <section ref={results} aria-live="polite" className="mt-6 scroll-mt-4">
         {selected ? (
           <>
-            <h2 className="mb-3 flex flex-wrap items-baseline gap-x-3 font-semibold">
-              {selected.location}
-              {board.home && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {formatDistance(board.home, selected.point)} from home, in a straight line
-                </span>
-              )}
-            </h2>
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h2 className="font-semibold">
+                {selected.location}
+                {board.home && (
+                  <span className="font-normal"> · {formatDistance(board.home, selected.point)} away</span>
+                )}
+              </h2>
+              <span className="text-sm text-muted-foreground">{count(selected.cars.length)}</span>
+              <Button variant="ghost" size="sm" onClick={() => select(undefined)}>
+                <X data-icon="inline-start" aria-hidden />
+                Clear
+              </Button>
+            </div>
             {/* relative: keeps the cards' screen-reader labels inside the scroller, as in board lanes. */}
             <div className="relative flex gap-3 overflow-x-auto pb-2">
               {selected.cars.map((listing) => {
@@ -110,6 +130,7 @@ function MapView({ board }: { board: BoardData }) {
                     criteria={model}
                     specDefs={board.keySpecs}
                     home={board.home}
+                    showTier
                   />
                 );
               })}
@@ -122,6 +143,10 @@ function MapView({ board }: { board: BoardData }) {
     </>
   );
 }
+
+// The notch (6px) plus the cap height of the base map's city labels, so a pin never sits on
+// the name of the place it marks.
+const pinOffset: [number, number] = [0, -14];
 
 const count = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
 
@@ -174,12 +199,15 @@ function CarMap({
       const element = placeMarker(place);
       element.addEventListener("click", () => select.current(place));
       markers.current.set(place.key, element);
-      const marker = new mapboxgl.Marker({ element }).setLngLat(place.point).addTo(map);
+      // Anchored above the place, clear of the base map's own city name below it.
+      const marker = new mapboxgl.Marker({ element, anchor: "bottom", offset: pinOffset }).setLngLat(place.point).addTo(map);
       // Mapbox marks every marker as an image; this one is a button.
       element.removeAttribute("role");
       return marker;
     });
-    if (home) added.push(new mapboxgl.Marker({ element: homeMarker() }).setLngLat(home).addTo(map));
+    if (home) {
+      added.push(new mapboxgl.Marker({ element: homeMarker(), anchor: "bottom", offset: pinOffset }).setLngLat(home).addTo(map));
+    }
 
     // Frame every car and home once; later updates leave the view where the user put it.
     const points = [...places.map((p) => p.point), ...(home ? [home] : [])];
@@ -202,7 +230,8 @@ function CarMap({
     }
   }, [map, places, selectedKey]);
 
-  return <div ref={container} className="h-[60svh] min-h-80 overflow-hidden rounded-lg bg-muted" />;
+  // Shorter on phones, so the cars of a picked place are a short scroll away.
+  return <div ref={container} className="h-[50svh] min-h-72 overflow-hidden rounded-lg bg-muted sm:h-[60svh]" />;
 }
 
 // The pit board in miniature: the best tier's letter (S in signal yellow), a dot for cars
@@ -210,40 +239,81 @@ function CarMap({
 // positions the element itself.
 function placeMarker(place: Place) {
   const best = place.cars[0];
-  const live = place.cars.filter((c) => c.status === "available" && c.tier !== "rejected");
-  const letter = ["S", "A", "B"].includes(best.tier) && live.length > 0 ? best.tier : null;
+  const live = place.cars.some((c) => c.status === "available" && c.tier !== "rejected");
+  const { letter, tone } = pinFor(best.tier, live);
   const element = document.createElement("button");
   element.type = "button";
+  // Never scale a marker: CSS `scale` also multiplies Mapbox's positioning transform.
+  // Pins keep full ink when another place is picked; the picked one gets a ring.
   element.className = cn(
-    "condensed flex cursor-pointer items-center justify-center gap-0.5 font-extrabold leading-none shadow-md data-selected:ring-3 data-selected:ring-foreground",
-    letter ? "h-8 min-w-8 rounded-md px-1.5 text-2xl" : "h-6 min-w-6 rounded-full px-1 text-sm",
-    live.length === 0
-      ? "border border-muted-foreground/50 bg-muted text-muted-foreground"
-      : best.tier === "S"
-        ? "bg-signal text-signal-foreground"
-        : "bg-slab text-slab-foreground",
+    "cursor-pointer shadow-md data-selected:z-10 data-selected:ring-3 data-selected:ring-foreground data-selected:ring-offset-2 data-selected:ring-offset-background",
+    pinClass(letter !== null, tone),
   );
-  element.textContent = letter ?? (place.cars.length > 1 ? String(place.cars.length) : "");
-  if (letter && place.cars.length > 1) {
-    const more = document.createElement("span");
-    more.className = "text-xs opacity-75";
-    more.textContent = `+${place.cars.length - 1}`;
-    element.append(more);
-  }
+  element.textContent = letter ?? "";
+  if (place.cars.length > 1) element.append(span(countClass, String(place.cars.length)));
+  element.append(span(notchClass(tone)));
   const tierNames = place.cars.map((c) => tiers.find((t) => t.tier === c.tier)!.label).join(", ");
   element.setAttribute("aria-label", `${place.location}: ${count(place.cars.length)} (${tierNames})`);
   return element;
 }
 
+function span(className: string, text = "") {
+  const element = document.createElement("span");
+  element.className = className;
+  element.textContent = text;
+  if (!text) element.setAttribute("aria-hidden", "true");
+  return element;
+}
+
+// What the pins mean. Shown, not described, so it matches the map exactly.
+function Legend({ home }: { home: boolean }) {
+  const item = "flex items-center gap-2";
+  return (
+    <ul aria-label="Map legend" className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+      <li className={item}>
+        <span className={pinClass(true, "signal")} aria-hidden>
+          S
+        </span>
+        <span className={pinClass(true, "slab")} aria-hidden>
+          A
+        </span>
+        Best tier at that place
+      </li>
+      <li className={item}>
+        <span className={pinClass(false, "slab")} aria-hidden />
+        Watching
+      </li>
+      <li className={item}>
+        <span className={cn(pinClass(true, "slab"), "relative")} aria-hidden>
+          A<span className={countClass}>2</span>
+        </span>
+        Cars at one place
+      </li>
+      <li className={item}>
+        <span className={pinClass(false, "gone")} aria-hidden />
+        Rejected or ad removed
+      </li>
+      {home && (
+        <li className={item}>
+          <span className={homeClass} aria-hidden>
+            <House className="size-4" strokeWidth={2.5} />
+          </span>
+          Home
+        </li>
+      )}
+    </ul>
+  );
+}
+
 function homeMarker() {
   const element = document.createElement("div");
-  element.className =
-    "flex size-7 items-center justify-center rounded-full border-2 border-background bg-foreground text-background shadow-md";
+  element.className = cn(homeClass, "shadow-md");
   element.setAttribute("role", "img");
   element.setAttribute("aria-label", "Home");
   // Lucide's "house" icon.
   element.innerHTML =
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  element.append(span(notchClass("home")));
   return element;
 }
 
@@ -271,13 +341,17 @@ function HomeControl({ home }: { home: BoardData["home"] }) {
 
   if (home && !editing) {
     return (
-      <p className="flex max-w-full min-w-0 items-baseline gap-2 text-sm">
-        <span className="shrink-0 text-muted-foreground">Distances from</span>
-        <span className="truncate font-medium" title={home.place}>
-          {home.place}
-        </span>
-        <Button variant="link" size="sm" className="h-auto shrink-0 p-0" onClick={() => setEditing(true)}>
-          Change
+      // Wraps on phones: the place is shown in full so the user can check it.
+      <p className="max-w-xl text-sm">
+        <span className="text-muted-foreground">Distances are straight lines from </span>
+        <span className="font-medium">{home.place}</span>{" "}
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 align-baseline underline underline-offset-4"
+          onClick={() => setEditing(true)}
+        >
+          Change home
         </Button>
       </p>
     );

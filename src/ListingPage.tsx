@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Columns3, Languages, ScanSearch } from "lucide-react";
+import { ArrowLeft, Columns3, House, Languages, ScanSearch } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
@@ -18,6 +18,7 @@ import {
   formatPower,
   formatPrice,
   formatRegistration,
+  type Tier,
   tiers,
 } from "./format";
 import { toCheck } from "../shared/fit";
@@ -25,7 +26,8 @@ import type { Point } from "../shared/geo";
 import { CheckMode } from "./CheckMode";
 import { FitList } from "./Fit";
 import { Gallery } from "./Gallery";
-import { mapboxToken, staticMapUrl } from "./mapbox";
+import { fitView, mapboxToken, staticMapUrl } from "./mapbox";
+import { homeClass, notchClass, pinClass, pinFor } from "./pins";
 import { PriceChart } from "./PriceChart";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
@@ -130,6 +132,12 @@ export function ListingPage({ listingId }: { listingId: string }) {
                     {price.netAmount !== undefined && `, ${formatPrice({ ...price, amount: price.netAmount })} net`}
                   </p>
                 )}
+                {/* How far is a buy-or-skip fact, so it sits with the price (details in Location). */}
+                {distance && (
+                  <p className="text-sm text-muted-foreground">
+                    {seller.location} · <span className="text-foreground">{distance} away</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -204,22 +212,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
               {[seller.name, seller.location].filter(Boolean).join(", ")}
               <span className="text-muted-foreground"> ({seller.type === "dealer" ? "dealer" : "private seller"})</span>
             </dd>
-            {distance && (
-              <>
-                <dt className="text-muted-foreground">From home</dt>
-                <dd>{distance}, in a straight line</dd>
-              </>
-            )}
           </dl>
-          {listing.geo && mapboxToken && (
-            <SellerMap
-              token={mapboxToken}
-              listingId={listing.listingId}
-              geo={listing.geo}
-              home={board?.home ?? null}
-              location={seller.location}
-            />
-          )}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -231,6 +224,50 @@ export function ListingPage({ listingId }: { listingId: string }) {
               Compare with others
             </Link>
           </div>
+
+          {/* Pitlane's own measure, so it has its own section outside the listing's facts. */}
+          {listing.geo && (
+            <section aria-labelledby="location-heading">
+              <h2 id="location-heading" className="font-semibold">
+                Location
+              </h2>
+              <Separator className="my-3" />
+              <p className="text-sm text-muted-foreground">
+                {seller.location}
+                {distance ? (
+                  <span className="text-foreground"> · {distance} away</span>
+                ) : (
+                  <>
+                    {seller.location && ". "}Set your home on the{" "}
+                    <Link to="/map" className="text-foreground underline underline-offset-4">
+                      map
+                    </Link>{" "}
+                    to see how far this car is.
+                  </>
+                )}
+              </p>
+              {mapboxToken && (
+                <Link
+                  to="/map"
+                  search={{ car: listing.listingId }}
+                  className="mt-1 inline-block text-sm underline underline-offset-4"
+                >
+                  Show on map
+                </Link>
+              )}
+              {mapboxToken && (
+                <SellerMap
+                  token={mapboxToken}
+                  listingId={listing.listingId}
+                  geo={listing.geo}
+                  home={board?.home ?? null}
+                  tier={listing.tier}
+                  live={!removed && listing.tier !== "rejected"}
+                  location={seller.location}
+                />
+              )}
+            </section>
+          )}
 
           <section>
             <h2 className="font-semibold">Price history</h2>
@@ -322,37 +359,65 @@ function Description({ original, translation }: { original: string; translation?
 }
 
 // A static image, so the car page loads no map library; it opens the full map at this car.
+// A static image, so the car page loads no map library, with the map page's own pins
+// drawn on it. It opens the full map at this car.
 function SellerMap({
   token,
   listingId,
   geo,
   home,
+  tier,
+  live,
   location,
 }: {
   token: string;
   listingId: string;
   geo: Point;
   home: Point | null;
+  tier: Tier;
+  live: boolean;
   location: string | undefined;
 }) {
+  const [width, height] = [640, 320];
+  // Generous padding: pins stand 14px above their place, as on the map page.
+  const view = fitView(home ? [geo, home] : [geo], width, height, 64);
+  const { letter, tone } = pinFor(tier, live);
+  const pinAt = (point: Point) => {
+    const { left, top } = view.at(point);
+    return { left: `${left * 100}%`, top: `${top * 100}%`, transform: "translate(-50%, calc(-100% - 14px))" };
+  };
   return (
     <Link
       to="/map"
       search={{ car: listingId }}
-      className="mt-4 block overflow-hidden rounded-lg bg-muted outline-offset-2"
+      className="relative mt-3 block overflow-hidden rounded-lg bg-muted outline-offset-2"
       aria-label={`Open the map${location ? ` at ${location}` : ""}`}
     >
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcSet={staticMapUrl(token, geo, home, true)} />
+        <source media="(prefers-color-scheme: dark)" srcSet={staticMapUrl(token, view, width, height, true)} />
         <img
-          src={staticMapUrl(token, geo, home, false)}
+          src={staticMapUrl(token, view, width, height, false)}
           alt=""
-          width={640}
-          height={320}
+          width={width}
+          height={height}
           loading="lazy"
           className="aspect-[2/1] w-full object-cover"
         />
       </picture>
+      {home && (
+        <span aria-hidden className="absolute" style={pinAt(home)}>
+          <span className={cn(homeClass, "relative shadow-md")}>
+            <House className="size-4" strokeWidth={2.5} />
+            <span className={notchClass("home")} />
+          </span>
+        </span>
+      )}
+      <span aria-hidden className="absolute" style={pinAt(geo)}>
+        <span className={cn(pinClass(letter !== null, tone), "relative shadow-md")}>
+          {letter}
+          <span className={notchClass(tone)} />
+        </span>
+      </span>
     </Link>
   );
 }
