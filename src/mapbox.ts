@@ -26,7 +26,9 @@ export function fitView(points: Point[], width: number, height: number, padding:
   const spanX = (maxX - minX) * tileSize;
   const spanY = (maxY - minY) * tileSize;
   const fit = Math.min((width - 2 * padding) / spanX, (height - 2 * padding) / spanY);
-  const zoom = Number.isFinite(fit) ? Math.min(8, Math.log2(fit)) : 6;
+  // Zoom 0 at least: points far apart (other continents) would ask for less, which the
+  // Static Images API rejects.
+  const zoom = Number.isFinite(fit) ? Math.max(0, Math.min(8, Math.log2(fit))) : 6;
   const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   const scale = tileSize * 2 ** zoom;
   return {

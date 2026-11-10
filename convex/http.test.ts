@@ -78,6 +78,14 @@ test("keeps the VAT details and rejects a net price above the gross", async () =
   expect(bad.body.issues.map((issue: { path: string }) => issue.path)).toEqual(["price.netAmount"]);
 });
 
+test("takes a lowercase country code and stores it uppercased", async () => {
+  const { call } = await setup();
+  const seller = { type: "dealer", location: "10115 Berlin", country: " de " };
+  const { status, body } = await call("/api/listings", listing({ seller }));
+  expect(status).toBe(200);
+  expect((await call(`/api/listings/${body.listingId}`)).body.seller.country).toBe("DE");
+});
+
 test("refuses photo URLs outside the source's image host", async () => {
   const { call } = await setup();
   const response = await call("/api/listings", listing({ photoUrls: ["https://192.168.1.1/admin.png"] }));

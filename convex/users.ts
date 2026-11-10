@@ -19,13 +19,13 @@ export async function viewerAccess(ctx: QueryCtx, via: Via = "web") {
   return board && { userId: user._id, boardId: board._id };
 }
 
-// For actions, which have no database access of their own.
+// The web viewer's board for actions, which have no database access of their own.
 export const viewerForWeb = internalQuery({
   args: {},
   handler: (ctx) => viewerAccess(ctx),
 });
 
-// For the MCP server. Only the owner (the oldest user, who also holds the API tokens)
+// For the MCP server's actions. Only the owner (the oldest user, who also holds the API tokens)
 // may use it for now: a car's listing facts are shared by every board that tracks it,
 // so another account's agent could rewrite the owner's prices or mark a car removed.
 export const viewerForMcp = internalQuery({

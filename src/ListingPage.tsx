@@ -358,9 +358,8 @@ function Description({ original, translation }: { original: string; translation?
   );
 }
 
-// A static image, so the car page loads no map library; it opens the full map at this car.
 // A static image, so the car page loads no map library, with the map page's own pins
-// drawn on it. It opens the full map at this car.
+// drawn on it. It opens the full map with this car's place picked.
 function SellerMap({
   token,
   listingId,

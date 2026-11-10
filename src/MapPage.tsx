@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 type Place = { key: string; point: Point; location: string; cars: BoardListing[] };
 
 const tierOrder = tiers.map((t) => t.tier);
+const isGone = (car: BoardListing) => car.status !== "available" || car.tier === "rejected";
 const placeKey = ({ lat, lng }: Point) => `${lat.toFixed(4)},${lng.toFixed(4)}`;
 
 export function MapPage() {
@@ -51,7 +52,13 @@ function MapView({ board }: { board: BoardData }) {
       byKey.set(key, place);
     }
     for (const place of byKey.values()) {
-      place.cars.sort((a, b) => tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) || a.rank - b.rank);
+      // Cars still for sale first, so a removed ad never sets the pin's tier.
+      place.cars.sort(
+        (a, b) =>
+          Number(isGone(a)) - Number(isGone(b)) ||
+          tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier) ||
+          a.rank - b.rank,
+      );
     }
     return [...byKey.values()];
   }, [board.listings]);
@@ -239,8 +246,7 @@ function CarMap({
 // positions the element itself.
 function placeMarker(place: Place) {
   const best = place.cars[0];
-  const live = place.cars.some((c) => c.status === "available" && c.tier !== "rejected");
-  const { letter, tone } = pinFor(best.tier, live);
+  const { letter, tone } = pinFor(best.tier, !isGone(best));
   const element = document.createElement("button");
   element.type = "button";
   // Never scale a marker: CSS `scale` also multiplies Mapbox's positioning transform.
