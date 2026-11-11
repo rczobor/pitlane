@@ -10,6 +10,7 @@
 
 import type * as agent from "../agent.js";
 import type * as board from "../board.js";
+import type * as captures from "../captures.js";
 import type * as crons from "../crons.js";
 import type * as errors from "../errors.js";
 import type * as extension from "../extension.js";
@@ -32,6 +33,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   board: typeof board;
+  captures: typeof captures;
   crons: typeof crons;
   errors: typeof errors;
   extension: typeof extension;

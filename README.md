@@ -86,6 +86,14 @@ the home you set on the map page. The map page and the car page's small map are
 live Mapbox maps in its Standard style (day or night, following the system theme);
 both stay within its free tier for one person's watchlist.
 
+**Sharing a listing from the phone only queues its link.** The web app installs as
+an app (a PWA), and an installed app on Android shows up in the share sheet. A shared
+listing that is already on the board opens; a new one waits on the board until an
+agent (`list_pending_captures`) or the extension captures it, since the app never
+fetches the page. iOS has no web share targets, so there it stays a home-screen app.
+Its service worker only precaches the app shell for a quick start; the board itself
+always comes live from Convex, and a new version waits until the user reloads.
+
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, the MCP server via
 HTTP actions, scheduled jobs, file storage). The web app is Vite, React,
 TanStack Router and shadcn/ui (Base UI). People sign in with Clerk, and so does

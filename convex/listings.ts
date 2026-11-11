@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { clearCaptureRequest } from "./captures";
 import { appError } from "./errors";
 import { resolveSpecs } from "./keySpecs";
 import { listingDataValidator } from "./validators";
@@ -82,6 +83,7 @@ export const save = internalMutation({
     }
     await queuePhotos(ctx, listingId, data.photoUrls);
     await ensureOnBoard(ctx, boardId, listingId, capturedBy, now);
+    await clearCaptureRequest(ctx, boardId, ref);
     return { listingId, created: !existing, changed, priceChange };
   },
 });

@@ -329,6 +329,8 @@ async function fixturesOnly(ctx: MutationCtx, { wipe = false } = {}) {
   if (blocking) throw new Error("Fixtures only run on a local deployment or a fresh preview");
 }
 
+const sharedListingId = "10000000000900";
+
 // Vercel's preview builds also run this, without photos, when they create a preview
 // deployment (`convex deploy --preview-run`).
 export const seed = internalAction({
@@ -370,7 +372,7 @@ export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
     await fixturesOnly(ctx, { wipe: true });
-    for (const table of ["boardItems", "snapshots", "listings", "boards", "users"] as const) {
+    for (const table of ["captureRequests", "boardItems", "snapshots", "listings", "boards", "users"] as const) {
       for (const doc of await ctx.db.query(table).collect()) await ctx.db.delete(table, doc._id);
     }
     for (const doc of await ctx.db.query("photos").collect()) {
@@ -379,6 +381,13 @@ export const reset = internalMutation({
     }
     const userId = await ctx.db.insert("users", { name: "Demo driver", home: demoHome });
     const boardId = await ctx.db.insert("boards", { name: "Watchlist", ownerId: userId, models, keySpecs });
+    // A listing shared from the phone that nobody has captured yet.
+    await ctx.db.insert("captureRequests", {
+      boardId,
+      source: listingSite.id,
+      externalId: sharedListingId,
+      url: listingSite.canonicalUrl(sharedListingId),
+    });
 
     const newUserId = await ctx.db.insert("users", { name: "New user" });
     await ctx.db.insert("boards", { name: "Watchlist", ownerId: newUserId });

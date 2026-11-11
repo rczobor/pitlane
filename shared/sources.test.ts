@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fullSizePhotoUrl, isAllowedPhotoUrl, listingSite, resolveListingUrl } from "./sources.ts";
+import { findListingUrl, fullSizePhotoUrl, isAllowedPhotoUrl, listingSite, resolveListingUrl } from "./sources.ts";
 
 const id = "10000000000001";
 const canonicalUrl = listingSite.canonicalUrl(id);
@@ -30,6 +30,12 @@ describe("resolveListingUrl", () => {
   ])("rejects %s", (url) => {
     expect(resolveListingUrl(url)).toBeNull();
   });
+});
+
+test("finds the listing link in shared text", () => {
+  const text = `Look at this one: https://example.com/ad and ${canonicalUrl}.`;
+  expect(findListingUrl(undefined, text)?.externalId).toBe(id);
+  expect(findListingUrl("Just a title", "no links here")).toBeNull();
 });
 
 describe("isAllowedPhotoUrl", () => {
