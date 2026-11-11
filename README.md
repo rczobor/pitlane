@@ -141,8 +141,9 @@ production for the production site.
 
 The MCP server runs on Convex at `<CONVEX_SITE_URL>/mcp`. Add it in Claude under
 Customize → Connectors → Add custom connector, with the deployment's URL (for
-Claude Code: `claude mcp add --transport http pitlane <url>`). The app's "Add cars" page
-(`/add`, in the header) shows the URL with these steps and ChatGPT's (Plugins → Add custom MCP server, OAuth). Claude signs in with
+Claude Code: `claude mcp add --transport http pitlane <url>`). The app's "Add cars"
+page (`/add`, in the header) shows the URL with these steps and ChatGPT's (Plugins →
+Add custom MCP server, OAuth). Claude signs in with
 OAuth: Clerk is the authorization server and shows a consent screen, and Convex
 checks Clerk's access tokens, whose audience must be that exact URL. A first
 connection sets the user up like a first sign-in on the web app. For now only the

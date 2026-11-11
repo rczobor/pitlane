@@ -76,20 +76,21 @@ export function AddCars() {
                   href={extensionRelease}
                   target="_blank"
                   rel="noreferrer"
-                // The Copy fields' height: py-2 around a 20px line, inside the border.
-                className={buttonVariants({ variant: "outline", className: "h-auto py-2" })}
+                  // The Copy fields' height: py-2 around a 20px line, inside the border.
+                  className={buttonVariants({ variant: "outline", className: "h-auto py-2" })}
                 >
-                  Download version {extensionVersion} from GitHub<span className="sr-only"> (opens in a new tab)</span>
+                  {/* Short enough for a 320px phone; the step above names the version's file. */}
+                  Download from GitHub<span className="sr-only"> (opens in a new tab)</span>
                   <ArrowUpRight data-icon="inline-end" aria-hidden />
                 </a>
               </Step>
               <Step>
                 {/* Chrome won't open chrome:// pages from a web link, so it is copied, not linked. */}
-                <p>Open this in Chrome's address bar and turn on <Menu>Developer mode</Menu>:</p>
+                <p>Open this in Chrome's address bar:</p>
                 <CopyField value="chrome://extensions" />
               </Step>
               <Step>
-                Choose <Menu>Load unpacked</Menu> and pick that folder.
+                Turn on <Menu>Developer mode</Menu>, choose <Menu>Load unpacked</Menu> and pick that folder.
               </Step>
               <Step>
                 On a listing, open Chrome's <Menu>Extensions</Menu> menu (the puzzle piece) and choose Pitlane to open its

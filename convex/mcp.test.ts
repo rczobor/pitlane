@@ -29,7 +29,7 @@ test("signed-out calls get a 401 that points Claude at the sign-in metadata", as
   }
   const metadata = await (await t.fetch("/.well-known/oauth-protected-resource/mcp")).json();
   expect(metadata).toMatchObject({ resource: `${site}/mcp`, authorization_servers: ["https://clerk.example.com"] });
-  // The connect page shows this URL; tokens are only accepted for exactly the advertised resource.
+  // The Add cars page shows this URL; tokens are only accepted for exactly the advertised resource.
   expect(await t.query(api.mcp.serverUrl, {})).toBe(metadata.resource);
 });
 

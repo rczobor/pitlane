@@ -178,8 +178,8 @@ export function Board() {
             you are hunting, so cards show what decides a car's tier. Then{" "}
             <Link to="/add" className="text-foreground underline underline-offset-4">
               add cars
-            </Link>{" "}
-            with the Chrome extension or an assistant; new cars land in Watching.
+            </Link>
+            ; new cars land in Watching.
           </p>
         </div>
       )}
