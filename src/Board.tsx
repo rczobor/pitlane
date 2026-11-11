@@ -18,7 +18,7 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Ellipsis, ImageOff, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, Ellipsis, ImageOff, Trash2, X } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -29,6 +29,7 @@ import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { slabColor } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -262,34 +263,16 @@ function Lane({
         <h2 className={cn("condensed text-4xl leading-none font-extrabold", isLetter ? "sm:text-7xl" : "sm:text-2xl")}>
           {label}
         </h2>
-        {/* Pinned to the slab's foot, so it sits in the same place whatever the label. A lane
-            that hides cars reads like a lap board: the cars on screen, then the total. */}
-        <p className="tabular-nums sm:mt-auto sm:pt-3">
-          {view ? (
-            <>
-              <span className="sr-only">
-                {view.last > view.first ? `Cars ${view.first + 1} to ${view.last + 1}` : `Car ${view.first + 1}`} of{" "}
-                {listings.length} on screen
-              </span>
-              <span aria-hidden className="condensed text-xl leading-none font-bold">
-                {view.first + 1}
-                {view.last > view.first && `–${view.last + 1}`}
-              </span>
-              <span aria-hidden className="condensed leading-none font-bold opacity-75 dark:opacity-100">
-                {" "}/{listings.length}
-              </span>
-            </>
-          ) : (
-            // A lane that fits says its total in the same lap-board type.
-            <>
-              <span className="condensed text-xl leading-none font-bold">{listings.length}</span>
-              <span className="condensed leading-none font-bold opacity-75 dark:opacity-100">
-                {" "}
-                {listings.length === 1 ? "car" : "cars"}
-              </span>
-            </>
-          )}
-        </p>
+        {/* Pinned to the slab's foot, so it sits in the same place whatever the label. */}
+        <div className="sm:mt-auto sm:pt-3">
+          <LaneCount
+            label={label}
+            listings={listings}
+            view={view}
+            jump={(index) => jumpTo(lane.current, index)}
+            modelName={(listing) => cardProps(listing).modelName}
+          />
+        </div>
       </div>
       {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
@@ -353,8 +336,7 @@ function LaneIndex({
   // The car under the pointer, marked on both its tick and its photo: the strip's photos are
   // wider than the ticks, so the two rows do not line up.
   const [pointed, setPointed] = useState<number>();
-  const jump = (index: number) =>
-    lane.current?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
+  const jump = (index: number) => jumpTo(lane.current, index);
   const shown = (index: number) => index >= view.first && index <= view.last;
   // Only a mouse points: a tap would leave its tick marked.
   const point = (index: number) => ({
@@ -377,28 +359,11 @@ function LaneIndex({
               onClick={() => jump(index)}
               {...point(index)}
               className={cn(
-                "flex w-20 min-w-0 shrink flex-col gap-1 border-b-2 pb-1 text-left",
+                "w-20 min-w-0 shrink border-b-2 pb-1 text-left",
                 pointed === index ? "border-foreground" : "border-transparent",
               )}
             >
-              <span
-                className={cn(
-                  "flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground",
-                  shown(index) && "ring-2 ring-foreground",
-                )}
-              >
-                {listing.coverUrl ? (
-                  <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />
-                ) : (
-                  <ImageOff className="size-4" />
-                )}
-              </span>
-              <span className="condensed truncate text-xs leading-none font-bold tabular-nums">
-                {formatPrice(listing.price)}
-              </span>
-              {modelName(listing) && (
-                <span className="condensed line-clamp-2 text-xs leading-tight text-muted-foreground">{modelName(listing)}</span>
-              )}
+              <CarThumb listing={listing} model={modelName(listing)} shown={shown(index)} />
             </button>
           ))}
         </div>
@@ -424,6 +389,120 @@ function LaneIndex({
       ))}
     </div>
   );
+}
+
+// A car in the lane's photo index: photo (or the no-photo mark), price and model. The cars
+// on screen are outlined in ink, as their ticks are filled.
+function CarThumb({ listing, model, shown }: { listing: BoardListing; model: string | undefined; shown: boolean }) {
+  return (
+    <span className="flex flex-col gap-1">
+      <span
+        className={cn(
+          "flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground",
+          shown && "ring-2 ring-foreground",
+        )}
+      >
+        {listing.coverUrl ? (
+          <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />
+        ) : (
+          <ImageOff className="size-4" aria-hidden />
+        )}
+      </span>
+      <span className="condensed truncate text-xs leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
+      {model && <span className="condensed line-clamp-2 text-xs leading-tight text-muted-foreground">{model}</span>}
+    </span>
+  );
+}
+
+// The slab's count, in lap-board type: "3–6 /8" while the lane hides cars, "8 cars" when it
+// fits. A lane that hides cars makes the count a button that lists every car in a sheet, so a
+// phone (no hover strip) and the keyboard can find one and jump to it.
+function LaneCount({
+  label,
+  listings,
+  view,
+  jump,
+  modelName,
+}: {
+  label: string;
+  listings: BoardListing[];
+  view: LaneView | null;
+  jump: (index: number) => void;
+  modelName: (listing: BoardListing) => string | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  // The car picked in the sheet; the lane scrolls once the sheet has closed and released the
+  // page's scroll lock.
+  const picked = useRef<number>(undefined);
+  const total = listings.length;
+  if (!view) {
+    return (
+      <p className="tabular-nums">
+        <span className="condensed text-xl leading-none font-bold">{total}</span>
+        <span className="condensed leading-none font-bold opacity-75 dark:opacity-100"> {total === 1 ? "car" : "cars"}</span>
+      </p>
+    );
+  }
+  const range = `${view.first + 1}${view.last > view.first ? `–${view.last + 1}` : ""}`;
+  const onScreen = view.last > view.first ? `Cars ${view.first + 1} to ${view.last + 1}` : `Car ${view.first + 1}`;
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      onOpenChangeComplete={(isOpen) => {
+        if (isOpen || picked.current === undefined) return;
+        jump(picked.current);
+        picked.current = undefined;
+      }}
+    >
+      <SheetTrigger
+        className="-mx-1 inline-flex items-baseline gap-1 rounded-sm px-1 tabular-nums outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        aria-label={`${onScreen} of ${total} on screen. Show all ${total} cars in ${label}`}
+      >
+        <span className="condensed text-xl leading-none font-bold">{range}</span>
+        <span className="condensed leading-none font-bold opacity-75 dark:opacity-100">/{total}</span>
+        <ChevronUp className="size-3.5 self-center opacity-75 dark:opacity-100" aria-hidden />
+      </SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[80dvh]">
+        <SheetHeader className="pb-0">
+          <SheetTitle className="condensed text-2xl font-extrabold">{label}</SheetTitle>
+          <SheetDescription>
+            {onScreen} of {total} on screen. Pick a car to jump to it.
+          </SheetDescription>
+        </SheetHeader>
+        <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
+          {listings.map((listing, index) => (
+            <li key={listing.listingId}>
+              <button
+                type="button"
+                className="w-full rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                onClick={() => {
+                  picked.current = index;
+                  setOpen(false);
+                }}
+              >
+                <span className="sr-only">
+                  {index + 1}. {listing.title}, {formatPrice(listing.price)}
+                </span>
+                <span aria-hidden>
+                  <CarThumb
+                    listing={listing}
+                    model={modelName(listing)}
+                    shown={index >= view.first && index <= view.last}
+                  />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// Brings a lane's car into view, clear of the fades (the lane's scroll padding).
+function jumpTo(lane: HTMLElement | null, index: number) {
+  lane?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
 }
 
 // What a lane that hides cars shows: whether cars are hidden at each end, and the first and
