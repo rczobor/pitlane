@@ -512,7 +512,8 @@ function LaneCount({
             <span className="sr-only">
               {onScreen} of {total} on screen.{" "}
             </span>
-            Outlined cars are on screen. Pick one to jump to it.
+            {/* The outline is visual; screen readers have the sentence above instead. */}
+            <span aria-hidden>Outlined cars are on screen. </span>Pick one to jump to it.
           </SheetDescription>
         </SheetHeader>
         <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pt-1 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] sm:px-8">
