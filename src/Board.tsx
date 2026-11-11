@@ -350,7 +350,9 @@ function LaneIndex({
     <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6">
       {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
       <div className="pointer-events-auto absolute bottom-full left-0 hidden max-w-full pb-1 group-hover/index:block pointer-coarse:hidden">
-        <div className="flex gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/40">
+        {/* Tiles keep their width and wrap onto more rows in a long lane, rather than
+            shrinking until prices and models no longer read. */}
+        <div className="flex flex-wrap gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/40">
           {listings.map((listing, index) => (
             <button
               key={listing.listingId}
@@ -360,7 +362,7 @@ function LaneIndex({
               onClick={() => jump(index)}
               {...point(index)}
               className={cn(
-                "w-20 min-w-0 shrink border-b-2 pb-1 text-left",
+                "w-20 shrink-0 border-b-2 pb-1 text-left",
                 pointed === index ? "border-foreground" : "border-transparent",
               )}
             >
