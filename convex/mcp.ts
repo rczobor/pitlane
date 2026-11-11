@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
 import { httpAction, query, type ActionCtx } from "./_generated/server";
-import { getListing, listDue, listListings, saveSnapshot, type Owner } from "./agent";
+import { getListing, listDue, listListings, listPendingCaptures, saveSnapshot, type Owner } from "./agent";
 import { listingData, listingUrl } from "../shared/listing";
 
 // The remote MCP server: Claude adds it as a custom connector by URL and signs in with
@@ -123,6 +123,20 @@ function createServer(ctx: ActionCtx, owner: Owner) {
       annotations: { readOnlyHint: true },
     },
     async () => reply(await listDue(ctx, owner.boardId)),
+  );
+
+  server.registerTool(
+    "list_pending_captures",
+    {
+      title: "List pending captures",
+      description: [
+        "Listings the user shared to Pitlane from their phone that are not saved yet, oldest first.",
+        "Open each one and save it with save_listing (without recheck); saving it removes it from this list.",
+        "If the page did not load, looked blocked or says the ad is gone, skip it and tell the user: it stays on the list until they dismiss it.",
+      ].join(" "),
+      annotations: { readOnlyHint: true },
+    },
+    async () => reply(await listPendingCaptures(ctx, owner.boardId)),
   );
 
   server.registerTool(

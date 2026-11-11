@@ -79,4 +79,16 @@ export default defineSchema({
     .index("by_board", ["boardId", "tier", "rank"])
     .index("by_board_listing", ["boardId", "listingId"])
     .index("by_listing", ["listingId"]),
+
+  // Listings the user shared to the app, e.g. from a phone's share sheet, that are not on
+  // the board yet. The app never opens them itself: an agent or the extension captures
+  // the page, and saving it clears the request (see convex/captures.ts).
+  captureRequests: defineTable({
+    boardId: v.id("boards"),
+    source: v.string(),
+    externalId: v.string(),
+    url: v.string(),
+    // What the share sheet called it, usually the page title; untrusted, shown as text.
+    title: v.optional(v.string()),
+  }).index("by_board_source_external", ["boardId", "source", "externalId"]),
 });

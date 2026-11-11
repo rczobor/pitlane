@@ -283,7 +283,7 @@ function Ask({ children }: { children: ReactNode }) {
   return <li>“{children}”</li>;
 }
 
-function CopyField({ value }: { value: string }) {
+export function CopyField({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const field = useRef<HTMLSpanElement>(null);
   // Without the clipboard (plain-http origins) or permission, select the value for Ctrl+C instead.

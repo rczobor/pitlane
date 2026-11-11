@@ -25,6 +25,7 @@ import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
 import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistrationYear, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard } from "./ListingCard";
+import { PendingCaptures } from "./PendingCaptures";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { slabColor, TierSlab } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -184,6 +185,8 @@ export function Board() {
           </p>
         </div>
       )}
+      {/* Shared cars have no model or specs yet, so filtered views leave them out. */}
+      {!filter && !check && <PendingCaptures />}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

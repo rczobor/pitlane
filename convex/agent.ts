@@ -47,6 +47,12 @@ export const listListings = async (ctx: ActionCtx, boardId: Id<"boards">) =>
 export const listDue = async (ctx: ActionCtx, boardId: Id<"boards">) =>
   ok({ due: await ctx.runQuery(internal.listings.listDue, { boardId, now: Date.now() }) });
 
+// Listings the user shared from their phone; capturing one with save_listing clears it.
+export async function listPendingCaptures(ctx: ActionCtx, boardId: Id<"boards">) {
+  const pending = await ctx.runQuery(internal.captures.listPending, { boardId });
+  return ok({ pending: pending.map(({ url, sharedAt }) => ({ url, sharedAt })) });
+}
+
 export async function getListing(ctx: ActionCtx, boardId: Id<"boards">, listingId: string) {
   const listing = await ctx.runQuery(internal.listings.getForBoard, { boardId, listingId });
   return listing ? ok(listing) : { status: 404, body: { error: "Listing not found" } };

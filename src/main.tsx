@@ -18,6 +18,8 @@ import { Compare } from "./Compare";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
 import { Settings } from "./Settings";
+import { Share } from "./Share";
+import { UpdatePrompt } from "./UpdatePrompt";
 import "./styles.css";
 
 const rootRoute = createRootRoute({ component: Root });
@@ -61,6 +63,19 @@ const connectRoute = createRoute({
     throw redirect({ to: "/add", replace: true });
   },
 });
+// The installed app's share target: the share sheet passes these three fields.
+const shareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/share",
+  validateSearch: (search: Record<string, unknown>): { title?: string; text?: string; url?: string } => ({
+    ...(typeof search.title === "string" && { title: search.title }),
+    ...(typeof search.text === "string" && { text: search.text }),
+    ...(typeof search.url === "string" && { url: search.url }),
+  }),
+  component: function ShareRoute() {
+    return <Share {...shareRoute.useSearch()} />;
+  },
+});
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
@@ -80,6 +95,7 @@ const router = createRouter({
     settingsRoute,
     addRoute,
     connectRoute,
+    shareRoute,
   ]),
 });
 
@@ -97,6 +113,7 @@ createRoot(document.getElementById("root")!).render(
     <ClerkProvider appearance={{ theme: shadcn }} afterSignOutUrl="/">
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <RouterProvider router={router} />
+        <UpdatePrompt />
       </ConvexProviderWithClerk>
     </ClerkProvider>
   </StrictMode>,
