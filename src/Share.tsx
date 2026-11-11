@@ -1,10 +1,12 @@
 import { Link, Navigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
+import { Import } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { findListingUrl } from "../shared/sources";
-import { CaptureHint, SharedListing } from "./PendingCaptures";
+import { CopyField } from "./AddCars";
+import { SharedListing } from "./PendingCaptures";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -62,8 +64,16 @@ export function Share({ title, text, url }: Shared) {
             <SharedListing url={listing.canonicalUrl} externalId={listing.externalId} title={label} />
             {state.kind === "queued" && (
               <>
-                <p>It waits at the top of your board, and joins Watching as a car once it is captured.</p>
-                <CaptureHint />
+                <p>It waits at the top of your board. Once captured, it joins Watching.</p>
+                <p>
+                  Ask Claude or ChatGPT to capture it, or open it on a computer and save it with the extension. Not set up
+                  yet?{" "}
+                  <Link to="/add" className="whitespace-nowrap underline underline-offset-4">
+                    <Import className="mr-1 inline size-4 align-[-0.125em]" aria-hidden />
+                    Add cars
+                  </Link>
+                </p>
+                <CopyField value="Capture my shared listings in Pitlane." />
               </>
             )}
           </>
