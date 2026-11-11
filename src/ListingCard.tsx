@@ -94,6 +94,7 @@ export function ListingCard({
           )}
         </div>
         <CardHeader>
+          {/* Wraps on narrow cards: the badge drops below the price instead of being clipped. */}
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
             <p className="flex items-baseline gap-1.5">
               <span className="condensed text-3xl leading-none font-bold">{formatPrice(listing.price)}</span>
@@ -105,24 +106,24 @@ export function ListingCard({
                 </span>
               )}
             </p>
-            {removed && <span className="text-xs text-muted-foreground">Last price</span>}
+            {removed ? (
+              <span className="text-xs text-muted-foreground">Last price</span>
+            ) : (
+              listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>
+            )}
           </div>
           {modelName && <p className="condensed text-lg leading-none font-bold">{modelName}</p>}
           <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
         </CardHeader>
         <CardContent className="space-y-2">
-          {/* Year, mileage and power stay at glance level, above the key specs. The badges get
-              their own row, kept even when empty, so across a lane of narrow cards the stats
-              and the ledgers start at the same height. */}
-          <div className="space-y-1">
+          {/* Year, mileage and power stay at glance level, above the key specs. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <dl className="flex gap-x-3 tabular-nums">
               <Spec label="First registration" value={formatRegistrationYear(specs.firstRegistration)} />
               <Spec label="Mileage" value={formatKm(specs.mileageKm)} />
               {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
             </dl>
-            {/* VAT sits here too, so it has one place on every card and never wraps the price. */}
-            <div className="flex min-h-5 flex-wrap gap-1">
-              {!removed && listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>}
+            <div className="flex gap-1">
               {fuel && <Badge variant="outline">{fuel}</Badge>}
               {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge.
                   "MT" keeps the badges on the specs line, where "Manual" wrapped them. */}
