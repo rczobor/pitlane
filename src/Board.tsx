@@ -443,9 +443,11 @@ function CarThumb({
   );
 }
 
-// The slab's count, in lap-board type: "3–6 /8" while the lane hides cars, "8 cars" when it
-// fits. A lane that hides cars makes the count a button that lists every car in a sheet, so a
-// phone (no hover strip) and the keyboard can find one and jump to it.
+// The slab's count, in lap-board type: "3 /8" while the lane hides cars, "8 cars" when it
+// fits. One number that tracks the scroll like a progress bar (1 at the start, 8 at the end),
+// so the plate keeps its width while the lane scrolls; the ticks and outlines mark the cars
+// on screen. A lane that hides cars makes the count a button that lists every car in a sheet,
+// so a phone (no hover strip) and the keyboard can find one and jump to it.
 function LaneCount({
   tier,
   label,
@@ -477,7 +479,6 @@ function LaneCount({
       </p>
     );
   }
-  const range = `${view.first + 1}${view.last > view.first ? `–${view.last + 1}` : ""}`;
   const onScreen = view.last > view.first ? `Cars ${view.first + 1} to ${view.last + 1}` : `Car ${view.first + 1}`;
   return (
     <Sheet
@@ -496,7 +497,10 @@ function LaneCount({
         className="relative -ml-1.75 inline-flex items-baseline gap-1 rounded-sm border border-current/60 px-1.5 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-2 after:-inset-y-3 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`${onScreen} of ${total} on screen. Show all ${total} cars in ${label}`}
       >
-        <span className="condensed text-xl leading-none font-bold">{range}</span>
+        {/* As wide as the total, so the plate does not grow when the count gains a digit. */}
+        <span className="condensed text-right text-xl leading-none font-bold" style={{ minWidth: `${String(total).length}ch` }}>
+          {view.position + 1}
+        </span>
         <span className="condensed leading-none font-bold opacity-75 dark:opacity-100">/{total}</span>
         <LayoutGrid className="size-3.5 self-center opacity-75 dark:opacity-100" aria-hidden />
       </SheetTrigger>
@@ -511,7 +515,7 @@ function LaneCount({
               </span>
             </SheetTitle>
             <p aria-hidden className="tabular-nums">
-              <span className="condensed text-2xl leading-none font-bold">{range}</span>
+              <span className="condensed text-2xl leading-none font-bold">{view.position + 1}</span>
               <span className="condensed text-base leading-none font-bold text-muted-foreground"> /{total}</span>
             </p>
           </div>
@@ -560,9 +564,10 @@ function jumpTo(lane: HTMLElement | null, index: number) {
 }
 
 // What a lane that hides cars shows: whether cars are hidden at each end, and the first and
-// last car on screen (at least half clear of the fades, or else the most visible one). Null
-// when every car fits.
-type LaneView = { start: boolean; end: boolean; first: number; last: number };
+// last car on screen (at least half clear of the fades, or else the most visible one), and the
+// scroll as a car index, from the first car at the start to the last at the end. Null when
+// every car fits.
+type LaneView = { start: boolean; end: boolean; first: number; last: number; position: number };
 
 // Measures the lane on scroll and resize, and sizes its cards. Re-renders only when the view
 // changes, not on every scroll event. `cars` re-measures when cars come or go: the lane's
@@ -616,7 +621,12 @@ function measureLane(lane: HTMLElement): LaneView | null {
   });
   const shown = clear.flatMap((part, index) => (part >= 0.5 ? [index] : []));
   if (shown.length === 0) shown.push(clear.indexOf(Math.max(...clear)));
-  return { start, end, first: shown[0], last: shown[shown.length - 1] };
+  // Rounded, so a lane about one card wide reads the car at its start after a jump. The ends
+  // come from the same 1px tolerance as `start` and `end`, so the count reads the last car
+  // once the end fade goes.
+  const progress = !start ? 0 : !end ? 1 : lane.scrollLeft / hidden;
+  const position = Math.round(progress * (clear.length - 1));
+  return { start, end, first: shown[0], last: shown[shown.length - 1], position };
 }
 
 // A card cut near its end passes for a whole one, so the lane's last card on screen shows
