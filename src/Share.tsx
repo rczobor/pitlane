@@ -1,6 +1,6 @@
 import { Link, Navigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Import } from "lucide-react";
+import { Import, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -8,7 +8,9 @@ import { findListingUrl } from "./sharedText";
 import { CopyField } from "./AddCars";
 import { SharedListing } from "./PendingCaptures";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+
+const capturePrompt = "Capture my shared listings in Pitlane.";
 
 type Shared = { title?: string; text?: string; url?: string };
 type State = { kind: "saving" } | { kind: "queued" } | { kind: "open"; listingId: Id<"listings"> } | { kind: "failed" };
@@ -68,7 +70,14 @@ export function Share({ title, text, url }: Shared) {
               <>
                 <p>It waits at the top of your board. Once captured, it joins Watching.</p>
                 <p>Ask Claude or ChatGPT to capture it:</p>
-                <CopyField value="Capture my shared listings in Pitlane." />
+                {/* Phones hand the prompt to the assistant's app through the share sheet. */}
+                {"share" in navigator && (
+                  <Button size="lg" onClick={() => void navigator.share({ text: capturePrompt }).catch(() => {})}>
+                    <Send data-icon="inline-start" aria-hidden />
+                    Send to your assistant
+                  </Button>
+                )}
+                <CopyField value={capturePrompt} />
                 <p>
                   Or open it on a computer and capture it with the extension. Not set up yet?{" "}
                   <Link to="/add" className="whitespace-nowrap underline underline-offset-4">
