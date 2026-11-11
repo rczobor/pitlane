@@ -49,7 +49,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
   if (listing === null && leaving) return null;
   if (listing === null) {
     return (
-      <main className="mx-auto max-w-[1600px] space-y-2 px-4 sm:px-8">
+      <main className="max-w-[1600px] space-y-2 px-4 sm:px-8">
         <p>This car isn't on your board.</p>
         <BackLink />
       </main>
@@ -80,7 +80,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
   if (checking && board) {
     return (
-      <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+      <main className="max-w-[1600px] px-4 pb-16 sm:px-8">
         <BackLink />
         <CheckMode
           listingId={listing.listingId}
@@ -99,7 +99,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+    <main className="max-w-[1600px] px-4 pb-16 sm:px-8">
       <BackLink />
       {/* Wide screens: photos with the key-spec editor under them (it is checked against
           them), and the car's details beside. Phones: one column in task order, with the
@@ -396,7 +396,7 @@ function BackLink() {
 
 function ListingSkeleton() {
   return (
-    <main className="mx-auto grid max-w-[1600px] gap-8 px-4 pt-12 sm:px-8 lg:grid-cols-[3fr_2fr]" aria-busy="true">
+    <main className="grid max-w-[1600px] gap-8 px-4 pt-12 sm:px-8 lg:grid-cols-[3fr_2fr]" aria-busy="true">
       <Skeleton className="aspect-[4/3] rounded-xl" />
       <div className="space-y-4">
         <Skeleton className="h-6 w-3/4" />

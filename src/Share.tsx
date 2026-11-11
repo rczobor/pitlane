@@ -46,7 +46,7 @@ export function Share({ title, text, url }: Shared) {
         ? "Not saved"
         : "Saving…";
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-16 sm:px-8">
+    <main className="px-4 pt-4 pb-16 sm:px-8">
       <div className="max-w-prose space-y-4">
         <h1 className="condensed text-4xl leading-none font-extrabold">{heading}</h1>
         {!listing ? (

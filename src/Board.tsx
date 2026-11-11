@@ -149,7 +149,7 @@ export function Board() {
   }
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+    <main className="px-4 pb-16 sm:px-8">
       {board.listings.length > 0 && (board.models.length > 0 || board.keySpecs.length > 0) && (
         <BoardFilters board={board} selected={filter} check={check === true} ofModel={ofModel} />
       )}
@@ -869,7 +869,7 @@ function BoardFilters({
 
 function BoardSkeleton() {
   return (
-    <main className="mx-auto max-w-[1600px] space-y-3 px-4 sm:px-8" aria-busy="true">
+    <main className="space-y-3 px-4 sm:px-8" aria-busy="true">
       {tiers.map(({ tier }) => (
         <Skeleton key={tier} className="h-40 rounded-lg" />
       ))}

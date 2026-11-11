@@ -35,7 +35,7 @@ export function Compare({ ids }: { ids: string[] }) {
     void navigate({ to: "/compare", search: next.length > 0 ? { ids: next.join(",") } : {}, replace: true });
 
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+    <main className="max-w-[1600px] px-4 pb-16 sm:px-8">
       <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
         <ArrowLeft data-icon="inline-start" aria-hidden />
         Board
