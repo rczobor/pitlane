@@ -1,6 +1,5 @@
 import { Link, Navigate } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -17,61 +16,62 @@ type State = { kind: "saving" } | { kind: "queued" } | { kind: "open"; listingId
 // app never opens listing pages itself.
 export function Share({ title, text, url }: Shared) {
   const listing = findListingUrl(url, text, title);
+  // Browsers send the page title; some apps send the link there instead.
+  const label = title?.replace(/https?:\/\/\S+/g, "").trim() || undefined;
   const share = useMutation(api.captures.share);
   const [state, setState] = useState<State>({ kind: "saving" });
 
   const listingUrl = listing?.canonicalUrl;
   useEffect(() => {
     if (!listingUrl) return;
-    share({ url: listingUrl }).then(
+    share({ url: listingUrl, title: label }).then(
       ({ listingId }) => setState(listingId ? { kind: "open", listingId } : { kind: "queued" }),
       () => setState({ kind: "failed" }),
     );
-  }, [listingUrl, share]);
+  }, [listingUrl, label, share]);
 
   if (state.kind === "open") return <Navigate to="/listings/$listingId" params={{ listingId: state.listingId }} replace />;
 
+  const heading = !listing
+    ? "Not a listing link"
+    : state.kind === "queued"
+      ? "Saved for capture"
+      : state.kind === "failed"
+        ? "Not saved"
+        : "Saving…";
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
-      <div className="max-w-prose">
-        <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
-          <ArrowLeft data-icon="inline-start" aria-hidden />
-          Board
-        </Link>
+    <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-16 sm:px-8">
+      <div className="max-w-prose space-y-4">
+        <h1 className="condensed text-4xl leading-none font-extrabold">{heading}</h1>
         {!listing ? (
           <>
-            <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Not a listing link</h1>
-            <p className="mt-2">Nothing was saved. Share a car's page from the listing site's app or your browser.</p>
+            <p>Nothing was saved. Share a car's page from the listing site's app or your browser.</p>
             {(url || text) && (
-              <figure className="mt-4 space-y-1">
+              <figure className="space-y-1">
                 <figcaption className="text-sm text-muted-foreground">You shared</figcaption>
-                <blockquote className="rounded-md border px-3 py-2 break-all">{url || text}</blockquote>
+                <blockquote className="border-l-2 pl-3 break-all">{url || text}</blockquote>
               </figure>
             )}
           </>
         ) : state.kind === "failed" ? (
-          <Alert variant="destructive" className="mt-4">
+          <Alert variant="destructive">
             <AlertDescription>The listing couldn't be saved for capture. Share it again to retry.</AlertDescription>
           </Alert>
         ) : (
           <>
-            <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">
-              {state.kind === "queued" ? "Saved for capture" : "Saving…"}
-            </h1>
-            <p className="mt-3">
-              <SharedListing url={listing.canonicalUrl} externalId={listing.externalId} />
-            </p>
+            <SharedListing url={listing.canonicalUrl} externalId={listing.externalId} title={label} />
             {state.kind === "queued" && (
               <>
-                <p className="mt-3">
-                  It waits at the top of your board, and joins Watching as a car once it is captured.
-                </p>
-                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2">
-                  <CaptureHint />
-                </p>
+                <p>It waits at the top of your board, and joins Watching as a car once it is captured.</p>
+                <CaptureHint />
               </>
             )}
           </>
+        )}
+        {(!listing || state.kind !== "saving") && (
+          <Link to="/" className={buttonVariants({ size: "lg" })}>
+            Open board
+          </Link>
         )}
       </div>
     </main>

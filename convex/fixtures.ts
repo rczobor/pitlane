@@ -387,6 +387,7 @@ export const reset = internalMutation({
       source: listingSite.id,
       externalId: sharedListingId,
       url: listingSite.canonicalUrl(sharedListingId),
+      title: "Porsche Cayman GT4 RS Weissach",
     });
 
     const newUserId = await ctx.db.insert("users", { name: "New user" });

@@ -28,10 +28,10 @@ test("a shared listing waits until a capture saves it, then opens as the car", a
   await me.mutation(api.users.ensureUser, {});
   const url = listingSite.canonicalUrl("10000000000003");
 
-  expect(await me.mutation(api.captures.share, { url: `${url}&utm_source=share` })).toEqual({ listingId: null });
+  expect(await me.mutation(api.captures.share, { url: `${url}&utm_source=share`, title: " Alfa Romeo Giulia " })).toEqual({ listingId: null });
   // Sharing it again does not queue it twice.
   await me.mutation(api.captures.share, { url });
-  expect(await me.query(api.captures.pending, {})).toMatchObject([{ url, externalId: "10000000000003" }]);
+  expect(await me.query(api.captures.pending, {})).toMatchObject([{ url, externalId: "10000000000003", title: "Alfa Romeo Giulia" }]);
   await expect(me.mutation(api.captures.share, { url: "https://example.com/car" })).rejects.toThrow(/Not a supported/);
 
   // Any capture route clears it.

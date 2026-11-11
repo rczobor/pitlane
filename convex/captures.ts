@@ -13,8 +13,8 @@ import { resolveListingUrl } from "../shared/sources";
 // A shared listing URL: opens the car when it is already on the board, otherwise queues it.
 // Sharing the same listing again changes nothing.
 export const share = mutation({
-  args: { url: v.string() },
-  handler: async (ctx, { url }) => {
+  args: { url: v.string(), title: v.optional(v.string()) },
+  handler: async (ctx, { url, title }) => {
     const access = await viewerAccess(ctx);
     if (!access) throw appError("invalid", "Sign in first");
     const ref = resolveListingUrl(url);
@@ -24,7 +24,13 @@ export const share = mutation({
     const queued = await findRequest(ctx, access.boardId, ref);
     if (!queued) {
       const { source, externalId, canonicalUrl } = ref;
-      await ctx.db.insert("captureRequests", { boardId: access.boardId, source, externalId, url: canonicalUrl });
+      await ctx.db.insert("captureRequests", {
+        boardId: access.boardId,
+        source,
+        externalId,
+        url: canonicalUrl,
+        title: title?.trim().slice(0, 200) || undefined,
+      });
     }
     return { listingId: null };
   },
@@ -61,7 +67,7 @@ async function pendingCaptures(ctx: QueryCtx, boardId: Id<"boards">) {
     .collect();
   return requests
     .sort((a, b) => a._creationTime - b._creationTime)
-    .map((r) => ({ requestId: r._id, url: r.url, externalId: r.externalId, sharedAt: r._creationTime }));
+    .map((r) => ({ requestId: r._id, url: r.url, externalId: r.externalId, title: r.title ?? null, sharedAt: r._creationTime }));
 }
 
 // Called by every save, so a capture from any route clears the request.

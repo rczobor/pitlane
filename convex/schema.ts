@@ -88,5 +88,7 @@ export default defineSchema({
     source: v.string(),
     externalId: v.string(),
     url: v.string(),
+    // What the share sheet called it, usually the page title; untrusted, shown as text.
+    title: v.optional(v.string()),
   }).index("by_board_source_external", ["boardId", "source", "externalId"]),
 });
