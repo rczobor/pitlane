@@ -470,7 +470,7 @@ function LaneCount({
             {onScreen} of {total} on screen. Pick a car to jump to it.
           </SheetDescription>
         </SheetHeader>
-        <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
+        <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pt-1 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
           {listings.map((listing, index) => (
             <li key={listing.listingId}>
               <button
