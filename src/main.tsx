@@ -1,13 +1,20 @@
 import { ClerkProvider, useAuth } from "@clerk/react";
 import { shadcn } from "@clerk/ui/themes";
-import { createRootRoute, createRoute, createRouter, lazyRouteComponent, RouterProvider } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+  redirect,
+  RouterProvider,
+} from "@tanstack/react-router";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { AddCars } from "./AddCars";
 import { Board } from "./Board";
 import { Compare } from "./Compare";
-import { Connect } from "./Connect";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
 import { Settings } from "./Settings";
@@ -45,7 +52,15 @@ const mapRoute = createRoute({
   component: lazyRouteComponent(() => import("./MapPage"), "MapPage"),
 });
 const settingsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: Settings });
-const connectRoute = createRoute({ getParentRoute: () => rootRoute, path: "/connect", component: Connect });
+const addRoute = createRoute({ getParentRoute: () => rootRoute, path: "/add", component: AddCars });
+// The assistants' guide lived here before the extension joined it; old links and bookmarks still work.
+const connectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/connect",
+  beforeLoad: () => {
+    throw redirect({ to: "/add", replace: true });
+  },
+});
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
@@ -56,7 +71,17 @@ const listingRoute = createRoute({
   },
 });
 
-const router = createRouter({ routeTree: rootRoute.addChildren([boardRoute, listingRoute, compareRoute, mapRoute, settingsRoute, connectRoute]) });
+const router = createRouter({
+  routeTree: rootRoute.addChildren([
+    boardRoute,
+    listingRoute,
+    compareRoute,
+    mapRoute,
+    settingsRoute,
+    addRoute,
+    connectRoute,
+  ]),
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
