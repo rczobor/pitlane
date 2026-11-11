@@ -1,5 +1,5 @@
 import { Link, Navigate } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Import } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
@@ -21,16 +21,18 @@ export function Share({ title, text, url }: Shared) {
   // Browsers send the page title; some apps send the link there instead.
   const label = title?.replace(/https?:\/\/\S+/g, "").trim() || undefined;
   const share = useMutation(api.captures.share);
+  // A first sign-in sets the board up after this page renders; sharing waits for it.
+  const ready = !!useQuery(api.board.get);
   const [state, setState] = useState<State>({ kind: "saving" });
 
   const listingUrl = listing?.canonicalUrl;
   useEffect(() => {
-    if (!listingUrl) return;
+    if (!listingUrl || !ready) return;
     share({ url: listingUrl, title: label }).then(
       ({ listingId }) => setState(listingId ? { kind: "open", listingId } : { kind: "queued" }),
       () => setState({ kind: "failed" }),
     );
-  }, [listingUrl, label, share]);
+  }, [listingUrl, label, ready, share]);
 
   if (state.kind === "open") return <Navigate to="/listings/$listingId" params={{ listingId: state.listingId }} replace />;
 

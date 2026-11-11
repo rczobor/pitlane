@@ -166,7 +166,7 @@ on audience claims and client ID metadata documents. Preview deployments are not
 registered, so connect Claude to dev or production.
 
 Tools: `save_listing`, `mark_listing_removed`, `list_due_rechecks`,
-`report_check_failed`, `list_listings`, `get_listing`.
+`report_check_failed`, `list_pending_captures`, `list_listings`, `get_listing`.
 
 To re-check, ask Claude to "re-check my Pitlane listings": it asks for the due
 list, opens each page and saves it again. A listing is due a day after its last

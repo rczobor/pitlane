@@ -44,6 +44,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
         navigateFallback: "/index.html",
+        // The map chunk is close to the 2 MiB default. A chunk left out of the precache would
+        // be fetched from a newer deploy that no longer has it, and the map page would break.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),
   ],
