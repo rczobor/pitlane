@@ -349,7 +349,9 @@ function LaneIndex({
     // never falls through between ticks and the strip stays open while it sweeps along them.
     <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6">
       {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
-      <div className="pointer-events-auto absolute bottom-full left-0 hidden max-w-full pb-1 group-hover/index:block pointer-coarse:hidden">
+      {/* Opens after a short hover, so a pointer crossing the ticks on its way to a card does
+          not raise the strip under it. */}
+      <div className="pointer-events-auto invisible absolute bottom-full left-0 max-w-full pb-1 transition-[visibility] group-hover/index:visible group-hover/index:delay-150 pointer-coarse:hidden">
         {/* Tiles keep their width and wrap onto more rows in a long lane, rather than
             shrinking until prices and models no longer read. */}
         <div className="flex flex-wrap gap-1.5 rounded-lg bg-popover p-1.5 text-popover-foreground shadow-lg ring-1 ring-foreground/40">
@@ -616,9 +618,9 @@ function measureLane(lane: HTMLElement): LaneView | null {
 
 // A card cut near its end passes for a whole one, so the lane's last card on screen shows
 // about 40% of itself. Of the widths that do that within the card range, the widest one
-// no wider than usual wins, since more cars on screen beats bigger photos; a lane too narrow
-// for any keeps the usual width. The range and the usual width match --board-card in
-// styles.css.
+// no wider than usual wins, since more cars on screen beats bigger photos; when none is that
+// narrow, the narrowest one above usual does; a lane too narrow for any keeps the usual
+// width. The range and the usual width match --board-card in styles.css.
 function cardWidth(lane: HTMLElement) {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
   const [min, max] = [16 * rem, 22.5 * rem];
@@ -627,10 +629,12 @@ function cardWidth(lane: HTMLElement) {
   const gap = parseFloat(columnGap);
   const room = lane.clientWidth - parseFloat(paddingLeft);
   // More whole cards make each one narrower, so the first width at or under usual is the widest.
+  let wider = Infinity;
   for (let whole = 1; ; whole++) {
     const width = (room - whole * gap) / (whole + 0.4);
-    if (width < min) return usual;
+    if (width < min) return wider <= max ? wider : usual;
     if (width <= usual) return width;
+    wider = width;
   }
 }
 
