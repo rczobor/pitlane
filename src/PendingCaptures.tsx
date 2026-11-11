@@ -46,7 +46,7 @@ export function SharedListing({
 }) {
   return (
     <div className="min-w-0">
-      <p className="font-semibold">{title || `Listing ${externalId}`}</p>
+      <p className="font-medium">{title || `Listing ${externalId}`}</p>
       <p className="text-sm text-muted-foreground">
         <a href={url} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">
           Open listing

@@ -51,7 +51,7 @@ export function Share({ title, text, url }: Shared) {
             {(url || text) && (
               <figure className="space-y-1">
                 <figcaption className="text-sm text-muted-foreground">You shared</figcaption>
-                <blockquote className="border-l-2 pl-3 break-all">{url || text}</blockquote>
+                <blockquote className="border-l-2 border-muted-foreground pl-3 break-all">{url || text}</blockquote>
               </figure>
             )}
           </>
@@ -65,21 +65,21 @@ export function Share({ title, text, url }: Shared) {
             {state.kind === "queued" && (
               <>
                 <p>It waits at the top of your board. Once captured, it joins Watching.</p>
+                <p>Ask Claude or ChatGPT to capture it:</p>
+                <CopyField value="Capture my shared listings in Pitlane." />
                 <p>
-                  Ask Claude or ChatGPT to capture it, or open it on a computer and save it with the extension. Not set up
-                  yet?{" "}
+                  Or open it on a computer and capture it with the extension. Not set up yet?{" "}
                   <Link to="/add" className="whitespace-nowrap underline underline-offset-4">
                     <Import className="mr-1 inline size-4 align-[-0.125em]" aria-hidden />
                     Add cars
                   </Link>
                 </p>
-                <CopyField value="Capture my shared listings in Pitlane." />
               </>
             )}
           </>
         )}
         {(!listing || state.kind !== "saving") && (
-          <Link to="/" className={buttonVariants({ size: "lg" })}>
+          <Link to="/" className={buttonVariants({ variant: listing ? "outline" : "default", size: "lg" })}>
             Open board
           </Link>
         )}
