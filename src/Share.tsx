@@ -4,7 +4,7 @@ import { Import } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
-import { findListingUrl } from "../shared/sources";
+import { findListingUrl } from "./sharedText";
 import { CopyField } from "./AddCars";
 import { SharedListing } from "./PendingCaptures";
 import { Alert, AlertDescription } from "@/components/ui/alert";
