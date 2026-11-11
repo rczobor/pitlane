@@ -42,7 +42,7 @@ function SignedIn() {
 
   return (
     <>
-      <header className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8">
+      <header className="flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8">
         <Link
           to="/"
           className="condensed rounded-md bg-slab px-2 py-1 text-2xl leading-none font-extrabold tracking-tight text-slab-foreground"

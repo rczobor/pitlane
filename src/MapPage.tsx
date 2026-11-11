@@ -28,7 +28,7 @@ const placeKey = ({ lat, lng }: Point) => `${lat.toFixed(4)},${lng.toFixed(4)}`;
 export function MapPage() {
   const board = useQuery(api.board.get);
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+    <main className="px-4 pb-16 sm:px-8">
       <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
         <ArrowLeft data-icon="inline-start" aria-hidden />
         Board

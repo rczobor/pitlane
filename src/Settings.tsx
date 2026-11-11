@@ -19,7 +19,7 @@ import { preferenceLabel } from "./SpecEditor";
 export function Settings() {
   const board = useQuery(api.board.get);
   return (
-    <main className="mx-auto max-w-[1600px] px-4 pb-16 sm:px-8">
+    <main className="px-4 pb-16 sm:px-8">
       <div className="max-w-3xl">
         <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
           <ArrowLeft data-icon="inline-start" aria-hidden />
