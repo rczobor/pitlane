@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { findListingUrl } from "../shared/sources";
+import { CaptureHint, SharedListing } from "./PendingCaptures";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -40,10 +41,13 @@ export function Share({ title, text, url }: Shared) {
         {!listing ? (
           <>
             <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">Not a listing link</h1>
-            <p className="mt-2 text-muted-foreground">
-              Share a car's page from the listing site's app or your browser.
-            </p>
-            {(url || text) && <p className="mt-4 break-all text-sm">{url || text}</p>}
+            <p className="mt-2">Nothing was saved. Share a car's page from the listing site's app or your browser.</p>
+            {(url || text) && (
+              <figure className="mt-4 space-y-1">
+                <figcaption className="text-sm text-muted-foreground">You shared</figcaption>
+                <blockquote className="rounded-md border px-3 py-2 break-all">{url || text}</blockquote>
+              </figure>
+            )}
           </>
         ) : state.kind === "failed" ? (
           <Alert variant="destructive" className="mt-4">
@@ -52,13 +56,20 @@ export function Share({ title, text, url }: Shared) {
         ) : (
           <>
             <h1 className="condensed mt-4 text-4xl leading-none font-extrabold">
-              {state.kind === "queued" ? "Waiting for capture" : "Saving…"}
+              {state.kind === "queued" ? "Saved for capture" : "Saving…"}
             </h1>
+            <p className="mt-3">
+              <SharedListing url={listing.canonicalUrl} externalId={listing.externalId} />
+            </p>
             {state.kind === "queued" && (
-              <p className="mt-2 text-muted-foreground">
-                It shows on your board until it is captured. Ask Claude to capture your shared listings, or open it on
-                a computer and save it with the extension.
-              </p>
+              <>
+                <p className="mt-3">
+                  It waits at the top of your board, and joins Watching as a car once it is captured.
+                </p>
+                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-2">
+                  <CaptureHint />
+                </p>
+              </>
             )}
           </>
         )}
