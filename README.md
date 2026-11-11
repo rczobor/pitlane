@@ -141,9 +141,9 @@ production for the production site.
 
 The MCP server runs on Convex at `<CONVEX_SITE_URL>/mcp`. Add it in Claude under
 Customize → Connectors → Add custom connector, with the deployment's URL (for
-Claude Code: `claude mcp add --transport http pitlane <url>`). The app's "Connect Claude
-or ChatGPT" page (`/connect`, linked from Specs) shows the URL with these
-steps and ChatGPT's (Plugins → Add custom MCP server, OAuth). Claude signs in with
+Claude Code: `claude mcp add --transport http pitlane <url>`). The app's "Add cars"
+page (`/add`, in the header) shows the URL with these steps and ChatGPT's (Plugins →
+Add custom MCP server, OAuth). Claude signs in with
 OAuth: Clerk is the authorization server and shows a consent screen, and Convex
 checks Clerk's access tokens, whose audience must be that exact URL. A first
 connection sets the user up like a first sign-in on the web app. For now only the
@@ -178,7 +178,8 @@ the same browser (Clerk's sync host), and calls the Convex functions in
 [`convex/extension.ts`](convex/extension.ts), which share the agents' intake.
 
 To install it, download the zip from the latest `extension-v…`
-[release](https://github.com/rczobor/pitlane/releases) and unzip it into a folder
+[release](https://github.com/rczobor/pitlane/releases) (the app's "Add cars" page links
+it, with these steps) and unzip it into a folder
 you keep. In Chrome, open `chrome://extensions`, turn on Developer mode, choose
 **Load unpacked** and pick that folder. Then sign in to Pitlane in the same browser.
 To update, unzip the new version over the same folder and press reload on the

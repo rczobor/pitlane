@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Ban, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Ban, Import, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { ConvexError } from "convex/values";
 import { api } from "../convex/_generated/api";
@@ -34,15 +34,22 @@ export function Settings() {
       {board ? <SettingsForm board={board} /> : <Skeleton className="mt-8 h-96 max-w-3xl" />}
       <section aria-labelledby="agents-heading" className="mt-16 max-w-3xl space-y-3">
         <h2 id="agents-heading" className="font-semibold">
-          Claude and ChatGPT
+          Where cars come from
         </h2>
         <Separator />
+        {/* Names the ways in the order the Add cars page shows them: phones put the assistants first. */}
         <p className="text-sm text-muted-foreground">
-          Connect an assistant so it can save the listings you open and re-check them for you.
+          <span className="max-sm:hidden">
+            Save listings with the Chrome extension, or connect Claude or ChatGPT to save and re-check them for you.
+          </span>
+          <span className="sm:hidden">
+            Connect Claude or ChatGPT to save and re-check listings for you, or save them with the Chrome extension.
+          </span>
         </p>
-        <Link to="/connect" className={buttonVariants({ variant: "outline" })}>
-          Connect Claude or ChatGPT
-          <ArrowRight data-icon="inline-end" aria-hidden />
+        {/* The header's glyph for the same page, so it never reads as another "+ Add" form action. */}
+        <Link to="/add" className={buttonVariants({ variant: "outline" })}>
+          <Import data-icon="inline-start" aria-hidden />
+          Add cars
         </Link>
       </section>
     </main>

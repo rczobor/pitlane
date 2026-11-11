@@ -1,7 +1,7 @@
-import { SignIn, UserButton, useClerk } from "@clerk/react";
+import { SignIn, UserButton, useClerk, useUser } from "@clerk/react";
 import { Link, Outlet } from "@tanstack/react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Columns3, MapIcon, SlidersHorizontal } from "lucide-react";
+import { Columns3, Import, MapIcon, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +15,8 @@ export function Root() {
 
 function SignedIn() {
   const { signOut } = useClerk();
+  const { user } = useUser();
+  const name = user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress || "";
   const board = useQuery(api.board.get);
   const ensureUser = useMutation(api.users.ensureUser);
   const [failed, setFailed] = useState(false);
@@ -50,6 +52,15 @@ function SignedIn() {
         {/* Phones show the icons only; the labels stay for screen readers. */}
         <nav aria-label="Main" className="flex items-center gap-1">
           <Link
+            to="/add"
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}
+            activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
+          >
+            {/* Not a "+": it opens the setup guide, not a form to add one car. */}
+            <Import data-icon="inline-start" aria-hidden />
+            <span className="max-sm:sr-only">Add cars</span>
+          </Link>
+          <Link
             to="/compare"
             className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}
             activeProps={{ className: "underline underline-offset-4 max-sm:bg-muted" }}
@@ -74,7 +85,7 @@ function SignedIn() {
             <span className="max-sm:sr-only">Specs</span>
           </Link>
           <div className="ml-2 flex">
-            <UserButton />
+            <UserButton appearance={user && !user.hasImage ? inkAvatar(name.charAt(0).toUpperCase()) : undefined} />
           </div>
         </nav>
       </header>
@@ -98,4 +109,30 @@ function SignInScreen() {
       </div>
     </main>
   );
+}
+
+// Clerk draws a violet avatar for people without a photo: a second accent beside the signal
+// yellow. They get an ink disc with their initial instead (inverted in dark mode, like the
+// slabs), on the header button and in the menu it opens. A photo the user uploaded is shown
+// as it is.
+function inkAvatar(letter: string) {
+  const disc = (fontSize: string) => ({
+    backgroundColor: "var(--foreground)",
+    "&::after": {
+      content: JSON.stringify(letter),
+      margin: "auto",
+      color: "var(--background)",
+      fontFamily: "inherit",
+      fontSize,
+      fontWeight: 700,
+    },
+  });
+  return {
+    elements: {
+      userButtonAvatarImage: { display: "none" },
+      userButtonAvatarBox: disc("0.875rem"),
+      userPreviewAvatarImage: { display: "none" },
+      userPreviewAvatarBox: disc("1rem"),
+    },
+  };
 }
