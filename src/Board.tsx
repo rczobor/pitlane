@@ -417,13 +417,16 @@ function CarThumb({
         {listing.coverUrl ? (
           <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />
         ) : (
-          <ImageOff className="size-4" aria-hidden />
+          <span className="flex flex-col items-center gap-1">
+            <ImageOff className="size-4" aria-hidden />
+            {large && <span className="text-xs">No photo</span>}
+          </span>
         )}
       </span>
       <span className={cn("condensed truncate leading-none font-bold tabular-nums", large ? "text-base" : "text-xs")}>
         {formatPrice(listing.price)}
       </span>
-      {model && <span className="condensed line-clamp-2 text-xs leading-tight text-muted-foreground">{model}</span>}
+      {model && <span className="condensed line-clamp-2 text-xs leading-tight font-semibold">{model}</span>}
       {large && (
         <span className="truncate text-xs leading-tight text-muted-foreground tabular-nums">
           {formatRegistrationYear(listing.specs.firstRegistration)} · {formatKm(listing.specs.mileageKm)}
@@ -454,8 +457,11 @@ function LaneCount({
   const [open, setOpen] = useState(false);
   // The car picked in the sheet; the lane scrolls once the sheet has closed and released the
   // page's scroll lock.
-  const picked = useRef<number>(undefined);
+  const picked = useRef<string>(undefined);
   const total = listings.length;
+  // A lane that comes to fit (a resize, a car moved away) drops its sheet; it must not reopen
+  // on its own when the lane overflows again.
+  if (!view && open) setOpen(false);
   if (!view) {
     return (
       <p className="tabular-nums">
@@ -471,15 +477,16 @@ function LaneCount({
       open={open}
       onOpenChange={setOpen}
       onOpenChangeComplete={(isOpen) => {
-        if (isOpen || picked.current === undefined) return;
-        jump(picked.current);
+        // By car, not position: the lane can change while the sheet closes.
+        const index = listings.findIndex((listing) => listing.listingId === picked.current);
         picked.current = undefined;
+        if (!isOpen && index !== -1) jump(index);
       }}
     >
-      {/* A hairline pill with a grid mark says the count opens a list; the hit area reaches
-          past the pill to 44px. The numerals keep the lap board's size. */}
+      {/* A hairline plate with a grid mark says the count opens a list; its numerals sit on the
+          letter's edge and keep the lap board's size, and the hit area reaches past it to 44px+. */}
       <SheetTrigger
-        className="relative -ml-1.5 inline-flex items-baseline gap-1 rounded-full border border-current/35 px-2 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="relative -ml-1.75 inline-flex items-baseline gap-1 rounded-sm border border-current/60 px-1.5 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-2 after:-inset-y-3 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`${onScreen} of ${total} on screen. Show all ${total} cars in ${label}`}
       >
         <span className="condensed text-xl leading-none font-bold">{range}</span>
@@ -491,7 +498,10 @@ function LaneCount({
         <SheetHeader className="pb-0 sm:px-8">
           <div className="flex items-center gap-3">
             <SheetTitle className="leading-none">
-              <TierSlab tier={tier} className={cn("h-10 min-w-10 px-2", label.length === 1 ? "text-3xl" : "text-xl")} />
+              <span className="sr-only">{label} tier</span>
+              <span aria-hidden>
+                <TierSlab tier={tier} className={cn("h-10 min-w-10 px-2", label.length === 1 ? "text-3xl" : "text-xl")} />
+              </span>
             </SheetTitle>
             <p aria-hidden className="tabular-nums">
               <span className="condensed text-2xl leading-none font-bold">{range}</span>
@@ -502,7 +512,7 @@ function LaneCount({
             <span className="sr-only">
               {onScreen} of {total} on screen.{" "}
             </span>
-            Pick a car to jump to it.
+            Outlined cars are on screen. Pick one to jump to it.
           </SheetDescription>
         </SheetHeader>
         <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pt-1 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] sm:px-8">
@@ -512,7 +522,7 @@ function LaneCount({
                 type="button"
                 className="w-full rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                 onClick={() => {
-                  picked.current = index;
+                  picked.current = listing.listingId;
                   setOpen(false);
                 }}
               >
