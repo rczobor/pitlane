@@ -275,8 +275,6 @@ function Lane({
           />
         </div>
       </div>
-      {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
-      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         ref={frame}
         data-more-start={view?.start || undefined}
@@ -290,6 +288,8 @@ function Lane({
             which are on screen. The scroll padding keeps a card scrolled into view
             (by the arrows or by tabbing) clear of the fade. Phones fade less, so the peek of
             the next card stays legible. */}
+        {/* Middle-button panning is a mouse extra; the lane scrolls like any other. */}
+        {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div
           ref={lane}
           onMouseDown={panWithMiddleButton}
