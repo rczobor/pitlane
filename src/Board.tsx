@@ -18,15 +18,15 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, ChevronUp, Ellipsis, ImageOff, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ellipsis, ImageOff, LayoutGrid, Trash2, X } from "lucide-react";
 import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
-import { type BoardData, type BoardListing, formatPrice, type Tier, tiers } from "./format";
+import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistrationYear, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard } from "./ListingCard";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
-import { slabColor } from "./TierSlab";
+import { slabColor, TierSlab } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -266,6 +266,7 @@ function Lane({
         {/* Pinned to the slab's foot, so it sits in the same place whatever the label. */}
         <div className="sm:mt-auto sm:pt-3">
           <LaneCount
+            tier={tier}
             label={label}
             listings={listings}
             view={view}
@@ -393,7 +394,18 @@ function LaneIndex({
 
 // A car in the lane's photo index: photo (or the no-photo mark), price and model. The cars
 // on screen are outlined in ink, as their ticks are filled.
-function CarThumb({ listing, model, shown }: { listing: BoardListing; model: string | undefined; shown: boolean }) {
+// The sheet's tiles are larger and add year and mileage: its cars are often alike to the eye.
+function CarThumb({
+  listing,
+  model,
+  shown,
+  large = false,
+}: {
+  listing: BoardListing;
+  model: string | undefined;
+  shown: boolean;
+  large?: boolean;
+}) {
   return (
     <span className="flex flex-col gap-1">
       <span
@@ -408,8 +420,15 @@ function CarThumb({ listing, model, shown }: { listing: BoardListing; model: str
           <ImageOff className="size-4" aria-hidden />
         )}
       </span>
-      <span className="condensed truncate text-xs leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
+      <span className={cn("condensed truncate leading-none font-bold tabular-nums", large ? "text-base" : "text-xs")}>
+        {formatPrice(listing.price)}
+      </span>
       {model && <span className="condensed line-clamp-2 text-xs leading-tight text-muted-foreground">{model}</span>}
+      {large && (
+        <span className="truncate text-xs leading-tight text-muted-foreground tabular-nums">
+          {formatRegistrationYear(listing.specs.firstRegistration)} · {formatKm(listing.specs.mileageKm)}
+        </span>
+      )}
     </span>
   );
 }
@@ -418,12 +437,14 @@ function CarThumb({ listing, model, shown }: { listing: BoardListing; model: str
 // fits. A lane that hides cars makes the count a button that lists every car in a sheet, so a
 // phone (no hover strip) and the keyboard can find one and jump to it.
 function LaneCount({
+  tier,
   label,
   listings,
   view,
   jump,
   modelName,
 }: {
+  tier: Tier;
   label: string;
   listings: BoardListing[];
   view: LaneView | null;
@@ -455,22 +476,36 @@ function LaneCount({
         picked.current = undefined;
       }}
     >
+      {/* A hairline pill with a grid mark says the count opens a list; the hit area reaches
+          past the pill to 44px. The numerals keep the lap board's size. */}
       <SheetTrigger
-        className="-mx-1 inline-flex items-baseline gap-1 rounded-sm px-1 tabular-nums outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="relative -ml-2.5 inline-flex items-baseline gap-1 rounded-full border border-current/35 px-2 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`${onScreen} of ${total} on screen. Show all ${total} cars in ${label}`}
       >
         <span className="condensed text-xl leading-none font-bold">{range}</span>
         <span className="condensed leading-none font-bold opacity-75 dark:opacity-100">/{total}</span>
-        <ChevronUp className="size-3.5 self-center opacity-75 dark:opacity-100" aria-hidden />
+        <LayoutGrid className="size-3.5 self-center opacity-75 dark:opacity-100" aria-hidden />
       </SheetTrigger>
       <SheetContent side="bottom" className="max-h-[80dvh]">
-        <SheetHeader className="pb-0">
-          <SheetTitle className="condensed text-2xl font-extrabold">{label}</SheetTitle>
+        {/* Headed by the tier's slab with the same lap board, so the list reads as this lane. */}
+        <SheetHeader className="pb-0 sm:px-8">
+          <div className="flex items-center gap-3">
+            <SheetTitle className="leading-none">
+              <TierSlab tier={tier} className={cn("h-10 min-w-10 px-2", label.length === 1 ? "text-3xl" : "text-xl")} />
+            </SheetTitle>
+            <p aria-hidden className="tabular-nums">
+              <span className="condensed text-2xl leading-none font-bold">{range}</span>
+              <span className="condensed text-base leading-none font-bold text-muted-foreground"> /{total}</span>
+            </p>
+          </div>
           <SheetDescription>
-            {onScreen} of {total} on screen. Pick a car to jump to it.
+            <span className="sr-only">
+              {onScreen} of {total} on screen.{" "}
+            </span>
+            Pick a car to jump to it.
           </SheetDescription>
         </SheetHeader>
-        <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pt-1 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
+        <ul className="grid grid-cols-3 gap-3 overflow-y-auto px-4 pt-1 pb-6 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] sm:px-8">
           {listings.map((listing, index) => (
             <li key={listing.listingId}>
               <button
@@ -489,6 +524,7 @@ function LaneCount({
                     listing={listing}
                     model={modelName(listing)}
                     shown={index >= view.first && index <= view.last}
+                    large
                   />
                 </span>
               </button>
