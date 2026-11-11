@@ -479,7 +479,7 @@ function LaneCount({
       {/* A hairline pill with a grid mark says the count opens a list; the hit area reaches
           past the pill to 44px. The numerals keep the lap board's size. */}
       <SheetTrigger
-        className="relative -ml-2.5 inline-flex items-baseline gap-1 rounded-full border border-current/35 px-2 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="relative -ml-1.5 inline-flex items-baseline gap-1 rounded-full border border-current/35 px-2 py-0.5 tabular-nums outline-none after:absolute after:-inset-x-1 after:-inset-y-2.5 hover:bg-current/10 focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`${onScreen} of ${total} on screen. Show all ${total} cars in ${label}`}
       >
         <span className="condensed text-xl leading-none font-bold">{range}</span>
