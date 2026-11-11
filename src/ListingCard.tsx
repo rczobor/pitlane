@@ -39,8 +39,11 @@ export function ListingCard({
   lifted = false,
   preview = false,
   showTier = false,
+  className,
 }: CardProps & {
   listing: BoardListing;
+  /** Overrides the card's width. */
+  className?: string;
   lifted?: boolean;
   /** Off the board (the map), where no lane says the car's tier. */
   showTier?: boolean;
@@ -151,8 +154,8 @@ export function ListingCard({
       </Card>
     </>
   );
-  // Cards grow on wide screens so photos use the lane, within a readable range.
-  const frame = "block w-[clamp(16rem,22vw,22.5rem)] shrink-0 rounded-lg";
+  // Full height, so cards in one row of a lane end together.
+  const frame = cn("block h-full w-(--board-card) shrink-0 rounded-lg", className);
   return preview ? (
     <div className={frame}>{card}</div>
   ) : (
