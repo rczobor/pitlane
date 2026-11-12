@@ -232,9 +232,9 @@ per branch for PR previews.
 
 [`vercel.json`](vercel.json) makes each Vercel build deploy the Convex functions
 first, then build the app against that deployment's URL, so the two never drift
-apart. `CONVEX_DEPLOY_KEY` in Vercel picks the target: the production deploy key
-for Production, and the project's preview deploy key for Preview (both from the
-Convex project settings). The preview cleanup workflow uses its own preview deploy
+apart. `CONVEX_DEPLOY_KEY` in Vercel picks the target: the production
+deployment's deploy key for Production, and a preview deploy key from the Convex
+project settings for Preview. The preview cleanup workflow uses its own preview deploy
 key, the `CONVEX_PREVIEW_DEPLOY_KEY` repository secret. Every path is served
 `index.html` so deep links survive a reload.
 
