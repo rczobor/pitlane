@@ -5,7 +5,9 @@ name: Convex preview cleanup
 # days later, and a full limit fails the Vercel build. Closing a pull request deletes
 # its branch's preview.
 on:
-  pull_request:
+  # Unlike pull_request, this runs main's copy of the workflow and also runs for a PR
+  # with merge conflicts. It is safe only because the job runs no code from the PR.
+  pull_request_target:
     types:
       - closed
 
@@ -13,7 +15,8 @@ permissions: {}
 
 jobs:
   delete-preview:
-    # A fork's branch has no preview here, and its runs get no secrets.
+    # pull_request_target hands secrets to fork PRs too. A fork's branch has no
+    # preview here.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
