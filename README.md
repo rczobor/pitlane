@@ -228,7 +228,8 @@ find stays empty for you to fill in.
 The web app is a static build on Vercel; Convex hosts everything else. One
 Convex project holds every deployment: your own dev deployment for local work
 (`pnpm dev`), production for the Vercel production site, and a preview deployment
-per branch for PR previews.
+per branch for each Vercel preview. Only `main` deploys on push; previews are
+deployed on request (see [AGENTS.md](AGENTS.md#previews)).
 
 [`vercel.json`](vercel.json) makes each Vercel build deploy the Convex functions
 first, then build the app against that deployment's URL, so the two never drift
