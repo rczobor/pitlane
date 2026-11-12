@@ -68,7 +68,16 @@ export function ListingCard({
     listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
   const card = (
     <>
-      <Card size="sm" className={cn("h-full rounded-lg pt-0", lifted && "rotate-1 shadow-xl")}>
+      {/* A removed car keeps only its outline on the board, so it reads as gone at a glance.
+          Lifted, it floats over other cards, so it takes its fill back. */}
+      <Card
+        size="sm"
+        className={cn(
+          "h-full rounded-lg pt-0",
+          removed && "bg-transparent text-muted-foreground",
+          lifted && "rotate-1 bg-card shadow-xl",
+        )}
+      >
         {/* overflow-hidden lets aspect-ratio win over a photo's natural height. */}
         <div className="relative aspect-video shrink-0 overflow-hidden bg-muted">
           {listing.coverUrl ? (
@@ -80,18 +89,24 @@ export function ListingCard({
               className={cn("size-full object-cover", removed && "grayscale")}
             />
           ) : (
-            <NoPhoto />
+            // The removed stamp takes the empty panel's place.
+            !removed && <NoPhoto />
+          )}
+          {/* The overlay, not a photo filter, darkens the panel, so the white stamp also reads
+              on a car without a photo. */}
+          {removed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 text-white">
+              <p className="condensed -rotate-3 border-2 border-current px-3 pt-1 pb-0.5 text-3xl leading-none font-bold tracking-wide uppercase">
+                Ad removed
+              </p>
+              {listing.removedAt && <p className="text-xs font-semibold">{formatDate(listing.removedAt)}</p>}
+            </div>
           )}
           {showTier && (
             <TierSlab
               tier={listing.tier}
               className={cn("absolute top-2 left-2 h-8 min-w-8 px-2", listing.tier.length === 1 ? "text-2xl" : "text-base")}
             />
-          )}
-          {removed && (
-            <p className="absolute inset-x-0 bottom-0 bg-slab px-3 py-1 text-xs font-semibold text-slab-foreground">
-              Ad removed{listing.removedAt && ` ${formatDate(listing.removedAt)}`}
-            </p>
           )}
         </div>
         <CardHeader>
@@ -150,7 +165,7 @@ export function ListingCard({
               )}
             </div>
           </div>
-          <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} />
+          <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} className={cn(removed && "opacity-50")} />
           {dealBreakers.length > 0 && (
             <p className="flex items-center gap-1 text-xs font-semibold text-destructive">
               <Ban className="size-3.5 shrink-0" aria-hidden />
