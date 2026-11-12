@@ -14,7 +14,8 @@ import { listingSite } from "../shared/sources";
 
 // Photos are not part of the repository: `scripts/dev-design.sh` passes listing photo
 // URLs from a local file (PITLANE_FIXTURE_PHOTOS). Without them every car shows the
-// "No photo saved" panel. Each car takes `count` photos starting at slot `from`.
+// "No photo saved" panel. Each car takes `count` photos starting at slot `from`, wrapping
+// round the file; a repeat gets a fragment, since a listing stores each URL once.
 type PhotoSlots = { from: number; count?: number };
 
 type FixtureCar = {
@@ -82,7 +83,8 @@ const cars: FixtureCar[] = [
         from: "de",
         text: "Porsche Approved warranty until 09.2027. Full service history (stamped service book), accident-free. New brakes and tyres at the last service.\n\nViewing by appointment only.",
       },
-      photos: { from: 0, count: 12 },
+      // A long gallery, like the many-photo listings the thumbnail strip has to cope with.
+      photos: { from: 0, count: 24 },
     },
   },
   {
@@ -297,7 +299,11 @@ const toListing = ({ data: { photos, ...data } }: FixtureCar, amount: number, ph
   ...data,
   photoUrls:
     photos && photoUrls.length > 0
-      ? Array.from({ length: photos.count ?? 4 }, (_, i) => photoUrls[(photos.from + i) % photoUrls.length])
+      ? Array.from({ length: photos.count ?? 4 }, (_, i) => {
+          const slot = photos.from + i;
+          const lap = Math.floor(slot / photoUrls.length);
+          return photoUrls[slot % photoUrls.length] + (lap > 0 ? `#${lap + 1}` : "");
+        })
       : [],
   price: { currency: "EUR", ...data.price, amount },
   seller: { type: "dealer", country: "DE", ...data.seller },

@@ -203,7 +203,12 @@ export function OtherChoice({ onAdd }: { onAdd: (value: string) => void }) {
         aria-label="New value"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        onKeyDown={(event) => event.key === "Escape" && setOpen(false)}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          // Closes only the field, not the full-screen viewer it can sit in.
+          event.stopPropagation();
+          setOpen(false);
+        }}
         placeholder="New value"
         maxLength={60}
         className="h-10 w-36 sm:h-8"

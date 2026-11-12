@@ -9,8 +9,15 @@
 @source not "../.agents";
 @source not "../.claude";
 
-/* Dark mode follows the system setting. */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* Dark mode follows the system setting. The photo viewer (on-black) is dark in either theme. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    @slot;
+  }
+  &:where(.on-black, .on-black *) {
+    @slot;
+  }
+}
 
 /* Pit-wall palette: concrete ground, asphalt ink, pit-board slabs, one signal yellow.
    shadcn components read the standard tokens; slab and signal are ours. */
@@ -96,6 +103,38 @@
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
+  --animate-hint-out: hint-out 400ms 3s forwards;
+}
+
+/* The photo viewer is black in either theme, so it takes the dark theme's tokens (keep these
+   in step with the dark block above); the dark variant applies inside it too. */
+@utility on-black {
+  color-scheme: dark;
+  --background: #1d2023;
+  --foreground: #ebece8;
+  --card: #292d31;
+  --card-foreground: #ebece8;
+  --popover: #292d31;
+  --popover-foreground: #ebece8;
+  --primary: #ebece8;
+  --primary-foreground: #1d2023;
+  --secondary: #343a3f;
+  --secondary-foreground: #ebece8;
+  --muted: #343a3f;
+  --muted-foreground: #a2a8ad;
+  --accent: #343a3f;
+  --accent-foreground: #ebece8;
+  --destructive: #f2867e;
+  --border: #3b4146;
+  --input: #4a5157;
+}
+
+/* The viewer's zoom hint shows for a few seconds, then gets out of the photo's way. */
+@keyframes hint-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 @utility condensed {
