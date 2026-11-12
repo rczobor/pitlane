@@ -13,7 +13,7 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AddCars } from "./AddCars";
-import { Board } from "./Board";
+import { Board, type BoardSearch } from "./Board";
 import { Compare } from "./Compare";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
@@ -28,7 +28,7 @@ const rootRoute = createRootRoute({ component: Root });
 const boardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  validateSearch: (search: Record<string, unknown>): { model?: string; check?: true } => ({
+  validateSearch: (search: Record<string, unknown>): BoardSearch => ({
     ...(typeof search.model === "string" && { model: search.model }),
     ...(search.check === true && { check: true }),
   }),
