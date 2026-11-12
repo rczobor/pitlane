@@ -184,9 +184,10 @@ export function ListingPage({ listingId }: { listingId: string }) {
               ))}
             </ToggleGroup>
           </div>
-          {/* The cue that something still needs a look; opens the photo-side checker. */}
+          {/* The cue that something still needs a look; opens the photo-side checker. Wide
+              screens only: a phone confirms specs in the key specs section below. */}
           {board && unchecked > 0 && (
-            <Button variant="outline" onClick={() => setChecking(true)}>
+            <Button variant="outline" onClick={() => setChecking(true)} className="max-sm:hidden">
               <ScanSearch data-icon="inline-start" aria-hidden />
               Check {unchecked === 1 ? "1 key spec" : `${unchecked} key specs`}
             </Button>

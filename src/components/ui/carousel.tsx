@@ -75,6 +75,8 @@ function Carousel({
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // The arrows move the caret in a field inside the carousel (check mode's new value).
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
       if (event.key === "ArrowLeft") {
         event.preventDefault()
         scrollPrev()

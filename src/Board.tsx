@@ -18,8 +18,8 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight, Ellipsis, ImageOff, LayoutGrid, Trash2, X } from "lucide-react";
-import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject, type SyntheticEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Ellipsis, ImageOff, LayoutGrid, Trash2, X } from "lucide-react";
+import { type RefObject, type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
@@ -27,6 +27,7 @@ import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistr
 import { type CardProps, ListingCard } from "./ListingCard";
 import { PendingCaptures } from "./PendingCaptures";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
+import { jumpTo, panWithMiddleButton, StripArrow, StripTicks, type StripView, stripEnds, stripFade, usePointed, useStrip } from "./Strip";
 import { slabColor, TierSlab } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -255,7 +256,7 @@ function Lane({
   onRemove: (car: RemovableCar) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: tier });
-  const { frame, lane, view } = useLaneScroll(listings.length);
+  const { frame, row: lane, view } = useStrip(listings.length, fitCards);
   const isLetter = label.length === 1;
   return (
     <section
@@ -290,10 +291,9 @@ function Lane({
       </div>
       <div
         ref={frame}
-        data-more-start={view?.start || undefined}
-        data-more-end={view?.end || undefined}
+        {...stripEnds(view)}
         className={cn(
-          "group/lane relative flex min-w-0 flex-1 rounded-b-lg transition-colors sm:rounded-r-lg sm:rounded-bl-none",
+          "group/strip relative flex min-w-0 flex-1 rounded-b-lg transition-colors sm:rounded-r-lg sm:rounded-bl-none",
           target && "bg-muted",
         )}
       >
@@ -306,7 +306,10 @@ function Lane({
         <div
           ref={lane}
           onMouseDown={panWithMiddleButton}
-          className="relative flex min-h-20 flex-1 scroll-px-6 gap-3 overflow-x-auto p-3 [--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] [--fade:1.5rem] group-data-more-end/lane:[--fade-end:var(--fade)] group-data-more-start/lane:[--fade-start:var(--fade)] sm:min-h-44 sm:scroll-px-16 sm:[--fade:4rem]"
+          className={cn(
+            "relative flex min-h-20 flex-1 scroll-px-6 gap-3 overflow-x-auto p-3 [--fade:1.5rem] sm:min-h-44 sm:scroll-px-16 sm:[--fade:4rem]",
+            stripFade,
+          )}
         >
           <SortableContext items={listings.map((l) => l.listingId)}>
             {listings.map((listing) => (
@@ -319,8 +322,9 @@ function Lane({
             </p>
           )}
         </div>
-        <LaneArrow direction="back" onClick={() => lane.current && pageLane(lane.current, "back")} />
-        <LaneArrow direction="forward" onClick={() => lane.current && pageLane(lane.current, "forward")} />
+        {/* Centred on the photos (16:9, below the lane's padding), clear of prices and titles. */}
+        <StripArrow direction="back" row={lane} className="top-[calc(0.75rem+var(--board-card)*9/32)]" />
+        <StripArrow direction="forward" row={lane} className="top-[calc(0.75rem+var(--board-card)*9/32)]" />
         {view && (
           <LaneIndex listings={listings} view={view} lane={lane} modelName={(listing) => cardProps(listing).modelName} />
         )}
@@ -329,12 +333,10 @@ function Lane({
   );
 }
 
-// One tick per car under a lane that hides cars, filled for the cars on screen; a click
-// brings that car into view. A compact index from the lane's start, so no tick reads as the
-// card above it; ticks shrink only when a long lane would not fit them. The click area
-// reaches into the gap below the lane, so it is 24px tall without covering the cards.
+// The ticks under a lane that hides cars (see StripTicks). Their click area reaches into the
+// gap below the lane, so it is 24px tall without covering the cards.
 // Under a mouse, hovering the ticks opens a strip of the cars' photos and prices, so the
-// user can aim at a car by sight; touch screens tap the ticks.
+// user can aim at a car by sight; touch screens tap the ticks (phones get the rail instead).
 function LaneIndex({
   listings,
   view,
@@ -342,24 +344,19 @@ function LaneIndex({
   modelName,
 }: {
   listings: BoardListing[];
-  view: LaneView;
+  view: StripView;
   lane: RefObject<HTMLDivElement | null>;
   /** Undefined when the board shows one model. */
   modelName: (listing: BoardListing) => string | undefined;
 }) {
   // The car under the pointer, marked on both its tick and its photo: the strip's photos are
   // wider than the ticks, so the two rows do not line up.
-  const [pointed, setPointed] = useState<number>();
+  const [pointed, point] = usePointed();
   const jump = (index: number) => jumpTo(lane.current, index);
   const shown = (index: number) => index >= view.first && index <= view.last;
-  // Only a mouse points: a tap would leave its tick marked.
-  const point = (index: number) => ({
-    onPointerEnter: (event: ReactPointerEvent) => event.pointerType === "mouse" && setPointed(index),
-    onPointerLeave: () => setPointed((current) => (current === index ? undefined : current)),
-  });
   return (
-    // No gap between the ticks' click areas (the gap is padding inside each), so the pointer
-    // never falls through between ticks and the strip stays open while it sweeps along them.
+    // The ticks leave no gap between their click areas, so the strip stays open while the
+    // pointer sweeps along them.
     <div aria-hidden className="group/index pointer-events-none absolute inset-x-3 -bottom-3 flex h-6">
       {/* Bottom padding, not a margin, so the pointer keeps the hover on its way up. */}
       {/* Opens after a short hover, so a pointer crossing the ticks on its way to a card does
@@ -386,25 +383,7 @@ function LaneIndex({
           ))}
         </div>
       </div>
-      {listings.map((listing, index) => (
-        <button
-          key={listing.listingId}
-          type="button"
-          tabIndex={-1}
-          onClick={() => jump(index)}
-          {...point(index)}
-          className="pointer-events-auto flex max-w-7 min-w-0 flex-1 items-end pr-1 pb-4"
-        >
-          <span
-            className={cn(
-              "h-1 w-full rounded-full bg-foreground/55",
-              shown(index) && "bg-foreground",
-              // The pointed tick grows, keeping its on/off fill; only where a fine pointer points.
-              pointed === index && "pointer-fine:h-2",
-            )}
-          />
-        </button>
-      ))}
+      <StripTicks count={listings.length} view={view} jump={jump} pointed={pointed} point={point} />
     </div>
   );
 }
@@ -469,7 +448,7 @@ function LaneCount({
   tier: Tier;
   label: string;
   listings: BoardListing[];
-  view: LaneView | null;
+  view: StripView | null;
   jump: (index: number) => void;
   modelName: (listing: BoardListing) => string | undefined;
 }) {
@@ -568,82 +547,15 @@ function LaneCount({
   );
 }
 
-// Brings a lane's car into view, clear of the fades (the lane's scroll padding).
-function jumpTo(lane: HTMLElement | null, index: number) {
-  lane?.children[index]?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "nearest" });
-}
-
-// What a lane that hides cars shows: whether cars are hidden at each end, and the first and
-// last car on screen (at least half clear of the fades, or else the most visible one), and the
-// scroll as a car index, from the first car at the start to the last at the end. Null when
-// every car fits.
-type LaneView = { start: boolean; end: boolean; first: number; last: number; position: number };
-
-// Measures the lane on scroll and resize, and sizes its cards. Re-renders only when the view
-// changes, not on every scroll event. `cars` re-measures when cars come or go: the lane's
-// own box keeps its size.
-function useLaneScroll(cars: number) {
-  const frame = useRef<HTMLDivElement>(null);
-  const lane = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState<LaneView | null>(null);
-  useLayoutEffect(() => {
-    const frameEl = frame.current;
-    const laneEl = lane.current;
-    if (!frameEl || !laneEl) return;
-    const update = () => {
-      const next = measureLane(laneEl);
-      setView((current) =>
-        current && next && (Object.keys(next) as (keyof LaneView)[]).every((key) => current[key] === next[key])
-          ? current
-          : next,
-      );
-    };
-    const fit = () => {
-      frameEl.style.setProperty("--board-card", `${cardWidth(laneEl)}px`);
-      update();
-    };
-    // Once now, so the first paint already shows the count, fades and ticks.
-    fit();
-    const resize = new ResizeObserver(fit);
-    resize.observe(laneEl);
-    laneEl.addEventListener("scroll", update, { passive: true });
-    return () => {
-      laneEl.removeEventListener("scroll", update);
-      resize.disconnect();
-    };
-  }, [cars]);
-  return { frame, lane, view };
-}
-
-function measureLane(lane: HTMLElement): LaneView | null {
-  const hidden = lane.scrollWidth - lane.clientWidth;
-  if (hidden <= 1) return null;
-  const start = lane.scrollLeft > 1;
-  const end = lane.scrollLeft < hidden - 1;
-  // The scroll padding is the fade's width.
-  const box = lane.getBoundingClientRect();
-  const { scrollPaddingLeft, scrollPaddingRight } = getComputedStyle(lane);
-  const from = box.left + (start ? parseFloat(scrollPaddingLeft) : 0);
-  const to = box.right - (end ? parseFloat(scrollPaddingRight) : 0);
-  const clear = [...lane.children].map((card) => {
-    const { left, right, width } = card.getBoundingClientRect();
-    return Math.max(0, Math.min(right, to) - Math.max(left, from)) / width;
-  });
-  const shown = clear.flatMap((part, index) => (part >= 0.5 ? [index] : []));
-  if (shown.length === 0) shown.push(clear.indexOf(Math.max(...clear)));
-  // Rounded, so a lane about one card wide reads the car at its start after a jump. The ends
-  // come from the same 1px tolerance as `start` and `end`, so the count reads the last car
-  // once the end fade goes.
-  const progress = !start ? 0 : !end ? 1 : lane.scrollLeft / hidden;
-  const position = Math.round(progress * (clear.length - 1));
-  return { start, end, first: shown[0], last: shown[shown.length - 1], position };
-}
-
 // A card cut near its end passes for a whole one, so the lane's last card on screen shows
 // about 40% of itself. Of the widths that do that within the card range, the widest one
 // no wider than usual wins, since more cars on screen beats bigger photos; when none is that
 // narrow, the narrowest one above usual does; a lane too narrow for any keeps the usual
 // width. The range and the usual width match --board-card in styles.css.
+function fitCards(frame: HTMLElement, lane: HTMLElement) {
+  frame.style.setProperty("--board-card", `${cardWidth(lane)}px`);
+}
+
 function cardWidth(lane: HTMLElement) {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
   const [min, max] = [16 * rem, 22.5 * rem];
@@ -661,54 +573,6 @@ function cardWidth(lane: HTMLElement) {
   }
 }
 
-function scrollBehavior(): ScrollBehavior {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
-}
-
-// Brings the next cars into view: the card cut off at that end moves to the other end, so
-// the user keeps one card of context.
-function pageLane(lane: HTMLElement, direction: "back" | "forward") {
-  const view = lane.getBoundingClientRect();
-  const { scrollPaddingLeft, scrollPaddingRight } = getComputedStyle(lane);
-  const start = view.left + parseFloat(scrollPaddingLeft);
-  const end = view.right - parseFloat(scrollPaddingRight);
-  const cards = [...lane.children];
-  const target =
-    direction === "forward"
-      ? cards.find((card) => card.getBoundingClientRect().right > end + 1)
-      : cards.findLast((card) => card.getBoundingClientRect().left < start - 1);
-  target?.scrollIntoView({
-    behavior: scrollBehavior(),
-    block: "nearest",
-    inline: direction === "forward" ? "start" : "end",
-  });
-}
-
-// Shown while the mouse is over a lane that hides cars at that end. An opaque fill and an
-// ink border keep it visible on pale photos under the fade. Tabbing through the
-// cards already scrolls the lane, so the arrows are for the mouse only; touch screens swipe.
-function LaneArrow({ direction, onClick }: { direction: "back" | "forward"; onClick: () => void }) {
-  const Icon = direction === "back" ? ChevronLeft : ChevronRight;
-  return (
-    <Button
-      variant="outline"
-      size="icon-lg"
-      tabIndex={-1}
-      aria-hidden
-      onClick={onClick}
-      className={cn(
-        // Centred on the photos (16:9, below the lane's padding), clear of prices and titles.
-        // A negative margin centres it, not a translate: the button's pressed state sets the
-        // translate, and the jump would move the release off the button and lose the click.
-        "invisible absolute top-[calc(0.75rem+var(--board-card)*9/32)] -mt-5 size-10 border-foreground/30 bg-card shadow-sm opacity-0 dark:border-foreground/30 dark:bg-card transition-opacity group-hover/lane:opacity-100 pointer-coarse:hidden",
-        direction === "back" ? "left-2 group-data-more-start/lane:visible" : "right-2 group-data-more-end/lane:visible",
-      )}
-    >
-      <Icon aria-hidden />
-    </Button>
-  );
-}
-
 // dnd-kit's MouseSensor only ignores the right button, so the middle button would drag
 // a car; it pans the lane instead (see panWithMiddleButton).
 class LeftMouseSensor extends MouseSensor {
@@ -716,37 +580,6 @@ class LeftMouseSensor extends MouseSensor {
     ...activator,
     handler: (event, options) => event.nativeEvent.button === 0 && activator.handler(event, options),
   }));
-}
-
-// Holding the middle button and moving the mouse drags a lane sideways, so a long lane
-// scrolls without a horizontal wheel or the scrollbar.
-function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
-  if (event.button !== 1) return;
-  // Stops the browser's own autoscroll and, on Linux, pasting the primary selection.
-  event.preventDefault();
-  const lane = event.currentTarget;
-  const startX = event.clientX;
-  const startScroll = lane.scrollLeft;
-  let panned = false;
-  const onMove = (move: MouseEvent) => {
-    const dx = move.clientX - startX;
-    if (!panned && Math.abs(dx) < 4) return;
-    panned = true;
-    lane.scrollLeft = startScroll - dx;
-  };
-  const onUp = (up: MouseEvent) => {
-    if (up.button !== 1) return;
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-    if (!panned) return;
-    // A middle click on a car opens it in a new tab; after a pan it should not. The
-    // auxclick follows this mouseup in the same task, if it fires at all.
-    const swallow = (click: MouseEvent) => click.preventDefault();
-    window.addEventListener("auxclick", swallow, { capture: true, once: true });
-    setTimeout(() => window.removeEventListener("auxclick", swallow, { capture: true }));
-  };
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
 }
 
 function SortableCard({
