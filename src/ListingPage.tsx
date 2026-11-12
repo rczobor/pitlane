@@ -21,6 +21,7 @@ import {
   tiers,
 } from "./format";
 import { toCheck } from "../shared/fit";
+import { lastBoardSearch } from "./Board";
 import { CheckMode } from "./CheckMode";
 import { FitList } from "./Fit";
 import { Gallery, galleryColumns, useTheatre } from "./Gallery";
@@ -246,7 +247,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
               open={removeOpen}
               onOpenChange={setRemoveOpen}
               onLeaving={setLeaving}
-              onRemoved={() => navigate({ to: "/", replace: true })}
+              onRemoved={() => navigate({ to: "/", search: lastBoardSearch(), replace: true })}
             />
           </div>
 
@@ -387,7 +388,7 @@ function Description({ original, translation }: { original: string; translation?
 
 function BackLink() {
   return (
-    <Link to="/" className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
+    <Link to="/" search={lastBoardSearch()} className={buttonVariants({ variant: "ghost", className: "-ml-2.5" })}>
       <ArrowLeft data-icon="inline-start" aria-hidden />
       Board
     </Link>

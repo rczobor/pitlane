@@ -36,9 +36,19 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
+export type BoardSearch = { model?: string; check?: true };
+
+// The filter the board was last shown with, so a car's page leads back to the same view.
+let lastSearch: BoardSearch = {};
+export const lastBoardSearch = () => lastSearch;
+
 export function Board() {
   const board = useQuery(api.board.get);
-  const { model, check } = useSearch({ from: "/" });
+  const search = useSearch({ from: "/" });
+  const { model, check } = search;
+  useEffect(() => {
+    lastSearch = search;
+  }, [search]);
   const move = useMoveListing();
   const [activeId, setActiveId] = useState<Id<"listings"> | null>(null);
   // While a car is dragged, each lane's car ids, with the dragged car in the lane under the
