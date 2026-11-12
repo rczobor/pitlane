@@ -220,6 +220,11 @@ export function StripTicks({
   );
 }
 
+// Shows the grabbing hand everywhere until the drop, not only over what is dragged.
+export function grabbing(on: boolean) {
+  document.documentElement.toggleAttribute("data-grabbing", on);
+}
+
 // Holding the middle button and moving the mouse drags a strip sideways, so a long strip
 // scrolls without a horizontal wheel or the scrollbar.
 export function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
@@ -233,6 +238,7 @@ export function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
   const onMove = (move: MouseEvent) => {
     const dx = move.clientX - startX;
     if (!panned && Math.abs(dx) < 4) return;
+    if (!panned) grabbing(true);
     panned = true;
     row.scrollLeft = startScroll - dx;
   };
@@ -241,6 +247,7 @@ export function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
     window.removeEventListener("mousemove", onMove);
     window.removeEventListener("mouseup", onUp);
     if (!panned) return;
+    grabbing(false);
     // A middle click on a car opens it in a new tab; after a pan it should not. The
     // auxclick follows this mouseup in the same task, if it fires at all.
     const swallow = (click: MouseEvent) => click.preventDefault();

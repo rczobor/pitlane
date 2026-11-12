@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { avoidedFor, preferredFor, verdict } from "../shared/fit";
 import type { KeySpecDef, ResolvedSpec } from "./format";
@@ -72,24 +73,30 @@ function LedgerCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; 
   const missing = spec.kind === "check" && spec.value === "no";
   const value = specValueText(spec);
   return (
-    <div title={specDescription(spec, hit)} className={cn("group/cell min-w-0 px-1.5 py-0.5", specTone(spec, { hit, breaker }))}>
-      <dt className={cn("text-[0.6875rem] leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
-        {spec.name}
-      </dt>
-      <dd
-        className={cn(
-          // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
-          "flex items-start gap-0.5 text-xs leading-tight font-semibold break-words",
-          // A confirmed "No" is as definite as any other value; only unknown is quiet.
-          spec.value === null && "font-medium text-muted-foreground",
-        )}
+    // A hover extra, not a focus stop: the sr-only notes below say the same to screen readers.
+    <Tooltip>
+      <TooltipTrigger
+        render={<div className={cn("group/cell min-w-0 px-1.5 py-0.5", specTone(spec, { hit, breaker }))} />}
       >
-        {missing && <X className="mt-px size-3 shrink-0" aria-hidden />}
-        <span className="line-clamp-3 sm:line-clamp-2">{value}</span>
-        {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
-        {hit && <span className="sr-only">(preferred)</span>}
-        {breaker && <span className="sr-only">(deal-breaker)</span>}
-      </dd>
-    </div>
+        <dt className={cn("text-[0.6875rem] leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
+          {spec.name}
+        </dt>
+        <dd
+          className={cn(
+            // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
+            "flex items-start gap-0.5 text-xs leading-tight font-semibold break-words",
+            // A confirmed "No" is as definite as any other value; only unknown is quiet.
+            spec.value === null && "font-medium text-muted-foreground",
+          )}
+        >
+          {missing && <X className="mt-px size-3 shrink-0" aria-hidden />}
+          <span className="line-clamp-3 sm:line-clamp-2">{value}</span>
+          {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
+          {hit && <span className="sr-only">(preferred)</span>}
+          {breaker && <span className="sr-only">(deal-breaker)</span>}
+        </dd>
+      </TooltipTrigger>
+      <TooltipContent>{specDescription(spec, hit)}</TooltipContent>
+    </Tooltip>
   );
 }

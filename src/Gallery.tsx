@@ -2,6 +2,8 @@ import { Maximize2Icon, RectangleHorizontalIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Carousel, type CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Kbd } from "@/components/ui/kbd";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { NoPhoto } from "./ListingCard";
@@ -139,20 +141,35 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
           </CarouselContent>
           <div className="absolute top-3 right-3 flex gap-2">
             {/* Wide screens only: on a phone the photo already has the full width. */}
-            <Button
-              variant="secondary"
-              size="icon-lg"
-              onClick={onTheatreToggle}
-              aria-label="Theatre mode"
-              aria-pressed={theatre}
-              title="Theatre mode (T)"
-              className="hidden aria-pressed:bg-foreground aria-pressed:text-background lg:inline-flex"
-            >
-              <RectangleHorizontalIcon />
-            </Button>
-            <Button variant="secondary" size="icon-lg" onClick={() => setViewing(true)} aria-label="Full screen" title="Full screen (F)">
-              <Maximize2Icon />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="secondary"
+                    size="icon-lg"
+                    onClick={onTheatreToggle}
+                    aria-label="Theatre mode"
+                    aria-pressed={theatre}
+                    className="hidden aria-pressed:bg-foreground aria-pressed:text-background lg:inline-flex"
+                  />
+                }
+              >
+                <RectangleHorizontalIcon />
+              </TooltipTrigger>
+              <TooltipContent>
+                Theatre mode <Kbd>T</Kbd>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={<Button variant="secondary" size="icon-lg" onClick={() => setViewing(true)} aria-label="Full screen" />}
+              >
+                <Maximize2Icon />
+              </TooltipTrigger>
+              <TooltipContent>
+                Full screen <Kbd>F</Kbd>
+              </TooltipContent>
+            </Tooltip>
           </div>
           {photos.length > 1 && (
             <>
