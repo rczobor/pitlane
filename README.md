@@ -190,7 +190,8 @@ To install it, download the zip from the latest `extension-v…`
 it, with these steps) and unzip it into a folder
 you keep. In Chrome, open `chrome://extensions`, turn on Developer mode, choose
 **Load unpacked** and pick that folder. Then sign in to Pitlane in the same browser.
-To update, unzip the new version over the same folder and press reload on the
+The panel's footer shows the installed version and links the latest release. To
+update, unzip the new version over the same folder and press reload on the
 extension's card.
 
 Merging a new `version` in [`extension/manifest.json`](extension/manifest.json)
