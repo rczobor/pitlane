@@ -226,21 +226,24 @@ find stays empty for you to fill in.
 ## Deployment
 
 The web app is a static build on Vercel; Convex hosts everything else. One
-Convex project, created by Vercel's Convex integration, holds every deployment:
-your own dev deployment for local work (`pnpm dev`), production for the Vercel
-production site, and a preview deployment per branch for PR previews.
+Convex project holds every deployment: your own dev deployment for local work
+(`pnpm dev`), production for the Vercel production site, and a preview deployment
+per branch for PR previews.
 
 [`vercel.json`](vercel.json) makes each Vercel build deploy the Convex functions
 first, then build the app against that deployment's URL, so the two never drift
-apart. The integration sets `CONVEX_DEPLOY_KEY` in Vercel, which picks the target
-deployment. Every path is served `index.html` so deep links survive a reload.
+apart. `CONVEX_DEPLOY_KEY` in Vercel picks the target: the production deploy key
+for Production, and the project's preview deploy key for Preview (both from the
+Convex project settings). The preview cleanup workflow uses its own preview deploy
+key, the `CONVEX_PREVIEW_DEPLOY_KEY` repository secret. Every path is served
+`index.html` so deep links survive a reload.
 
 A new preview deployment starts with the synthetic fixture board
 ([`convex/fixtures.ts`](convex/fixtures.ts), without photos); the first account to
 sign in to the preview takes it over.
 
 To link a fresh checkout to the project's dev deployment, run `pnpm dev` and
-choose the existing project in the team the integration created.
+choose the existing `pitlane` project.
 
 Production starts empty. Sign in to the production site first, so you are its
 owner.
