@@ -1,0 +1,61 @@
+name: Convex preview cleanup
+
+# Each Vercel preview build deploys to a Convex preview deployment named after the
+# branch. Previews count toward the Convex plan's deployment limit until they expire
+# days later, and a full limit fails the Vercel build. Closing a pull request deletes
+# its branch's preview.
+on:
+  # Unlike pull_request, this runs main's copy of the workflow and also runs for a PR
+  # with merge conflicts. It is safe only because the job runs no code from the PR.
+  pull_request_target:
+    types:
+      - closed
+
+permissions: {}
+
+jobs:
+  delete-preview:
+    # pull_request_target hands secrets to fork PRs too. A fork's branch has no
+    # preview here.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 26
+
+      # A preview deploy key can read and delete preview deployments only, never dev
+      # or prod. Without a checkout, nothing from the branch runs next to it.
+      - name: Delete the branch's preview deployment
+        shell: bash
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          # The CLI resolves a preview name to its deployment; the Management API cannot
+          # with this key. It prints the deployment's dashboard URL.
+          if ! url=$(npx --yes convex@1.49.0 dashboard --no-open --preview-name "$BRANCH" 2>err.log); then
+            if grep -q PreviewNotFound err.log; then
+              echo "$BRANCH has no preview deployment."
+              exit 0
+            fi
+            cat err.log >&2
+            exit 1
+          fi
+          if [[ ! $url =~ ^https://dashboard\.convex\.dev/d/([a-z0-9-]+)$ ]]; then
+            echo "::error::Unexpected output from convex dashboard: $url"
+            exit 1
+          fi
+          name=${BASH_REMATCH[1]}
+
+          api=https://api.convex.dev/v1/deployments/$name
+          auth="Authorization: Bearer $CONVEX_DEPLOY_KEY"
+          type=$(curl -fsS --max-time 30 -H "$auth" "$api" | jq -r .deploymentType)
+          if [ "$type" != preview ]; then
+            echo "::error::$name is a $type deployment, not a preview. Nothing deleted."
+            exit 1
+          fi
+          curl -fsS --max-time 60 -X POST -H "$auth" "$api/delete"
+          echo "Deleted preview deployment $name for $BRANCH."
