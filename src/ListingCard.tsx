@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Ban, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
@@ -128,18 +129,24 @@ export function ListingCard({
               {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge.
                   "MT" keeps the badges on the specs line, where "Manual" wrapped them. */}
               {specs.gearbox === "manual" && (
-                <Badge variant="outline" title="Manual">
-                  <span aria-hidden>MT</span>
-                  <span className="sr-only">Manual</span>
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger render={<Badge variant="outline" />}>
+                    <span aria-hidden>MT</span>
+                    <span className="sr-only">Manual</span>
+                  </TooltipTrigger>
+                  <TooltipContent>Manual</TooltipContent>
+                </Tooltip>
               )}
               {/* The country is enough to judge the trip at a glance; the place and distance
                   are on hover and on the car page. */}
               {country && (
-                <Badge variant="outline" title={place}>
-                  <span aria-hidden>{country}</span>
-                  <span className="sr-only">Seller: {place}</span>
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger render={<Badge variant="outline" />}>
+                    <span aria-hidden>{country}</span>
+                    <span className="sr-only">Seller: {place}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>{place}</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>

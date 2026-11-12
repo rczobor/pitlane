@@ -152,3 +152,14 @@
     @apply bg-background font-sans text-foreground antialiased;
   }
 }
+
+/* While a car is dragged or a strip panned (see grabbing in Strip.tsx). Every element, so
+   links and buttons the pointer passes over keep the grabbing hand too. Tooltips stay
+   hidden: the lifted card, or cars sliding under a still pointer, would open one. */
+html[data-grabbing],
+html[data-grabbing] * {
+  cursor: grabbing !important;
+}
+html[data-grabbing] [data-slot="tooltip-content"] {
+  display: none;
+}

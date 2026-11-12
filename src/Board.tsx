@@ -27,7 +27,7 @@ import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistr
 import { type CardProps, ListingCard } from "./ListingCard";
 import { PendingCaptures } from "./PendingCaptures";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
-import { jumpTo, panWithMiddleButton, StripArrow, StripTicks, type StripView, stripEnds, stripFade, usePointed, useStrip } from "./Strip";
+import { grabbing, jumpTo, panWithMiddleButton, StripArrow, StripTicks, type StripView, stripEnds, stripFade, usePointed, useStrip } from "./Strip";
 import { slabColor, TierSlab } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -74,6 +74,9 @@ export function Board() {
     useSensor(LeftMouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
+
+  // Leaving the board mid-drag must not leave the grabbing hand behind.
+  useEffect(() => () => grabbing(false), []);
 
   if (!board) return <BoardSkeleton />;
   // One board for every model; picking a model shows that model's own tier list.
@@ -138,6 +141,7 @@ export function Board() {
   }
 
   function endDrag() {
+    grabbing(false);
     setActiveId(null);
     setDragLanes(null);
     lastOver.current = null;
@@ -204,6 +208,7 @@ export function Board() {
         // Cars move between lanes mid-drag, so lanes and cars are measured as they reflow.
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={({ active }) => {
+          grabbing(true);
           setActiveId(byId.get(active.id)?.listingId ?? null);
           setDragLanes(boardLanes);
         }}
@@ -662,7 +667,7 @@ function BoardFilters({
   ];
   const unchecked = ofModel.filter((l) => toCheck(l.keySpecs) > 0).length;
   // shrink-0: the strip scrolls on phones, and the Toggle's min-w-7 would otherwise let it squeeze a chip.
-  const chip = "condensed h-8 shrink-0 gap-1.5 text-base font-bold data-pressed:bg-foreground data-pressed:text-background";
+  const chip = "condensed h-8 shrink-0 gap-1.5 text-base font-bold";
   return (
     <nav
       ref={nav}

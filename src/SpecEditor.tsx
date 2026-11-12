@@ -21,14 +21,14 @@ type Props = {
   board: BoardData;
 };
 
-// A selected value is solid when the user set it, dashed when it only comes from the
-// listing and still needs a look at the photos. Phones get thumb-sized targets.
+// A selected value is solid when the user set it (the outline toggle's own pressed state),
+// dashed when it only comes from the listing and still needs a look at the photos. Phones
+// get thumb-sized targets.
 const itemClass = (source: ResolvedSpec["source"]) =>
   cn(
     "h-10 sm:h-8",
-    source === "listing"
-      ? "data-pressed:border-dashed data-pressed:border-foreground/60 data-pressed:bg-secondary/60 data-pressed:font-semibold"
-      : "data-pressed:bg-foreground data-pressed:text-background",
+    source === "listing" &&
+      "data-pressed:border-dashed data-pressed:border-foreground/60 data-pressed:bg-secondary/60 data-pressed:font-semibold data-pressed:text-foreground",
   );
 
 export function SpecEditor({ listingId, modelId, keySpecs, board }: Props) {

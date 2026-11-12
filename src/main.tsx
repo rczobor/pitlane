@@ -12,6 +12,7 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AddCars } from "./AddCars";
 import { Board, type BoardSearch } from "./Board";
 import { Compare } from "./Compare";
@@ -112,7 +113,11 @@ createRoot(document.getElementById("root")!).render(
     {/* Reads VITE_CLERK_PUBLISHABLE_KEY. */}
     <ClerkProvider appearance={{ theme: shadcn }} afterSignOutUrl="/">
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <RouterProvider router={router} />
+        {/* Not instant: cards are dense with tooltips, and passing over a card should not open one.
+            Once one is open, its neighbours open at once, so reading a ledger stays quick. */}
+        <TooltipProvider delay={500}>
+          <RouterProvider router={router} />
+        </TooltipProvider>
         <UpdatePrompt />
       </ConvexProviderWithClerk>
     </ClerkProvider>

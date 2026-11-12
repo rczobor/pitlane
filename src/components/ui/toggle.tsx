@@ -10,7 +10,9 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        outline: "border border-input bg-transparent hover:bg-muted",
+        // Pitlane's choice chips: outlined, and solid ink once picked.
+        outline:
+          "border border-input bg-transparent hover:bg-muted data-pressed:bg-foreground data-pressed:text-background",
       },
       size: {
         default:

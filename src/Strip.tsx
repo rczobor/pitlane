@@ -220,6 +220,11 @@ export function StripTicks({
   );
 }
 
+// Shows the grabbing hand everywhere until the drop, not only over what is dragged.
+export function grabbing(on: boolean) {
+  document.documentElement.toggleAttribute("data-grabbing", on);
+}
+
 // Holding the middle button and moving the mouse drags a strip sideways, so a long strip
 // scrolls without a horizontal wheel or the scrollbar.
 export function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
@@ -230,16 +235,23 @@ export function panWithMiddleButton(event: ReactMouseEvent<HTMLElement>) {
   const startX = event.clientX;
   const startScroll = row.scrollLeft;
   let panned = false;
+  const stop = () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    if (panned) grabbing(false);
+  };
   const onMove = (move: MouseEvent) => {
+    // Released outside the window, so no mouseup came: end the pan on the next move.
+    if (!(move.buttons & 4)) return stop();
     const dx = move.clientX - startX;
     if (!panned && Math.abs(dx) < 4) return;
+    if (!panned) grabbing(true);
     panned = true;
     row.scrollLeft = startScroll - dx;
   };
   const onUp = (up: MouseEvent) => {
     if (up.button !== 1) return;
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
+    stop();
     if (!panned) return;
     // A middle click on a car opens it in a new tab; after a pan it should not. The
     // auxclick follows this mouseup in the same task, if it fires at all.

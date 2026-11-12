@@ -177,7 +177,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
                   key={tier}
                   value={tier}
                   // The slab beside the price carries the colour; the control only marks the choice.
-                  className="condensed text-lg font-bold data-pressed:bg-foreground data-pressed:text-background"
+                  className="condensed text-lg font-bold"
                 >
                   {label}
                 </ToggleGroupItem>

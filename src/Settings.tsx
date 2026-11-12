@@ -211,10 +211,10 @@ function SettingsForm({ board }: { board: BoardData }) {
                     if (kind === "check" || kind === "choice") editSpec(index, { kind });
                   }}
                 >
-                  <ToggleGroupItem value="check" className="data-pressed:bg-foreground data-pressed:text-background">
+                  <ToggleGroupItem value="check">
                     Yes / no
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="choice" className="data-pressed:bg-foreground data-pressed:text-background">
+                  <ToggleGroupItem value="choice">
                     Choice
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -258,15 +258,11 @@ function SettingsForm({ board }: { board: BoardData }) {
                     }}
                     className="flex-wrap"
                   >
-                    <ToggleGroupItem value="all" className="data-pressed:bg-foreground data-pressed:text-background">
+                    <ToggleGroupItem value="all">
                       All models
                     </ToggleGroupItem>
                     {models.map((m) => (
-                      <ToggleGroupItem
-                        key={m.id}
-                        value={m.id}
-                        className="data-pressed:bg-foreground data-pressed:text-background"
-                      >
+                      <ToggleGroupItem key={m.id} value={m.id}>
                         {m.name || "Unnamed"}
                       </ToggleGroupItem>
                     ))}
@@ -352,7 +348,7 @@ function Preview({ board, specs, models }: { board: BoardData; specs: DraftSpec[
               className="flex-wrap"
             >
               {withCars.map((m) => (
-                <ToggleGroupItem key={m.id} value={m.id} className="data-pressed:bg-foreground data-pressed:text-background">
+                <ToggleGroupItem key={m.id} value={m.id}>
                   {m.name || "Unnamed"}
                 </ToggleGroupItem>
               ))}
@@ -508,10 +504,10 @@ function PreferredEditor({
             value={[avoid ? "avoid" : "want"]}
             onValueChange={(next) => next[0] && setAvoid(next[0] === "avoid")}
           >
-            <ToggleGroupItem value="want" className="data-pressed:bg-foreground data-pressed:text-background">
+            <ToggleGroupItem value="want">
               Prefer
             </ToggleGroupItem>
-            <ToggleGroupItem value="avoid" className="data-pressed:bg-foreground data-pressed:text-background">
+            <ToggleGroupItem value="avoid">
               Deal-breaker
             </ToggleGroupItem>
           </ToggleGroup>
@@ -524,7 +520,7 @@ function PreferredEditor({
             className="flex-wrap"
           >
             {values.map((v) => (
-              <ToggleGroupItem key={v} value={v} className="data-pressed:bg-foreground data-pressed:text-background">
+              <ToggleGroupItem key={v} value={v}>
                 {label(v)}
               </ToggleGroupItem>
             ))}
@@ -544,11 +540,11 @@ function PreferredEditor({
                 }}
                 className="flex-wrap"
               >
-                <ToggleGroupItem value="all" className="data-pressed:bg-foreground data-pressed:text-background">
+                <ToggleGroupItem value="all">
                   All models
                 </ToggleGroupItem>
                 {models.map((m) => (
-                  <ToggleGroupItem key={m.id} value={m.id} className="data-pressed:bg-foreground data-pressed:text-background">
+                  <ToggleGroupItem key={m.id} value={m.id}>
                     {m.name || "Unnamed"}
                   </ToggleGroupItem>
                 ))}
