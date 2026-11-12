@@ -828,7 +828,8 @@ function BoardFilters({
     ...(count("none") > 0 ? [{ id: "none", label: "No model", count: count("none") }] : []),
   ];
   const unchecked = ofModel.filter((l) => toCheck(l.keySpecs) > 0).length;
-  const chip = "condensed h-8 gap-1.5 text-base font-bold data-pressed:bg-foreground data-pressed:text-background";
+  // shrink-0: the strip scrolls on phones, and the Toggle's min-w-7 would otherwise let it squeeze a chip.
+  const chip = "condensed h-8 shrink-0 gap-1.5 text-base font-bold data-pressed:bg-foreground data-pressed:text-background";
   return (
     <nav
       ref={nav}
