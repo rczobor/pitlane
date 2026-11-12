@@ -113,7 +113,7 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
     <>
       {/* The whole gallery is the carousel, so the arrow keys step through photos while
           a thumbnail has focus too. min-w-0 stops the row of slides from widening a grid
-          column it sits in (check mode on phones). */}
+          column it sits in. */}
       <Carousel setApi={setApi} aria-label="Photos" className={cn("min-w-0", className)}>
         <div className="relative">
           <CarouselContent className="ml-0">

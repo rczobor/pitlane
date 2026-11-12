@@ -211,11 +211,11 @@ function CheckStep({
             )}
             <Button type="button" variant="ghost" onClick={advance}>
               Skip
-              <Kbd className="ml-1">{inViewer ? "J" : <ArrowRight aria-label="Right arrow" />}</Kbd>
+              <Kbd className="ml-1">{inViewer ? "J" : <ArrowRight role="img" aria-label="Right arrow" className="size-3" />}</Kbd>
             </Button>
             <Button type="button" variant="ghost" disabled={position === 0} onClick={back}>
               Back
-              <Kbd className="ml-1">{inViewer ? "K" : <ArrowLeft aria-label="Left arrow" />}</Kbd>
+              <Kbd className="ml-1">{inViewer ? "K" : <ArrowLeft role="img" aria-label="Left arrow" className="size-3" />}</Kbd>
             </Button>
           </div>
         </div>

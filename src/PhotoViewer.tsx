@@ -122,8 +122,14 @@ function Slides({
           black bands around a landscape photo. Wider screens put the strip under the photo and
           the panel beside both. */}
       <div className="flex min-h-0 flex-1 max-sm:flex-col">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col max-sm:flex-none">
-        <div className="relative min-h-0 flex-1 *:data-[slot=carousel-content]:h-full max-sm:aspect-[4/3] max-sm:w-full max-sm:flex-none">
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col", photos.length > 1 && "max-sm:flex-none")}>
+        <div
+          className={cn(
+            "relative min-h-0 flex-1 *:data-[slot=carousel-content]:h-full",
+            // A lone photo has no grid below it, so it keeps the full height.
+            photos.length > 1 && "max-sm:aspect-[4/3] max-sm:w-full max-sm:flex-none",
+          )}
+        >
           <CarouselContent className="ml-0 h-full">
             {photos.map((p, i) => (
               <CarouselItem key={p.sourceUrl} className="h-full pl-0">
@@ -182,7 +188,7 @@ function Slides({
         )}
         </div>
         {panel && (
-          // Check mode is for wide screens (phones have no way in), so phones leave it out.
+          // Check mode is for wide screens; a narrow one (a phone turned upright) leaves it out.
           <div className="w-80 shrink-0 overflow-y-auto border-l border-white/15 px-5 pt-20 pb-3 max-sm:hidden">
             {panel}
           </div>

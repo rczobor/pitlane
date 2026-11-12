@@ -185,7 +185,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
             </ToggleGroup>
           </div>
           {/* The cue that something still needs a look; opens the photo-side checker. Wide
-              screens only: a phone confirms specs in the key specs section below. */}
+              screens only: on a phone the key specs section below confirms specs. */}
           {board && unchecked > 0 && (
             <Button variant="outline" onClick={() => setChecking(true)} className="max-sm:hidden">
               <ScanSearch data-icon="inline-start" aria-hidden />
