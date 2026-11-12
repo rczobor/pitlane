@@ -1,9 +1,8 @@
 name: Convex preview cleanup
 
-# Each Vercel preview build deploys to a Convex preview deployment named after the
-# branch. Previews count toward the Convex plan's deployment limit until they expire
-# days later, and a full limit fails the Vercel build. Closing a pull request deletes
-# its branch's preview.
+# A Vercel preview build, deployed on request, creates a Convex preview deployment
+# named after the branch. Previews count toward the Convex plan's deployment limit
+# until they expire days later. Closing a pull request deletes its branch's preview.
 on:
   # Unlike pull_request, this runs main's copy of the workflow and also runs for a PR
   # with merge conflicts. It is safe only because the job runs no code from the PR.

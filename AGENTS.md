@@ -43,6 +43,21 @@ focused test for the behaviour you change.
 - **Design reviews** run on a separate local deployment seeded with synthetic cars:
   `pnpm dev:design [port]`. It never touches the checkout's `.env.local`.
 
+## Previews
+
+Merging to `main` deploys production. Pushes to other branches do not deploy
+(`git.deploymentEnabled` in `vercel.json`). Every preview build creates a Convex
+preview deployment seeded by `fixtures:seed`, and the Convex plan caps how many
+are created per day. Deploy a preview only when the user asks for one: push the
+branch, then call the Vercel connector's `create_deployment` with
+`slug: "nethzyrs-projects"` and `requestBody: { name: "pitlane", project:
+"pitlane", gitSource: { type: "github", org: "rczobor", repo: "pitlane", ref:
+"<branch>" } }`. Leave out `target`, and use the branch name as `ref` so the
+Convex preview is named after it. Wait for it to be ready and give the user its
+URL. Each request uses one Convex deployment, so do not redeploy after later
+pushes unless asked. Closing the pull request deletes the branch's Convex
+preview.
+
 ## Agent skills
 
 Agent skills live in `.agents/skills/`; `.claude/skills` links to the same

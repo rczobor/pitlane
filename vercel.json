@@ -3,5 +3,8 @@
   "framework": "vite",
   "buildCommand": "pnpm exec convex deploy --cmd 'pnpm build' --cmd-url-env-var-name CONVEX_URL --preview-run fixtures:seed",
   "outputDirectory": "dist/web",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "git": {
+    "deploymentEnabled": { "**": false, "main": true }
+  }
 }
