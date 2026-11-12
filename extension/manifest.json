@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pitlane",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Save the car listing you are looking at to your Pitlane board.",
   "minimum_chrome_version": "120",
   "icons": {

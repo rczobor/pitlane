@@ -3,6 +3,7 @@ import { type SnapshotInput, fuelTypes, gearboxTypes, listingData } from "../sha
 import { fullSizePhotoUrl, resolveListingUrl } from "../shared/sources.ts";
 import { api, convex, errorText, signIn } from "./api.ts";
 import { type PageDraft, extract } from "./extract.ts";
+import { isNewer, latestVersion, releasesUrl } from "./update.ts";
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const form = $<HTMLFormElement>("#listing");
@@ -345,7 +346,26 @@ async function send(snapshot: SnapshotInput): Promise<SendResult> {
   }
 }
 
+// The footer: the installed version, and the newest release when it is newer. Without an
+// answer from GitHub the link stays a plain "Latest release".
+async function showVersion() {
+  const installed = chrome.runtime.getManifest().version;
+  const version = $("#version");
+  const release = $<HTMLAnchorElement>("#release");
+  version.textContent = `Version ${installed}`;
+  release.href = releasesUrl;
+  const latest = await latestVersion();
+  if (!latest) return;
+  if (isNewer(latest, installed)) {
+    release.textContent = `Update to ${latest}`;
+    release.className = "update";
+  } else {
+    version.textContent = `Version ${installed}, up to date`;
+  }
+}
+
 setUpSelects();
+void showVersion();
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   void save(pageUrl);
