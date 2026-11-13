@@ -24,7 +24,7 @@ import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { toCheck } from "../shared/fit";
 import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistrationYear, type Tier, tiers } from "./format";
-import { type CardProps, ListingCard } from "./ListingCard";
+import { type CardProps, ListingCard, RemovedStamp } from "./ListingCard";
 import { PendingCaptures } from "./PendingCaptures";
 import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { grabbing, jumpTo, panWithMiddleButton, StripArrow, StripTicks, type StripView, stripEnds, stripFade, usePointed, useStrip } from "./Strip";
@@ -393,8 +393,8 @@ function LaneIndex({
   );
 }
 
-// A car in the lane's photo index: photo (or the no-photo mark), price and model. The cars
-// on screen are outlined in ink, as their ticks are filled.
+// A car in the lane's photo index: photo (or the no-photo mark, or the removed stamp), price
+// and model. The cars on screen are outlined in ink, as their ticks are filled.
 // The sheet's tiles are larger and add year and mileage: its cars are often alike to the eye.
 function CarThumb({
   listing,
@@ -407,22 +407,27 @@ function CarThumb({
   shown: boolean;
   large?: boolean;
 }) {
+  const removed = listing.status === "removed";
   return (
-    <span className="flex flex-col gap-1">
+    // Muted like a removed card on the board, so a gone car reads the same here.
+    <span className={cn("flex flex-col gap-1", removed && "text-muted-foreground")}>
       <span
         className={cn(
-          "flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground",
+          "relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground",
           shown && "ring-2 ring-foreground",
         )}
       >
         {listing.coverUrl ? (
-          <img src={listing.coverUrl} alt="" draggable={false} className="size-full object-cover" />
+          <img src={listing.coverUrl} alt="" draggable={false} className={cn("size-full object-cover", removed && "grayscale")} />
         ) : (
-          <span className="flex flex-col items-center gap-1">
-            <ImageOff className="size-4" aria-hidden />
-            {large && <span className="text-xs">No photo</span>}
-          </span>
+          !removed && (
+            <span className="flex flex-col items-center gap-1">
+              <ImageOff className="size-4" aria-hidden />
+              {large && <span className="text-xs">No photo</span>}
+            </span>
+          )
         )}
+        {removed && <RemovedStamp removedAt={listing.removedAt} size={large ? "md" : "sm"} />}
       </span>
       <span className={cn("condensed truncate leading-none font-bold tabular-nums", large ? "text-base" : "text-xs")}>
         {formatPrice(listing.price)}
@@ -534,6 +539,7 @@ function LaneCount({
               >
                 <span className="sr-only">
                   {index + 1}. {listing.title}, {formatPrice(listing.price)}
+                  {listing.status === "removed" && ", ad removed"}
                 </span>
                 <span aria-hidden>
                   <CarThumb
