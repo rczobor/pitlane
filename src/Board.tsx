@@ -207,8 +207,10 @@ export function Board() {
         collisionDetection={collisionDetection}
         // Cars move between lanes mid-drag, so lanes and cars are measured as they reflow.
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-        onDragStart={({ active }) => {
+        onDragStart={({ active, activatorEvent }) => {
           grabbing(true);
+          // A tick tells a long press it has lifted the car. Safari has no vibrate.
+          if ("touches" in activatorEvent && "vibrate" in navigator) navigator.vibrate(10);
           setActiveId(byId.get(active.id)?.listingId ?? null);
           setDragLanes(boardLanes);
         }}
@@ -605,7 +607,9 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("group/card relative", isDragging && "opacity-30")}
+      // The long press that lifts a car on touch would otherwise open iOS's link preview or
+      // select the card's text, and either cancels the drag.
+      className={cn("group/card relative select-none [-webkit-touch-callout:none]", isDragging && "opacity-30")}
       {...listeners}
     >
       <ListingCard listing={listing} {...props} />
