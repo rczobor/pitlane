@@ -31,6 +31,28 @@ export type CardProps = {
   home?: Point | null;
 };
 
+// Covers a removed car's photo panel, on the card and in the board's photo indexes, so a gone
+// car reads the same everywhere. The overlay, not a photo filter, darkens the panel, so the
+// white stamp also reads on a car without a photo. The smallest tiles drop the date.
+const stampSizes = {
+  sm: "border px-1 pt-0.5 text-[0.625rem]",
+  md: "border-2 px-1.5 pt-0.5 text-sm",
+  lg: "border-2 px-3 pt-1 pb-0.5 text-3xl",
+};
+
+export function RemovedStamp({ removedAt, size = "lg" }: { removedAt?: number; size?: keyof typeof stampSizes }) {
+  return (
+    <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 text-white">
+      <span className={cn("condensed -rotate-3 border-current leading-none font-bold tracking-wide uppercase", stampSizes[size])}>
+        Ad removed
+      </span>
+      {removedAt !== undefined && size !== "sm" && (
+        <span className={cn("font-semibold", size === "lg" ? "text-xs" : "text-[0.625rem]")}>{formatDate(removedAt)}</span>
+      )}
+    </span>
+  );
+}
+
 export function ListingCard({
   listing,
   modelName,
@@ -92,16 +114,7 @@ export function ListingCard({
             // The removed stamp takes the empty panel's place.
             !removed && <NoPhoto />
           )}
-          {/* The overlay, not a photo filter, darkens the panel, so the white stamp also reads
-              on a car without a photo. */}
-          {removed && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 text-white">
-              <p className="condensed -rotate-3 border-2 border-current px-3 pt-1 pb-0.5 text-3xl leading-none font-bold tracking-wide uppercase">
-                Ad removed
-              </p>
-              {listing.removedAt && <p className="text-xs font-semibold">{formatDate(listing.removedAt)}</p>}
-            </div>
-          )}
+          {removed && <RemovedStamp removedAt={listing.removedAt} />}
           {showTier && (
             <TierSlab
               tier={listing.tier}
