@@ -98,6 +98,14 @@ const router = createRouter({
     connectRoute,
     shareRoute,
   ]),
+  // The window and each board lane (by `data-scroll-restoration-id`) keep their scroll. The
+  // board is keyed by its URL rather than the history entry, so the car page's Board link,
+  // which pushes a new entry, returns to the same spot as the browser's back. Restoring
+  // runs on the first render, so whatever sits above the lanes has to be there by then:
+  // Root keeps the board and the pending captures subscribed.
+  scrollRestoration: true,
+  getScrollRestorationKey: (location) =>
+    location.pathname === "/" ? location.href : (location.state.__TSR_key ?? location.href),
 });
 
 declare module "@tanstack/react-router" {
