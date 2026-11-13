@@ -37,7 +37,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
-export type BoardSearch = { model?: string; check?: true };
+export type BoardSearch = { model?: string; check?: true; removed?: true };
 
 // The filter the board was last shown with, so a car's page leads back to the same view.
 let lastSearch: BoardSearch = {};
@@ -46,7 +46,7 @@ export const lastBoardSearch = () => lastSearch;
 export function Board() {
   const board = useQuery(api.board.get);
   const search = useSearch({ from: "/" });
-  const { model, check } = search;
+  const { model, check, removed } = search;
   useEffect(() => {
     lastSearch = search;
   }, [search]);
@@ -81,7 +81,8 @@ export function Board() {
   if (!board) return <BoardSkeleton />;
   // One board for every model; picking a model shows that model's own tier list.
   const filter = model === "none" || board.models.some((m) => m.id === model) ? model : undefined;
-  const ofModel = filter ? board.listings.filter((l) => (l.modelId ?? "none") === filter) : board.listings;
+  const shown = removed ? board.listings : board.listings.filter((l) => l.status !== "removed");
+  const ofModel = filter ? shown.filter((l) => (l.modelId ?? "none") === filter) : shown;
   const visible = check ? ofModel.filter((l) => toCheck(l.keySpecs) > 0) : ofModel;
   const modelsById = new Map(board.models.map((m) => [m.id, m]));
   const modelNames = new Map(board.models.map((m) => [m.id, m.name]));
@@ -165,8 +166,8 @@ export function Board() {
 
   return (
     <main className="px-4 pb-16 sm:px-8">
-      {board.listings.length > 0 && (board.models.length > 0 || board.keySpecs.length > 0) && (
-        <BoardFilters board={board} selected={filter} check={check === true} ofModel={ofModel} />
+      {board.listings.length > 0 && (board.models.length > 0 || board.keySpecs.length > 0 || hasRemoved(board.listings)) && (
+        <BoardFilters board={board} search={{ ...search, model: filter }} shown={shown} ofModel={ofModel} />
       )}
       {(filter || check) && (
         <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -178,7 +179,7 @@ export function Board() {
             {check && filter && " to check"}
           </p>
           {/* On phones the filter strip may have scrolled "All models" out of view. */}
-          <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          <Link to="/" search={removed ? { removed } : {}} className={buttonVariants({ variant: "ghost", size: "sm" })}>
             <X data-icon="inline-start" aria-hidden />
             Clear filter
           </Link>
@@ -654,29 +655,44 @@ function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) 
 
 function BoardFilters({
   board,
-  selected,
-  check,
+  search,
+  shown,
   ofModel,
 }: {
   board: BoardData;
-  selected: string | undefined;
-  check: boolean;
-  /** The cars of the selected model, for the to-check count. */
+  /** With an unknown model already dropped. */
+  search: BoardSearch;
+  /** The cars the board shows, removed ads included only when asked for. */
+  shown: BoardListing[];
+  /** The shown cars of the selected model, for the to-check count. */
   ofModel: BoardListing[];
 }) {
+  const { model: selected, check, removed } = search;
   const navigate = useNavigate({ from: "/" });
+  // Each control changes its own part of the view and keeps the rest.
+  const go = (next: BoardSearch) =>
+    void navigate({
+      search: {
+        ...(next.model && { model: next.model }),
+        ...(next.check && { check: true }),
+        ...(next.removed && { removed: true }),
+      },
+    });
   const nav = useRef<HTMLElement>(null);
   // On phones the strip scrolls; keep the selected model in view.
   useEffect(() => {
     nav.current?.querySelector("[data-pressed]")?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [selected]);
-  const count = (id: string) => board.listings.filter((l) => (l.modelId ?? "none") === id).length;
+  const count = (id: string) => shown.filter((l) => (l.modelId ?? "none") === id).length;
   const options = [
-    { id: "all", label: "All models", count: board.listings.length },
+    { id: "all", label: "All models", count: shown.length },
     ...board.models.map((m) => ({ id: m.id, label: m.name, count: count(m.id) })),
     ...(count("none") > 0 ? [{ id: "none", label: "No model", count: count("none") }] : []),
   ];
   const unchecked = ofModel.filter((l) => toCheck(l.keySpecs) > 0).length;
+  const gone = board.listings.filter(
+    (l) => l.status === "removed" && (!selected || (l.modelId ?? "none") === selected),
+  ).length;
   // shrink-0: the strip scrolls on phones, and the Toggle's min-w-7 would otherwise let it squeeze a chip.
   const chip = "condensed h-8 shrink-0 gap-1.5 text-base font-bold";
   return (
@@ -694,7 +710,7 @@ function BoardFilters({
           onValueChange={(value) => {
             const next = value[0];
             // Clicking the selected model again is a no-op rather than an empty selection.
-            if (next) void navigate({ search: { ...(next !== "all" && { model: next }), ...(check && { check: true }) } });
+            if (next) go({ ...search, model: next === "all" ? undefined : next });
           }}
         >
           {options.map((option) => (
@@ -712,14 +728,28 @@ function BoardFilters({
           <Toggle
             variant="outline"
             size="sm"
-            pressed={check}
-            onPressedChange={(pressed) =>
-              void navigate({ search: { ...(selected && { model: selected }), ...(pressed && { check: true }) } })
-            }
+            pressed={check === true}
+            onPressedChange={(pressed) => go({ ...search, check: pressed || undefined })}
             className={chip}
           >
             To check
             <span className="tabular-nums opacity-60">{unchecked}</span>
+          </Toggle>
+        </>
+      )}
+      {hasRemoved(board.listings) && (
+        <>
+          <span aria-hidden className="h-6 w-px shrink-0 bg-border" />
+          {/* "Show" because a pressed filter chip otherwise reads as "only these cars". */}
+          <Toggle
+            variant="outline"
+            size="sm"
+            pressed={removed === true}
+            onPressedChange={(pressed) => go({ ...search, removed: pressed || undefined })}
+            className={chip}
+          >
+            Show removed
+            <span className="tabular-nums opacity-60">{gone}</span>
           </Toggle>
         </>
       )}
@@ -736,6 +766,8 @@ function BoardSkeleton() {
     </main>
   );
 }
+
+const hasRemoved = (listings: BoardListing[]) => listings.some((l) => l.status === "removed");
 
 // Car ids per lane, in board order.
 type LaneIds = Record<Tier, UniqueIdentifier[]>;
