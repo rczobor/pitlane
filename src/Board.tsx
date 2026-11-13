@@ -312,6 +312,7 @@ function Lane({
         {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div
           ref={lane}
+          data-scroll-restoration-id={`lane-${tier}`}
           onMouseDown={panWithMiddleButton}
           className={cn(
             "relative flex min-h-20 flex-1 scroll-px-6 gap-3 overflow-x-auto p-3 [--fade:1.5rem] sm:min-h-44 sm:scroll-px-16 sm:[--fade:4rem]",

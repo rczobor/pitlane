@@ -18,6 +18,9 @@ function SignedIn() {
   const { user } = useUser();
   const name = user?.firstName || user?.username || user?.primaryEmailAddress?.emailAddress || "";
   const board = useQuery(api.board.get);
+  // Unused here: subscribed so PendingCaptures, above the board's lanes, has its list on the
+  // board's first render, before the router restores the board's scroll (see main.tsx).
+  useQuery(api.captures.pending);
   const ensureUser = useMutation(api.users.ensureUser);
   const [failed, setFailed] = useState(false);
 
