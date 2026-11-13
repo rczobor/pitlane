@@ -26,12 +26,14 @@ import "./styles.css";
 const rootRoute = createRootRoute({ component: Root });
 // `model` narrows the board to one model: that model's own tier list. `check` keeps only
 // cars with key specs still to check (from the listing or unknown).
+// Removed ads are usually noise, so the board hides them unless `removed` asks for them.
 const boardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   validateSearch: (search: Record<string, unknown>): BoardSearch => ({
     ...(typeof search.model === "string" && { model: search.model }),
     ...(search.check === true && { check: true }),
+    ...(search.removed === true && { removed: true }),
   }),
   component: Board,
 });
