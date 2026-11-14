@@ -6,7 +6,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { NoPhoto } from "./ListingCard";
+import { carPhotoTransition, NoPhoto } from "./ListingCard";
 import { type Photo, PhotoCount, PhotoGrid, PhotoViewer, Thumbnails } from "./PhotoViewer";
 
 // Theatre mode (T) gives the photos more of the page on wide screens. It is a standing
@@ -131,6 +131,9 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
                     // wait until a slide is already in view; the neighbours load ahead instead.
                     loading={Math.abs(i - index) <= 1 ? "eager" : "lazy"}
                     draggable={false}
+                    // The board card shows the first photo, so only it morphs back into the
+                    // card; from any other photo the pages just cross-fade.
+                    style={i === 0 && index === 0 ? carPhotoTransition : undefined}
                     // Embla swallows the click that ends a swipe, so only a tap opens the viewer.
                     onClick={() => setViewing(true)}
                     className={cn("size-full cursor-zoom-in object-cover", removed && "grayscale")}

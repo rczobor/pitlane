@@ -9,6 +9,7 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { ConvexReactClient } from "convex/react";
+import { api } from "../convex/_generated/api";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -16,12 +17,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AddCars } from "./AddCars";
 import { Board, type BoardSearch } from "./Board";
 import { Compare } from "./Compare";
+import { openCar } from "./ListingCard";
 import { ListingPage } from "./ListingPage";
 import { Root } from "./Root";
 import { Settings } from "./Settings";
 import { Share } from "./Share";
 import { UpdatePrompt } from "./UpdatePrompt";
 import "./styles.css";
+
+const convex = new ConvexReactClient(import.meta.env.CONVEX_URL);
 
 const rootRoute = createRootRoute({ component: Root });
 // `model` narrows the board to one model: that model's own tier list. `check` keeps only
@@ -82,11 +86,35 @@ const shareRoute = createRoute({
 const listingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/listings/$listingId",
+  // Holds a click from the board until the car's data is here, but never long, so the page
+  // arrives whole and its photo morphs out of the card rather than into a skeleton. The
+  // prewarmed subscription stays open until ListingPage's useQuery takes it over. Opened
+  // straight from a link, the board is not there yet and the page shows its skeleton at once.
+  loader: async ({ params: { listingId } }) => {
+    openCar(listingId);
+    if (convex.watchQuery(api.board.get, {}).localQueryResult() === undefined) return;
+    convex.prewarmQuery({ query: api.board.listing, args: { listingId } });
+    await Promise.race([
+      convex.query(api.board.listing, { listingId }).catch(() => undefined),
+      new Promise((resolve) => setTimeout(resolve, 400)),
+    ]);
+  },
   component: function Listing() {
     const { listingId } = listingRoute.useParams();
     // Keyed so check mode, open editors and unsaved notes never carry over to another car.
     return <ListingPage key={listingId} listingId={listingId} />;
   },
+});
+
+// iOS Safari's swipe back already slides the board in, so animating again once it lands
+// looks like a second navigation. The browser says so on that popstate. Registered before the
+// router's own listener, so it is set when the router decides whether to animate.
+let browserAnimated = false;
+addEventListener("popstate", (event) => {
+  browserAnimated = event.hasUAVisualTransition === true;
+  // Back on an entry: the browser restores its scroll after this event unless it is manual.
+  // The router restores it itself once the page has rendered (see onResolved below).
+  history.scrollRestoration = "manual";
 });
 
 const router = createRouter({
@@ -106,8 +134,29 @@ const router = createRouter({
   // runs on the first render, so whatever sits above the lanes has to be there by then:
   // Root keeps the board and the pending captures subscribed.
   scrollRestoration: true,
+  // Opening a car from the board and coming back are the only animated navigations: the
+  // car's photo morphs between the card and the gallery (carPhotoTransition in ListingCard).
+  defaultViewTransition: {
+    types: ({ fromLocation, toLocation }) => {
+      // Read once: a later click is not a popstate and must not inherit it.
+      const animated = browserAnimated;
+      browserAnimated = false;
+      const paths = [fromLocation?.pathname, toLocation.pathname];
+      const carHop = paths.includes("/") && paths.some((path) => path?.startsWith("/listings/"));
+      return carHop && !animated && !matchMedia("(prefers-reduced-motion: reduce)").matches ? ["car"] : false;
+    },
+  },
   getScrollRestorationKey: (location) =>
     location.pathname === "/" ? location.href : (location.state.__TSR_key ?? location.href),
+});
+
+// iOS Safari previews the page a swipe goes back to only if its history entry restores its own
+// scroll, or the scroll happens to match: WebKit checks this as the swipe begins. The router
+// turns the browser's restoration off for every entry (manual), so swiping back to a scrolled
+// board showed a blank page. Each page is marked auto once shown, and manual again on
+// returning to it (popstate above), before the browser would act on it.
+router.subscribe("onResolved", () => {
+  history.scrollRestoration = "auto";
 });
 
 declare module "@tanstack/react-router" {
@@ -115,8 +164,6 @@ declare module "@tanstack/react-router" {
     router: typeof router;
   }
 }
-
-const convex = new ConvexReactClient(import.meta.env.CONVEX_URL);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
