@@ -163,3 +163,14 @@ html[data-grabbing] * {
 html[data-grabbing] [data-slot="tooltip-content"] {
   display: none;
 }
+
+/* Opening a car: the card's photo (16:9) grows into the gallery's (4:3). Both snapshots
+   cover the morphing box, cropped like the photos themselves, instead of stretching. */
+::view-transition-group(car-photo) {
+  overflow: clip;
+}
+::view-transition-old(car-photo),
+::view-transition-new(car-photo) {
+  height: 100%;
+  object-fit: cover;
+}

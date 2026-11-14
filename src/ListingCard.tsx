@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Ban, ImageOff } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,6 +42,26 @@ const stampSizes = {
   lg: "border-2 px-3 pt-1 pb-0.5 text-3xl",
 };
 
+// The card's photo and the car page's first photo are the same image, so opening a car morphs
+// one into the other and coming back morphs it home (the router's view transition, main.tsx).
+// A view-transition-name must be unique on the page, and the board can show hundreds of cards,
+// so only the car opened last carries it.
+export const carPhotoTransition = { viewTransitionName: "car-photo" };
+let openedCar: string | undefined;
+const openedCarListeners = new Set<() => void>();
+const subscribeOpenedCar = (listener: () => void) => {
+  openedCarListeners.add(listener);
+  return () => openedCarListeners.delete(listener);
+};
+// Called by a card's click and by the car page's route, so a car opened from elsewhere (the
+// comparison) still morphs into its own card on the way back to the board.
+export function openCar(listingId: string) {
+  if (openedCar === listingId) return;
+  openedCar = listingId;
+  // Synchronously, so the board's snapshot shows the name on this card and no longer on the last one.
+  flushSync(() => openedCarListeners.forEach((listener) => listener()));
+}
+
 export function RemovedStamp({ removedAt, size = "lg" }: { removedAt?: number; size?: keyof typeof stampSizes }) {
   return (
     <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 text-white">
@@ -75,6 +97,7 @@ export function ListingCard({
 }) {
   const { specs } = listing;
   const removed = listing.status === "removed";
+  const opened = useSyncExternalStore(subscribeOpenedCar, () => openedCar === listing.listingId);
   const { dealBreakers } = evaluate(
     { price: listing.price, firstRegistration: specs.firstRegistration, mileageKm: specs.mileageKm },
     criteria,
@@ -108,6 +131,7 @@ export function ListingCard({
               alt=""
               draggable={false}
               loading="lazy"
+              style={opened ? carPhotoTransition : undefined}
               className={cn("size-full object-cover", removed && "grayscale")}
             />
           ) : (
@@ -194,7 +218,13 @@ export function ListingCard({
   return preview ? (
     <div className={frame}>{card}</div>
   ) : (
-    <Link to="/listings/$listingId" params={{ listingId: listing.listingId }} draggable={false} className={frame}>
+    <Link
+      to="/listings/$listingId"
+      params={{ listingId: listing.listingId }}
+      draggable={false}
+      onClick={() => openCar(listing.listingId)}
+      className={frame}
+    >
       {card}
     </Link>
   );
