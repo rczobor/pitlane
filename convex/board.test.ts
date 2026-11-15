@@ -117,6 +117,39 @@ test("removing a car keeps a listing another board tracks, and deletes it with t
   expect(left).toEqual({ listing: null, snapshots: [], photos: [], file: null });
 });
 
+test("the owner marks an ad removed and puts it back: the car keeps its tier and history; re-checks stop meanwhile", async () => {
+  const { t, me, listingId } = await setup();
+  await me.mutation(api.board.move, { listingId, tier: "A", rank: 1 });
+  const friend = await signIn(t, "friend");
+  expect(await friend.query(api.board.get, {})).toMatchObject({ canMarkRemoved: false });
+  // A friend tracking the same listing can't rewrite the facts every board shares.
+  const friendBoard = await t.run((ctx) => ctx.db.query("boards").order("desc").first());
+  await t.mutation(internal.listings.save, {
+    boardId: friendBoard!._id,
+    capturedBy: "test",
+    url: listingSite.canonicalUrl("10000000000002"),
+    data: car,
+  });
+  await expect(friend.mutation(api.board.markRemoved, { listingId })).rejects.toThrow(/Only the board's owner/);
+
+  expect(await me.query(api.board.get, {})).toMatchObject({ canMarkRemoved: true });
+  await me.mutation(api.board.markRemoved, { listingId });
+  const detail = await me.query(api.board.listing, { listingId });
+  expect(detail).toMatchObject({ status: "removed", tier: "A", price: car.price });
+  expect(detail?.history.map((h) => [h.status, h.capturedBy])).toEqual([
+    ["available", "test"],
+    ["removed", "web"],
+  ]);
+  const ownerBoard = await t.run((ctx) => ctx.db.query("boards").order("asc").first());
+  const later = Date.now() + 2 * 86_400_000;
+  expect(await t.query(internal.listings.listDue, { boardId: ownerBoard!._id, now: later })).toEqual([]);
+
+  // Putting it back makes it live again, and due for the re-check that confirms it.
+  await me.mutation(api.board.putBack, { listingId });
+  expect(await me.query(api.board.listing, { listingId })).toMatchObject({ status: "available", tier: "A" });
+  expect(await t.query(internal.listings.listDue, { boardId: ownerBoard!._id, now: later })).toMatchObject([{ listingId }]);
+});
+
 const models = [
   { id: "gt3", name: "991.2 GT3" },
   { id: "gt4", name: "718 GT4" },

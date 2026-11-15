@@ -148,17 +148,22 @@ export const markRemoved = internalMutation({
   args: { boardId: v.id("boards"), capturedBy: v.string(), url: v.string() },
   handler: async (ctx, { boardId, capturedBy, url }) => {
     const listing = await onBoard(ctx, boardId, url);
-
-    const now = Date.now();
-    if (listing.status === "removed") {
-      await ctx.db.patch("listings", listing._id, { lastCheckedAt: now });
-      return { listingId: listing._id, changed: false };
-    }
-    await ctx.db.patch("listings", listing._id, { status: "removed", removedAt: now, lastCheckedAt: now, lastChangedAt: now });
-    await ctx.db.insert("snapshots", { listingId: listing._id, capturedAt: now, capturedBy, status: "removed" });
-    return { listingId: listing._id, changed: true };
+    return recordRemoved(ctx, listing, capturedBy);
   },
 });
+
+// The ad is gone: an agent's re-check found it so, or the user knows (sold, withdrawn).
+// Removed listings are no longer due for re-checks; saving the listing again brings it back.
+export async function recordRemoved(ctx: MutationCtx, listing: Doc<"listings">, capturedBy: string) {
+  const now = Date.now();
+  if (listing.status === "removed") {
+    await ctx.db.patch("listings", listing._id, { lastCheckedAt: now });
+    return { listingId: listing._id, changed: false };
+  }
+  await ctx.db.patch("listings", listing._id, { status: "removed", removedAt: now, lastCheckedAt: now, lastChangedAt: now });
+  await ctx.db.insert("snapshots", { listingId: listing._id, capturedAt: now, capturedBy, status: "removed" });
+  return { listingId: listing._id, changed: true };
+}
 
 export const listForBoard = internalQuery({
   args: { boardId: v.id("boards") },

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Columns3, Languages, ScanSearch, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Columns3, Flag, Languages, ScanSearch, Trash2, Undo2 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, type ReactNode, Suspense, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { FitList } from "./Fit";
 import { Gallery, galleryColumns, useTheatre } from "./Gallery";
 import { mapboxToken } from "./mapbox";
 import { PriceChart } from "./PriceChart";
-import { RemoveCarDialog } from "./RemoveCar";
+import { type CarExit, RemoveCarDialog } from "./RemoveCar";
 import { SpecEditor } from "./SpecEditor";
 import { TierSlab } from "./TierSlab";
 import { YourTake } from "./YourTake";
@@ -39,11 +39,15 @@ export function ListingPage({ listingId }: { listingId: string }) {
   // Model and key-spec definitions live on the board; this shares the board's subscription.
   const board = useQuery(api.board.get);
   const move = useMutation(api.board.move);
+  const putBack = useMutation(api.board.putBack);
+  const [putBackFailed, setPutBackFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const [theatre, toggleTheatre] = useTheatre();
   // Set while removing: the listing query turns null before the navigation to the board lands.
   const [leaving, setLeaving] = useState(false);
-  const [removeOpen, setRemoveOpen] = useState(false);
+  // The kind stays set while the dialog animates closed, so its text does not switch.
+  const [exitKind, setExitKind] = useState<CarExit>("remove");
+  const [exitOpen, setExitOpen] = useState(false);
   const navigate = useNavigate();
 
   if (listing === undefined) return <ListingSkeleton />;
@@ -90,6 +94,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
           keySpecs={listing.keySpecs}
           photos={listing.photos}
           removed={removed}
+          removedAt={listing.removedAt}
           board={board}
           onDone={() => setChecking(false)}
           theatre={theatre}
@@ -111,6 +116,7 @@ export function ListingPage({ listingId }: { listingId: string }) {
         <Gallery
           photos={listing.photos}
           removed={removed}
+          removedAt={listing.removedAt}
           theatre={theatre}
           onTheatreToggle={toggleTheatre}
           className="order-1"
@@ -128,7 +134,10 @@ export function ListingPage({ listingId }: { listingId: string }) {
         <div className="contents lg:flex lg:flex-col lg:gap-6">
         <section aria-label="Price and tier" className="order-2 min-w-0 space-y-6">
           <div className="space-y-3">
-            {removed && listing.removedAt && <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>}
+            {/* With photos, the band across the photo says it. */}
+            {removed && listing.removedAt && listing.photos.length === 0 && (
+              <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>
+            )}
             <h1 className="text-xl leading-snug font-semibold">{listing.title}</h1>
             <div className="flex items-stretch gap-4">
               <TierSlab tier={listing.tier} className="min-w-20" />
@@ -234,22 +243,12 @@ export function ListingPage({ listingId }: { listingId: string }) {
           <div className="flex flex-wrap gap-2">
             <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
               Open the listing
+              <ArrowUpRight data-icon="inline-end" aria-hidden />
             </a>
             <Link to="/compare" search={{ ids: listing.listingId }} className={buttonVariants({ variant: "outline" })}>
               <Columns3 data-icon="inline-start" aria-hidden />
               Compare with others
             </Link>
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => setRemoveOpen(true)}>
-              <Trash2 data-icon="inline-start" aria-hidden />
-              Remove from board
-            </Button>
-            <RemoveCarDialog
-              car={listing}
-              open={removeOpen}
-              onOpenChange={setRemoveOpen}
-              onLeaving={setLeaving}
-              onRemoved={() => navigate({ to: "/", search: lastBoardSearch(), replace: true })}
-            />
           </div>
 
           {/* Pitlane's own measure, so it has its own section outside the listing's facts. */}
@@ -332,6 +331,63 @@ export function ListingPage({ listingId }: { listingId: string }) {
             )}
           </section>
         </section>
+        {/* The way off the board comes last at every width: it is rare, and one of its
+            actions deletes the user's take on the car. A removed ad has nothing else left to
+            decide (put back or delete), so there it follows the price and tier. */}
+        <section aria-labelledby="off-board" className={cn("min-w-0", removed ? "order-2" : "order-6 lg:mt-4")}>
+          <h2 id="off-board" className="font-semibold">
+            Off the board
+          </h2>
+          <Separator className="my-3" />
+          <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[11rem_1fr] sm:items-start">
+            {removed && board?.canMarkRemoved && (
+              <ExitRow
+                icon={<Undo2 data-icon="inline-start" aria-hidden />}
+                label="Put back on board"
+                hint="If the ad is still up: shows it on the board again, and re-checks resume."
+                error={putBackFailed ? "Putting it back failed. Try again." : undefined}
+                onClick={() => {
+                  setPutBackFailed(false);
+                  putBack({ listingId: listing.listingId }).catch(() => setPutBackFailed(true));
+                }}
+              />
+            )}
+            {!removed && board?.canMarkRemoved && (
+              <ExitRow
+                icon={<Flag data-icon="inline-start" aria-hidden />}
+                label="Mark ad as removed"
+                hint="Sold or withdrawn. Keeps everything: tier, notes, key specs, price history and photos. Hidden from the board; “Show removed” lists it."
+                onClick={() => {
+                  setExitKind("markRemoved");
+                  setExitOpen(true);
+                }}
+              />
+            )}
+            <ExitRow
+              icon={<Trash2 data-icon="inline-start" aria-hidden />}
+              label="Delete from board"
+              hint={
+                removed
+                  ? "Deletes everything: tier, notes, key specs, price history and photos. The ad is gone, so this can't be undone."
+                  : "Deletes everything: tier, notes, key specs, price history and photos. Adding the listing again starts it over in Watching."
+              }
+              onClick={() => {
+                setExitKind("remove");
+                setExitOpen(true);
+              }}
+            />
+          </div>
+          <RemoveCarDialog
+            kind={exitKind}
+            car={listing}
+            open={exitOpen}
+            onOpenChange={setExitOpen}
+            onLeaving={setLeaving}
+            onRemoved={() =>
+              exitKind === "remove" ? navigate({ to: "/", search: lastBoardSearch(), replace: true }) : undefined
+            }
+          />
+        </section>
         <div className="order-5 min-w-0 space-y-10 lg:mt-4">
         {details.options.length > 0 && (
           <section>
@@ -354,6 +410,38 @@ export function ListingPage({ listingId }: { listingId: string }) {
         </div>
       </div>
     </main>
+  );
+}
+
+// One way off the board: the button, and what it does beside it (under it on phones). The
+// text's pt-1.5 sets its first line level with the button's label.
+function ExitRow({
+  icon,
+  label,
+  hint,
+  error,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  error?: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="contents">
+      <Button variant="outline" className="justify-self-start" onClick={onClick}>
+        {icon}
+        {label}
+      </Button>
+      {error ? (
+        <p role="alert" className="text-sm text-destructive max-sm:-mt-1 max-sm:mb-2 sm:pt-1.5">
+          {error}
+        </p>
+      ) : (
+        <p className="text-sm text-pretty text-muted-foreground max-sm:-mt-1 max-sm:mb-2 sm:pt-1.5">{hint}</p>
+      )}
+    </div>
   );
 }
 

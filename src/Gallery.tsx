@@ -6,6 +6,7 @@ import { Kbd } from "@/components/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { formatDate } from "./format";
 import { carPhotoTransition, NoPhoto } from "./ListingCard";
 import { type Photo, PhotoCount, PhotoGrid, PhotoViewer, Thumbnails } from "./PhotoViewer";
 
@@ -46,6 +47,8 @@ export function galleryColumns(theatre: boolean) {
 type Props = {
   photos: Photo[];
   removed: boolean;
+  /** When the ad was removed, for the band across the photo. */
+  removedAt?: number;
   className?: string;
   theatre: boolean;
   onTheatreToggle: () => void;
@@ -53,7 +56,7 @@ type Props = {
   viewerPanel?: React.ReactNode;
 };
 
-export function Gallery({ photos, removed, className, theatre, onTheatreToggle, viewerPanel }: Props) {
+export function Gallery({ photos, removed, removedAt, className, theatre, onTheatreToggle, viewerPanel }: Props) {
   const [api, setApi] = useState<CarouselApi>();
   const [index, setIndex] = useState(0);
   const [viewing, setViewing] = useState(false);
@@ -142,6 +145,14 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
               </CarouselItem>
             ))}
           </CarouselContent>
+          {/* The card's stamp would hide the photo the user came to look at, so the page
+              says it on a pit board across the photo's foot instead: the slab's colours,
+              opaque, so the photo keeps its edge on the dark page too. */}
+          {removed && (
+            <p className="condensed pointer-events-none absolute inset-x-0 bottom-0 rounded-b-xl bg-slab py-2.5 text-center text-2xl leading-none font-extrabold tracking-wide text-slab-foreground uppercase sm:text-3xl">
+              Ad removed{removedAt !== undefined && ` ${formatDate(removedAt)}`}
+            </p>
+          )}
           <div className="absolute top-3 right-3 flex gap-2">
             {/* Wide screens only: on a phone the photo already has the full width. */}
             <Tooltip>
@@ -195,7 +206,10 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
                 index={index}
                 total={photos.length}
                 onShowAll={() => setSheet(true)}
-                className="absolute right-3 bottom-3 rounded-md bg-black/75 px-2 py-1 text-white hover:bg-black/90 sm:hidden"
+                className={cn(
+                  "absolute right-3 bottom-3 rounded-md bg-black/75 px-2 py-1 text-white hover:bg-black/90 sm:hidden",
+                  removed && "bottom-15",
+                )}
               />
             </>
           )}
@@ -204,6 +218,7 @@ export function Gallery({ photos, removed, className, theatre, onTheatreToggle, 
           <Thumbnails
             photos={photos}
             index={index}
+            removed={removed}
             onSelect={(i) => api?.scrollTo(i)}
             counter={
               <PhotoCount

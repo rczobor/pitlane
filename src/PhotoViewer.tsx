@@ -183,6 +183,7 @@ function Slides({
             onSelect={(i) => api?.scrollTo(i)}
             counter={<PhotoCount index={index} total={photos.length} large />}
             centred
+            removed={removed}
             className="mt-2 mb-3 max-w-[calc(100%-1.5rem)] max-sm:hidden"
           />
         )}
@@ -258,6 +259,7 @@ export function Thumbnails({
   onSelect,
   counter,
   centred = false,
+  removed = false,
   className,
 }: {
   photos: Photo[];
@@ -265,6 +267,8 @@ export function Thumbnails({
   onSelect: (index: number) => void;
   counter: React.ReactNode;
   centred?: boolean;
+  /** A removed ad's photos are grey, thumbnails too. */
+  removed?: boolean;
   className?: string;
 }) {
   const { frame, row, view } = useStrip(photos.length);
@@ -314,7 +318,13 @@ export function Thumbnails({
               i === index ? "border-foreground" : "border-transparent",
             )}
           >
-            <img src={p.url} alt="" loading="lazy" draggable={false} className="size-full object-cover" />
+            <img
+              src={p.url}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              className={cn("size-full object-cover", removed && "grayscale")}
+            />
           </button>
         ))}
       </div>

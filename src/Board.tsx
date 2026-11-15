@@ -18,7 +18,7 @@ import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Ellipsis, ImageOff, LayoutGrid, Trash2, X } from "lucide-react";
+import { Ellipsis, Flag, ImageOff, LayoutGrid, Trash2, X } from "lucide-react";
 import { type RefObject, type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -26,11 +26,11 @@ import { toCheck } from "../shared/fit";
 import { type BoardData, type BoardListing, formatKm, formatPrice, formatRegistrationYear, type Tier, tiers } from "./format";
 import { type CardProps, ListingCard, RemovedStamp } from "./ListingCard";
 import { PendingCaptures } from "./PendingCaptures";
-import { type RemovableCar, RemoveCarDialog } from "./RemoveCar";
+import { type CarExit, type RemovableCar, RemoveCarDialog } from "./RemoveCar";
 import { grabbing, jumpTo, panWithMiddleButton, StripArrow, StripTicks, type StripView, stripEnds, stripFade, usePointed, useStrip } from "./Strip";
 import { slabColor, TierSlab } from "./TierSlab";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
@@ -65,7 +65,7 @@ export function Board() {
     });
     return () => cancelAnimationFrame(frame);
   }, [dragLanes]);
-  const [removing, setRemoving] = useState<RemovableCar | null>(null);
+  const [removing, setRemoving] = useState<{ car: RemovableCar; kind: CarExit } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   // A short travel threshold keeps a plain click opening the car; on touch a long press
   // starts the drag so swiping still scrolls the lane. Keyboard users move cars with the
@@ -227,8 +227,9 @@ export function Board() {
               cardProps={cardProps}
               dragging={active !== undefined}
               target={active !== undefined && lane.listings.includes(active)}
-              onRemove={(car) => {
-                setRemoving(car);
+              canMarkRemoved={board.canMarkRemoved}
+              onRemove={(car, kind) => {
+                setRemoving({ car, kind });
                 setRemoveOpen(true);
               }}
             />
@@ -240,7 +241,13 @@ export function Board() {
         </DragOverlay>
       </DndContext>
       {/* Keyed by car, so one car's pending or failed removal never carries over to the next. */}
-      <RemoveCarDialog key={removing?.listingId} car={removing} open={removeOpen} onOpenChange={setRemoveOpen} />
+      <RemoveCarDialog
+        key={removing?.car.listingId}
+        kind={removing?.kind}
+        car={removing?.car ?? null}
+        open={removeOpen}
+        onOpenChange={setRemoveOpen}
+      />
     </main>
   );
 }
@@ -252,6 +259,7 @@ function Lane({
   cardProps,
   dragging,
   target,
+  canMarkRemoved,
   onRemove,
 }: {
   tier: Tier;
@@ -261,7 +269,8 @@ function Lane({
   dragging: boolean;
   /** The dragged car would land in this lane. */
   target: boolean;
-  onRemove: (car: RemovableCar) => void;
+  canMarkRemoved: boolean;
+  onRemove: (car: RemovableCar, kind: CarExit) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: tier });
   const { frame, row: lane, view } = useStrip(listings.length, fitCards);
@@ -322,7 +331,13 @@ function Lane({
         >
           <SortableContext items={listings.map((l) => l.listingId)}>
             {listings.map((listing) => (
-              <SortableCard key={listing.listingId} listing={listing} onRemove={onRemove} {...cardProps(listing)} />
+              <SortableCard
+                key={listing.listingId}
+                listing={listing}
+                canMarkRemoved={canMarkRemoved}
+                onRemove={onRemove}
+                {...cardProps(listing)}
+              />
             ))}
           </SortableContext>
           {listings.length === 0 && (
@@ -599,9 +614,10 @@ class LeftMouseSensor extends MouseSensor {
 
 function SortableCard({
   listing,
+  canMarkRemoved,
   onRemove,
   ...props
-}: { listing: BoardListing; onRemove: (car: RemovableCar) => void } & CardProps) {
+}: { listing: BoardListing; canMarkRemoved: boolean; onRemove: (car: RemovableCar, kind: CarExit) => void } & CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: listing.listingId,
   });
@@ -615,14 +631,18 @@ function SortableCard({
       {...listeners}
     >
       <ListingCard listing={listing} {...props} />
-      <CardMenu title={listing.title} onRemove={() => onRemove(listing)} />
+      <CardMenu
+        title={listing.title}
+        onMarkRemoved={canMarkRemoved && listing.status !== "removed" ? () => onRemove(listing, "markRemoved") : undefined}
+        onRemove={() => onRemove(listing, "remove")}
+      />
     </div>
   );
 }
 
 // Beside the card's link, which cannot hold a button. Presses stop here so they never
 // start a drag or a lane pan; React events from the menu's portal bubble through here too.
-function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) {
+function CardMenu({ title, onMarkRemoved, onRemove }: { title: string; onMarkRemoved?: () => void; onRemove: () => void }) {
   const stop = (event: SyntheticEvent) => event.stopPropagation();
   return (
     // Only keeps a press on the menu from starting a card drag.
@@ -643,9 +663,18 @@ function CardMenu({ title, onRemove }: { title: string; onRemove: () => void }) 
           <Ellipsis aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-auto">
+          {onMarkRemoved && (
+            <>
+              <DropdownMenuItem onClick={onMarkRemoved}>
+                <Flag aria-hidden />
+                Mark ad as removed…
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem variant="destructive" onClick={onRemove}>
             <Trash2 aria-hidden />
-            Remove from board…
+            Delete from board…
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
