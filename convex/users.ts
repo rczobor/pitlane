@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalQuery, mutation, type QueryCtx } from "./_generated/server";
 import { appError } from "./errors";
 
@@ -34,10 +35,14 @@ export const viewerForCapture = internalQuery({
   args: { via: v.union(v.literal("web"), v.literal("mcp")) },
   handler: async (ctx, { via }) => {
     const access = await viewerAccess(ctx, via);
-    const owner = access && (await ctx.db.query("users").first());
-    return access && { ...access, isOwner: owner?._id === access.userId };
+    return access && { ...access, isOwner: await isOwner(ctx, access.userId) };
   },
 });
+
+// Whether this user may record listing facts (captures, a removed ad): the oldest user.
+export async function isOwner(ctx: QueryCtx, userId: Id<"users">) {
+  return (await ctx.db.query("users").first())?._id === userId;
+}
 
 // Runs when a signed-in account has no board yet. A new account takes over a user
 // that no account owns yet, such as the design fixtures' seeded owner, so that board

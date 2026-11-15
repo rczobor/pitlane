@@ -18,6 +18,7 @@ type Props = {
   keySpecs: ResolvedSpec[];
   photos: { url: string; sourceUrl: string }[];
   removed: boolean;
+  removedAt?: number;
   board: BoardData;
   onDone: () => void;
   theatre: boolean;
@@ -34,7 +35,19 @@ const Kbd = ({ children, className }: { children: React.ReactNode; className?: s
   <KbdBase className={cn("hidden [@media(hover:hover)]:inline-flex", className)}>{children}</KbdBase>
 );
 
-export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed, board, onDone, theatre, onTheatreToggle }: Props) {
+export function CheckMode({
+  listingId,
+  title,
+  modelId,
+  keySpecs,
+  photos,
+  removed,
+  removedAt,
+  board,
+  onDone,
+  theatre,
+  onTheatreToggle,
+}: Props) {
   const setValue = useMutation(api.board.setSpecValue);
   // The queue is fixed on entry, so confirming a spec does not reshuffle what is left.
   const [queue] = useState(() => keySpecs.filter((s) => s.source !== "you").map((s) => s.id));
@@ -104,6 +117,7 @@ export function CheckMode({ listingId, title, modelId, keySpecs, photos, removed
       <Gallery
         photos={photos}
         removed={removed}
+        removedAt={removedAt}
         theatre={theatre}
         onTheatreToggle={onTheatreToggle}
         viewerPanel={step(true)}

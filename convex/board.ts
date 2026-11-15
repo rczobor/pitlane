@@ -4,8 +4,8 @@ import type { Id } from "./_generated/dataModel";
 import { action, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { appError } from "./errors";
 import { geocode } from "./geo";
-import { boardItem, boardListings, listingDetail } from "./listings";
-import { viewerAccess } from "./users";
+import { boardItem, boardListings, listingDetail, recordRemoved } from "./listings";
+import { isOwner, viewerAccess } from "./users";
 import { boardModel, homeLocation, keySpec, tiers } from "./validators";
 
 // Functions for the web app, for the signed-in user's board. Signed out, or before
@@ -21,6 +21,8 @@ export const get = query({
     return {
       name: board.name,
       home: user?.home ?? null,
+      // Listing facts are shared by every board, so only the owner may mark an ad removed.
+      canMarkRemoved: await isOwner(ctx, access.userId),
       models: board.models ?? [],
       keySpecs: board.keySpecs ?? [],
       listings: await boardListings(ctx, access.boardId),
@@ -41,6 +43,32 @@ export const move = mutation({
   handler: async (ctx, { listingId, tier, rank }) => {
     const { item } = await ownItem(ctx, listingId);
     await ctx.db.patch("boardItems", item._id, { tier, rank });
+  },
+});
+
+// The user knows the ad is gone (sold, withdrawn) before a re-check finds it. The car keeps
+// its tier, notes and history; the board hides it until asked to show removed ads.
+export const markRemoved = mutation({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, { listingId }) => {
+    const { userId } = await ownItem(ctx, listingId);
+    if (!(await isOwner(ctx, userId))) throw appError("invalid", "Only the board's owner can mark an ad removed for now.");
+    await recordRemoved(ctx, (await ctx.db.get("listings", listingId))!, "web");
+  },
+});
+
+// Undoes a removal the user knows was wrong: the ad is still up. The listing keeps its last
+// data, and re-checks resume on their usual schedule, which confirms it.
+export const putBack = mutation({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, { listingId }) => {
+    const { userId } = await ownItem(ctx, listingId);
+    if (!(await isOwner(ctx, userId))) throw appError("invalid", "Only the board's owner can put an ad back for now.");
+    const listing = (await ctx.db.get("listings", listingId))!;
+    if (listing.status !== "removed") return;
+    const now = Date.now();
+    await ctx.db.patch("listings", listingId, { status: "available", removedAt: undefined, lastChangedAt: now });
+    await ctx.db.insert("snapshots", { listingId, capturedAt: now, capturedBy: "web", status: "available", data: listing.current });
   },
 });
 
@@ -270,5 +298,5 @@ async function ownItem(ctx: MutationCtx, listingId: Id<"listings">) {
   const access = await viewerAccess(ctx);
   const item = access && (await boardItem(ctx, access.boardId, listingId));
   if (!access || !item) throw appError("not_found", "This listing is not on your board");
-  return { board: (await ctx.db.get("boards", access.boardId))!, item };
+  return { board: (await ctx.db.get("boards", access.boardId))!, item, userId: access.userId };
 }
