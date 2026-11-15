@@ -2,7 +2,7 @@
   "name": "pitlane",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.18.0",
+  "packageManager": "pnpm@12.20.0",
   "engines": {
     "node": ">=24"
   },
@@ -57,7 +57,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.2.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "convex-test": "^0.0.69",
+    "convex-test": "^0.0.70",
     "esbuild": "^0.28.2",
     "happy-dom": "^21.0.4",
     "oxlint": "^1.93.0",
