@@ -267,9 +267,10 @@ export function ListingCard({
         <div className={cn("flex flex-1 flex-col rounded-b-sm bg-card", compact ? "gap-1.5 p-2.5" : "gap-2 px-3.5 pt-3 pb-3.5")}>
           {lotLine}
           <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
+          {/* The badges follow the stats, and wrap under them from the left. */}
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
-            <div className="ml-auto">{badges}</div>
+            {badges}
           </div>
           {ledger}
         </div>

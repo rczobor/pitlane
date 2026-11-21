@@ -100,7 +100,7 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
         </dt>
         <dd
           className={cn(
-            // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
+            // Most values fit one line; a long choice ("Adaptive sport seats") wraps, never truncates.
             "flex items-start gap-0.5 leading-tight font-semibold break-words",
             size === "lg" ? "text-sm" : "text-xs",
             // A confirmed "No" is as definite as any other value; only unknown is quiet.
@@ -108,7 +108,7 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
           )}
         >
           {missing && <X className="mt-px size-3 shrink-0" aria-hidden />}
-          <span className="line-clamp-3 sm:line-clamp-2">{value}</span>
+          <span className="min-w-0">{value}</span>
           {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
           {hit && <span className="sr-only">(preferred)</span>}
           {breaker && <span className="sr-only">(deal-breaker)</span>}
