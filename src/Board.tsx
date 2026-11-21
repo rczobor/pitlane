@@ -140,8 +140,10 @@ export function Board() {
             <span>
               {visible.length === 1 ? "1 car" : `${visible.length} cars`}
               {check && filter && " to check"}
-              {/* The model's limits, so an "Over" or "Out" tag on a car says what it is over. */}
-              {filteredModel && criteriaLabels(filteredModel).map((label) => <span key={label}> · {label}</span>)}
+              {/* The tower reads its limits against the model's targets; wide screens leave them out (owner's call). */}
+              {!wide &&
+                filteredModel &&
+                criteriaLabels(filteredModel).map((label) => <span key={label}> · {label}</span>)}
             </span>
             {/* On phones the filter strip may have scrolled "All models" out of view. */}
             <Link to="/" search={removed ? { removed } : {}} className={buttonVariants({ variant: "ghost", size: "sm" })}>
