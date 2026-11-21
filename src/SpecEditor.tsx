@@ -57,7 +57,7 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
               className={cn(
                 // Hairlines between sectors drawn as shadows into the 1px gaps; the rounded
                 // box clips them at its edges, so a short last row leaves no stray lines.
-                "flex min-w-0 flex-col gap-1.5 p-2.5 shadow-[-1px_0_0_var(--border),0_-1px_0_var(--border)]",
+                "flex min-w-0 flex-col gap-1 px-2.5 py-2 shadow-[-1px_0_0_var(--border),0_-1px_0_var(--border)]",
                 isOpen && "bg-selected shadow-[inset_0_3px_0_var(--foreground),-1px_0_0_var(--border),0_-1px_0_var(--border)]",
               )}
             >
@@ -65,20 +65,53 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                 <span className="text-sm font-extrabold text-foreground">{index + 1}</span>
                 {spec.name}
               </p>
-              <p
-                className={cn(
-                  "flex max-w-full items-center gap-1 self-start px-1.5 py-1 text-[0.9375rem] leading-tight font-semibold break-words",
-                  specTone(spec, { hit }),
-                  spec.value === null && "font-medium text-muted-foreground",
+              {/* Confirm sits beside the value it confirms, so it never takes a line of its own
+                  where the value leaves room for it. */}
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                <p
+                  className={cn(
+                    "flex max-w-full items-center gap-1 px-1.5 py-1 text-[0.9375rem] leading-tight font-semibold break-words",
+                    specTone(spec, { hit }),
+                    spec.value === null && "font-medium text-muted-foreground",
+                  )}
+                >
+                  {spec.kind === "check" && spec.value === "no" && <X className="size-3.5 shrink-0" aria-hidden />}
+                  {specValueText(spec)}
+                  {spec.value === null && <span className="sr-only">unknown</span>}
+                  {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
+                </p>
+                {spec.source === "listing" && (
+                  // Outline: the inverted fill only ever marks a selected value.
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 sm:h-7"
+                    aria-label={`Confirm ${spec.name}: ${specValueText(spec)}`}
+                    onClick={() => save(spec.id, spec.value)}
+                  >
+                    <Check data-icon="inline-start" aria-hidden />
+                    Confirm
+                  </Button>
                 )}
-              >
-                {spec.kind === "check" && spec.value === "no" && <X className="size-3.5 shrink-0" aria-hidden />}
-                {specValueText(spec)}
-                {spec.value === null && <span className="sr-only">unknown</span>}
-                {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
-              </p>
+              </div>
               {breaker && <InkMark mark="breaker" className="self-start" />}
+              {/* Change ends the source line (floated, so the words wrap around it), and a
+                  sector is only as tall as what it says. */}
               <p className="text-xs leading-snug text-muted-foreground">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  // Compact on the line, with a touch target that reaches past it.
+                  className="relative float-right -my-1 -mr-1.5 ml-1 h-6 px-1.5 after:absolute after:-inset-x-1 after:-inset-y-2"
+                  aria-label={`Change ${spec.name}`}
+                  aria-expanded={isOpen}
+                  aria-controls={isOpen ? editorId : undefined}
+                  onClick={() => setOpenId(isOpen ? null : spec.id)}
+                >
+                  Change
+                </Button>
                 {spec.source ? sourceWord[spec.source] : "Unknown"}
                 {hit ? (
                   <>
@@ -96,34 +129,6 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                   )
                 )}
               </p>
-              <div className="mt-auto flex flex-wrap items-center gap-x-1 gap-y-1.5 pt-1">
-                {spec.source === "listing" && (
-                  // Outline: the inverted fill only ever marks a selected value.
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 sm:h-7"
-                    aria-label={`Confirm ${spec.name}: ${specValueText(spec)}`}
-                    onClick={() => save(spec.id, spec.value)}
-                  >
-                    <Check data-icon="inline-start" aria-hidden />
-                    Confirm
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn("h-9 sm:h-7", spec.source !== "listing" && "-ml-2")}
-                  aria-label={`Change ${spec.name}`}
-                  aria-expanded={isOpen}
-                  aria-controls={isOpen ? editorId : undefined}
-                  onClick={() => setOpenId(isOpen ? null : spec.id)}
-                >
-                  Change
-                </Button>
-              </div>
             </div>
           );
         })}
