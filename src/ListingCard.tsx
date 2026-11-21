@@ -246,9 +246,13 @@ export function ListingCard({
     listing.modelId,
   );
   const outside = (kind: Limit) => checks.some((c) => c.kind === kind && c.status === "missed");
-  // An index row says what is left to confirm under its price instead.
-  const lotLine = (
-    <LotLine lot={lot} model={modelName} toConfirm={variant === "index" ? undefined : toConfirm} large={variant === "feature"} />
+  const lotLine = <LotLine lot={lot} model={modelName} large={variant === "feature"} />;
+  // In the check view: closes the year · km · hp line, so the lot line stays one line. An index
+  // row says it under its price instead.
+  const confirmCount = toConfirm !== undefined && (
+    <span className={cn("ml-auto shrink-0 self-center pl-2 font-semibold whitespace-nowrap", variant === "feature" ? "text-sm" : "text-xs")}>
+      {toConfirm} to confirm
+    </span>
   );
   const badges = <Badges listing={listing} home={home} />;
   const ledger = (
@@ -279,11 +283,14 @@ export function ListingCard({
         <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6">
           {lotLine}
           <h3 className="text-base leading-snug">{listing.title}</h3>
-          <dl className="flex flex-wrap gap-x-7 gap-y-2">
-            <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
-            <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
-            {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
-          </dl>
+          <div className="flex flex-wrap items-end gap-y-2">
+            <dl className="flex flex-wrap gap-x-7 gap-y-2">
+              <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
+              <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
+              {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
+            </dl>
+            {confirmCount}
+          </div>
           {badges}
           {ledger}
         </div>
@@ -330,6 +337,7 @@ export function ListingCard({
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
               {badges}
+              {confirmCount}
             </div>
           </div>
         </div>
@@ -360,33 +368,24 @@ export function ListingCard({
   );
 }
 
-// "LOT 2  718 GT4 RS": the lot number to say out loud, then the model when the board shows
-// several, and in the check view how many key specs are left to confirm.
-function LotLine({ lot, model, toConfirm, large }: { lot?: number; model?: string; toConfirm?: number; large: boolean }) {
-  if (lot === undefined && !model && toConfirm === undefined) return null;
+// "LOT 2  718 GT4 RS": the lot number to say out loud, then the model when the board shows several.
+function LotLine({ lot, model, large }: { lot?: number; model?: string; large: boolean }) {
+  if (lot === undefined && !model) return null;
   return (
-    // The count keeps the line's top-right corner; a long model wraps under the lot number instead.
-    <p className="flex min-w-0 items-baseline gap-x-2">
-      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-        {lot !== undefined && (
-          <span
-            className={cn(
-              "condensed font-bold tracking-[0.07em] whitespace-nowrap text-muted-foreground uppercase",
-              large ? "text-sm" : "text-xs",
-            )}
-          >
-            Lot {lot}
-          </span>
-        )}
-        {model && (
-          <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
-            {model}
-          </span>
-        )}
-      </span>
-      {toConfirm !== undefined && (
-        <span className={cn("ml-auto shrink-0 font-semibold whitespace-nowrap", large ? "text-sm" : "text-xs")}>
-          {toConfirm} to confirm
+    <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+      {lot !== undefined && (
+        <span
+          className={cn(
+            "condensed font-bold tracking-[0.07em] whitespace-nowrap text-muted-foreground uppercase",
+            large ? "text-sm" : "text-xs",
+          )}
+        >
+          Lot {lot}
+        </span>
+      )}
+      {model && (
+        <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
+          {model}
         </span>
       )}
     </p>
