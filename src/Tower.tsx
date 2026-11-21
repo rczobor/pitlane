@@ -10,10 +10,8 @@ import {
   type BoardListing,
   formatDistance,
   formatKm,
-  formatPower,
   formatPrice,
   formatRegistration,
-  formatRegistrationYear,
   type KeySpecDef,
   type ResolvedSpec,
   type Tier,
@@ -33,22 +31,18 @@ const identity = 200;
 
 /**
  * The board under 640px: a timing tower. One row per car in rank order, the car column
- * frozen, and the year, mileage, power and key-spec columns scrolling sideways together
- * (one scroller, so the header and every sector share one scroll position). On a filtered
- * board the model and power say nothing, so the registration and mileage join the car
- * column and the seller follows the key specs.
+ * frozen (price, the model when the board shows several, registration and mileage), and the
+ * key-spec columns then the seller scrolling sideways together (one scroller, so the header
+ * and every sector share one scroll position).
  */
 export function Tower({
   view,
   specDefs,
-  filtered,
   pending,
 }: {
   view: TierViewProps;
   /** The board's key specs, in priority order: one column each. */
   specDefs: KeySpecDef[];
-  /** The board shows one model. */
-  filtered: boolean;
   /** Shared listings waiting at the top of Watching. */
   pending: boolean;
 }) {
@@ -56,13 +50,10 @@ export function Tower({
   const sections = sectionsOf(drag.lanes, view.byId, tiers);
   const hasCars = sections.some((s) => s.listings.length > 0);
   const scroller = useSideScroll();
-  const specs = `repeat(${specDefs.length}, 5.75rem)`;
-  const cols = filtered
-    ? `${identity}px ${specs} 1px 6.5rem 2.75rem`
-    : `${identity}px 2.5rem 4.75rem 3.375rem 1px ${specs} 2.75rem`;
+  const cols = `${identity}px repeat(${specDefs.length}, 3.5rem) 1px 6.5rem 2.75rem`;
   const style = { "--cols": cols } as CSSProperties;
   const { active } = drag;
-  const rowProps = { view, specDefs, filtered };
+  const rowProps = { view, specDefs };
   return (
     <DndContext {...drag.dndProps}>
       {/* Middle-button panning is a mouse extra; the tower scrolls like any other row. */}
@@ -77,7 +68,7 @@ export function Tower({
       >
         <div className="w-max min-w-full">
           {/* Hidden until a car exists: an empty board has nothing to read down. */}
-          {hasCars && <TowerHeader specDefs={specDefs} filtered={filtered} />}
+          {hasCars && <TowerHeader specDefs={specDefs} />}
           {sections.map((section) => (
             <TowerSector
               key={section.tier}
@@ -103,30 +94,18 @@ export function Tower({
 
 const headText = "text-[0.71875rem] leading-tight font-bold tracking-[0.05em] text-muted-foreground uppercase [font-stretch:75%]";
 
-function TowerHeader({ specDefs, filtered }: { specDefs: KeySpecDef[]; filtered: boolean }) {
+function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   return (
     <div className="[--row-bg:var(--color-background)]">
       <div aria-hidden className="grid grid-cols-(--cols) items-end gap-x-2 border-b-2 border-foreground pb-1.25">
         <div className={cn(headText, "sticky left-0 z-10 self-stretch bg-background")}>Car · price</div>
-        {!filtered && (
-          <>
-            <div className={cn(headText, "text-right")}>Year</div>
-            <div className={cn(headText, "text-right")}>Mileage</div>
-            <div className={cn(headText, "text-right")}>Power</div>
-            <div />
-          </>
-        )}
         {specDefs.map((def) => (
           <div key={def.id} className={cn(headText, "pl-1.75")}>
             {def.name}
           </div>
         ))}
-        {filtered && (
-          <>
-            <div />
-            <div className={headText}>Seller</div>
-          </>
-        )}
+        <div />
+        <div className={headText}>Seller</div>
         <EndCell />
       </div>
       {/* One continuous rail with the stretch on screen in ink, under the scrolling columns. */}
@@ -201,7 +180,7 @@ function TowerSector({
   );
 }
 
-type RowProps = { view: TierViewProps; specDefs: KeySpecDef[]; filtered: boolean };
+type RowProps = { view: TierViewProps; specDefs: KeySpecDef[] };
 
 // A long press lifts the row to drag it up or down the tower; Alt+↑/↓ moves the focused car
 // one place, into the next tier at a sector's edge.
@@ -231,7 +210,6 @@ function TowerRow({
   position,
   view,
   specDefs,
-  filtered,
   lifted = false,
   placeholder = false,
   rowRef,
@@ -287,59 +265,34 @@ function TowerRow({
             <span className="condensed text-[1.1875rem] leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
             <PriceNote listing={listing} />
           </span>
-          <span className="condensed truncate text-[0.84375rem] leading-tight font-bold">
-            {filtered ? (
-              <>
-                <span className={cn(over("year") && "text-destructive")}>{formatRegistration(specs.firstRegistration)}</span>
-                {" · "}
-                <span className={cn(over("mileage") && "text-destructive")}>{formatKm(specs.mileageKm)}</span>
-                {over("mileage") && <span className="sr-only"> (over the model's limit)</span>}
-              </>
-            ) : (
-              (modelName ?? listing.title)
-            )}
+          {/* The model, unless the board shows only one. */}
+          {modelName && <span className="condensed text-[0.84375rem] leading-tight font-bold">{modelName}</span>}
+          <span className="condensed text-[0.84375rem] leading-tight font-bold">
+            <span className={cn(over("year") && "text-destructive")}>{formatRegistration(specs.firstRegistration)}</span>
+            {" · "}
+            <span className={cn(over("mileage") && "text-destructive")}>{formatKm(specs.mileageKm)}</span>
+            {over("mileage") && <span className="sr-only"> (over the model's limit)</span>}
           </span>
           {/* The title names the car for screen readers and find-in-page; the row shows the model. */}
           <span className="sr-only">{listing.title}</span>
         </span>
       </Link>
-      {!filtered && (
-        <>
-          <NumberCell value={formatRegistrationYear(specs.firstRegistration)} label="Year" />
-          <NumberCell value={formatKm(specs.mileageKm)} label="Mileage" />
-          <NumberCell value={specs.powerKw === undefined ? "" : formatPower(specs.powerKw)} label="Power" />
-          <div aria-hidden className="self-stretch bg-border" />
-        </>
-      )}
       {specDefs.map((def) => {
         const spec = listing.keySpecs.find((s) => s.id === def.id);
         return <div key={def.id} className="min-w-0">{spec && <SpecCell spec={spec} {...specVerdict(spec, def, listing.modelId)} />}</div>;
       })}
-      {filtered && (
-        <>
-          <div aria-hidden className="self-stretch bg-border" />
-          <p className="flex min-w-0 flex-col text-[0.78125rem] leading-tight">
-            <span className="sr-only">Seller: </span>
-            {distance && <span className="font-semibold">{distance}</span>}
-            <span className="truncate text-muted-foreground">{listing.location ?? listing.country}</span>
-          </p>
-        </>
-      )}
+      <div aria-hidden className="self-stretch bg-border" />
+      <p className="flex min-w-0 flex-col text-[0.78125rem] leading-tight break-words">
+        <span className="sr-only">Seller: </span>
+        {distance && <span className="font-semibold">{distance}</span>}
+        <span className="text-muted-foreground">{listing.location ?? listing.country}</span>
+      </p>
       <EndCell>
         {!lifted && (
           <CardMenu listing={listing} canMarkRemoved={view.canMarkRemoved} onAction={(action) => view.onAction(listing, action)} />
         )}
       </EndCell>
     </div>
-  );
-}
-
-function NumberCell({ value, label }: { value: string; label: string }) {
-  return (
-    <p className="text-right text-[0.8125rem] font-medium whitespace-nowrap tabular-nums">
-      {value && <span className="sr-only">{label}: </span>}
-      {value}
-    </p>
   );
 }
 

@@ -180,7 +180,7 @@ export function Board() {
           <Catalogue {...view} />
         </>
       ) : (
-        <Tower view={view} specDefs={board.keySpecs} filtered={filter !== undefined} pending={!filter && !check} />
+        <Tower view={view} specDefs={board.keySpecs} pending={!filter && !check} />
       )}
       <p aria-live="polite" className="sr-only">
         {announcement}
