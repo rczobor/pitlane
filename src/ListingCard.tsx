@@ -123,8 +123,8 @@ function PricePlate({ listing, size }: { listing: BoardListing; size: keyof type
 export const priceChange = (listing: Pick<BoardListing, "price" | "firstPrice">) =>
   listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
 
-// The photo box keeps its ratio whatever it holds (shrink-0), and clips the photo
-// (overflow-hidden) so a photo's natural height never overrides the ratio.
+// The photo box keeps its ratio whatever it holds (shrink-0), and the photo fills it out of
+// flow, so its natural height never sizes the box.
 function Photo({
   listing,
   small = false,
@@ -149,7 +149,7 @@ function Photo({
           draggable={false}
           loading="lazy"
           style={opened ? carPhotoTransition : undefined}
-          className={cn("size-full object-cover", removed && "grayscale")}
+          className={cn("absolute inset-0 size-full object-cover", removed && "grayscale")}
         />
       ) : small ? (
         <NoPhoto className="flex-col gap-1 text-xs" label="No photo" />
@@ -242,7 +242,9 @@ export function ListingCard({
   if (variant === "feature") {
     card = (
       <div className="grid h-full overflow-hidden rounded-sm bg-card lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <Photo listing={listing} className="aspect-[4/3] sm:aspect-[3/2]">
+        {/* 16:9 over the panel; beside it, the panel's content sets the height and the photo is
+            cropped to it, so the panel never has a dead band. */}
+        <Photo listing={listing} className="aspect-video lg:aspect-auto lg:min-h-72">
           <PricePlate listing={listing} size="xl" />
         </Photo>
         <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6 lg:pb-7">
@@ -254,8 +256,7 @@ export function ListingCard({
             {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
           </dl>
           {badges}
-          {/* Pinned to the foot, on the price plate's line, so the panel has no dead band. */}
-          <div className="mt-auto">{ledger}</div>
+          {ledger}
         </div>
       </div>
     );
