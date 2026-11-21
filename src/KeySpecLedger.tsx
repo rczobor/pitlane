@@ -100,9 +100,8 @@ export function InkMark({ mark, className }: { mark: keyof typeof marks; classNa
 }
 
 /**
- * The key specs as one line of value-only cells, for a row with no room for the ledger's
- * names (the catalogue's Rejected rows). Same order and blanks as the ledger, so a cell sits
- * under its spec's place; the name is on hover and for screen readers.
+ * The key specs as one line of cells, for the catalogue's Rejected rows. Same order, blanks
+ * and spec-name-over-value as the ledger, so a dash or a "Yes" is never read without its spec.
  */
 export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs: KeySpecDef[]; modelId: string | null }) {
   if (specs.length === 0) return null;
@@ -116,7 +115,7 @@ export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs:
         return (
           <Tooltip key={def.id}>
             <TooltipTrigger render={<div className="min-w-0" />}>
-              <SpecCell spec={spec} {...verdict} />
+              <SpecCell spec={spec} {...verdict} named />
             </TooltipTrigger>
             <TooltipContent>{specDescription(spec, verdict.hit)}</TooltipContent>
           </Tooltip>
@@ -126,8 +125,19 @@ export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs:
   );
 }
 
-// The ledger's four states without the spec's name: a tower column's header or a hover names it.
-export function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
+// The ledger's four states. A tower column's header names its spec, so its cells leave the
+// name to screen readers; `named` shows it over the value, as the ledger does.
+export function SpecCell({
+  spec,
+  hit,
+  breaker,
+  named = false,
+}: {
+  spec: ResolvedSpec;
+  hit: boolean;
+  breaker: boolean;
+  named?: boolean;
+}) {
   const missing = spec.kind === "check" && spec.value === "no";
   return (
     <div
@@ -137,7 +147,14 @@ export function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: bool
         spec.value === null && "font-medium text-muted-foreground",
       )}
     >
-      <span className="sr-only">{spec.name}: </span>
+      {named ? (
+        <span className={cn("block text-[0.6875rem] font-normal", hit ? "text-background/75" : "text-muted-foreground")}>
+          {spec.name}
+          <span className="sr-only">: </span>
+        </span>
+      ) : (
+        <span className="sr-only">{spec.name}: </span>
+      )}
       <span className="inline-flex items-start gap-0.5">
         {missing && <X className="mt-px size-2.75 shrink-0" aria-hidden />}
         {specValueText(spec)}

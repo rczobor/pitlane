@@ -263,7 +263,7 @@ export function ListingCard({
     );
   } else if (variant === "index") {
     card = (
-      // An index row's key specs are one line of value cells, as the tower shows them: they are
+      // An index row's key specs are one line of named cells, in the ledger's states: they are
       // why the car was rejected. Wide screens lay them along the row's middle; narrower ones
       // under its stats, in the room the thumbnail leaves.
       <div className="grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-2 lg:grid-cols-[6.5rem_13rem_minmax(0,1fr)_auto_7rem] lg:gap-x-5">
