@@ -16,11 +16,14 @@ export function CardMenu({
   listing,
   canMarkRemoved,
   onAction,
+  shown = false,
   className,
 }: {
   listing: BoardListing;
   canMarkRemoved: boolean;
   onAction: (action: CarAction) => void;
+  /** Always in view, in a column of its own; otherwise it floats over a card until hovered. */
+  shown?: boolean;
   className?: string;
 }) {
   const stop = (event: SyntheticEvent) => event.stopPropagation();
@@ -32,11 +35,14 @@ export function CardMenu({
         <DropdownMenuTrigger
           render={
             <Button
-              variant="secondary"
+              variant={shown ? "ghost" : "secondary"}
               size="icon-sm"
               aria-label={`Actions for ${listing.title}`}
-              // Shown on hover or focus where there is a mouse; always on touch screens.
-              className="shadow-sm opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 any-pointer-coarse:opacity-100"
+              // Over a card: shown on hover or focus where there is a mouse; always on touch screens.
+              className={cn(
+                !shown &&
+                  "shadow-sm opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 any-pointer-coarse:opacity-100",
+              )}
             />
           }
         >

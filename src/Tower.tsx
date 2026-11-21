@@ -26,8 +26,9 @@ import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierD
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-// The frozen car column, as wide as the mock's timing tower: position, thumbnail, price, model.
-const identity = 200;
+// The frozen car column: position, thumbnail, price, model. Narrow enough for three spec
+// columns at 390; its lines wrap between their parts instead.
+const identity = 154;
 // The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
 // column may get before one fewer fits on screen.
 const menu = 32;
@@ -102,7 +103,7 @@ function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   return (
     <div className="[--row-bg:var(--color-background)]">
       <div aria-hidden className="grid grid-cols-(--cols) items-end gap-x-1 border-b-2 border-foreground pb-1.25">
-        <div className={cn(headText, "sticky left-0 z-10 self-stretch bg-background")}>Car · price</div>
+        <div className={cn(headText, "sticky left-0 z-10 flex items-end self-stretch bg-background", startFade)}>Car · price</div>
         {/* The header's cells are the snap points for every row. */}
         {specDefs.map((def) => (
           <div key={def.id} className={cn(headText, "snap-start pl-1.25")}>
@@ -122,11 +123,22 @@ function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   );
 }
 
+// The frozen columns fade the scrolling ones at an end that hides some (1.5rem on phones).
+const fade =
+  "before:pointer-events-none before:absolute before:inset-y-0 before:w-6 before:from-(--row-bg) before:to-transparent before:opacity-0";
+const startFade = cn(fade, "before:left-full before:bg-linear-to-r group-data-more-start/tower:before:opacity-100");
+const endFade = cn(fade, "before:right-full before:bg-linear-to-l group-data-more-end/tower:before:opacity-100");
+
 // The frozen end of a row, holding its actions in a column of their own: the scrolling
 // columns stop at its edge, which takes a rule while columns hide under it.
 function EndCell({ children }: { children?: ReactNode }) {
   return (
-    <div className="sticky right-0 z-10 flex items-center justify-end self-stretch bg-(--row-bg) group-data-overflow/tower:shadow-[-1px_0_0_var(--color-border)]">
+    <div
+      className={cn(
+        "sticky right-0 z-10 flex items-center justify-end self-stretch bg-(--row-bg) group-data-overflow/tower:shadow-[-1px_0_0_var(--color-border)]",
+        endFade,
+      )}
+    >
       {children}
     </div>
   );
@@ -251,7 +263,10 @@ function TowerRow({
         draggable={false}
         onClick={() => openCar(listing.listingId)}
         data-car={listing.listingId}
-        className="sticky left-0 z-10 flex min-w-0 items-center gap-1.5 self-stretch bg-(--row-bg) py-1.5 pl-1 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+        className={cn(
+          "sticky left-0 z-10 flex min-w-0 items-center gap-1 self-stretch bg-(--row-bg) py-1.5 pl-1 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+          startFade,
+        )}
       >
         {/* The car's lot number, as the catalogue shows it. */}
         <span className="condensed w-4 shrink-0 text-center text-[0.9375rem] font-bold tabular-nums">
@@ -260,7 +275,7 @@ function TowerRow({
         </span>
         <Thumb listing={listing} />
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="flex items-center gap-1">
+          <span className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
             <span className="condensed text-[1.1875rem] leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
             <PriceNote listing={listing} />
           </span>
@@ -303,7 +318,12 @@ function TowerRow({
       </p>
       <EndCell>
         {!lifted && (
-          <CardMenu listing={listing} canMarkRemoved={view.canMarkRemoved} onAction={(action) => view.onAction(listing, action)} />
+          <CardMenu
+            listing={listing}
+            canMarkRemoved={view.canMarkRemoved}
+            onAction={(action) => view.onAction(listing, action)}
+            shown
+          />
         )}
       </EndCell>
     </div>
@@ -334,7 +354,7 @@ function Thumb({ listing }: { listing: BoardListing }) {
   const removed = listing.status === "removed";
   const opened = useOpenedCar(listing.listingId);
   return (
-    <span className="relative flex aspect-video w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground">
+    <span className="relative flex aspect-video w-11 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground">
       {listing.coverUrl ? (
         <img
           src={listing.coverUrl}
@@ -398,7 +418,10 @@ function useSideScroll(columns: number) {
       const room = el.clientWidth - identity - menu - 2 * gap;
       const fit = Math.min(columns, Math.max(1, Math.floor((room + gap) / (minColumn + gap))));
       setWidth(Math.max(minColumn, (room - (fit - 1) * gap) / fit));
-      el.toggleAttribute("data-overflow", el.scrollWidth - el.clientWidth > 1);
+      const hidden = el.scrollWidth - el.clientWidth;
+      el.toggleAttribute("data-overflow", hidden > 1);
+      el.toggleAttribute("data-more-start", el.scrollLeft > 1);
+      el.toggleAttribute("data-more-end", hidden - el.scrollLeft > 1);
       const rail = el.querySelector<HTMLElement>("[data-rail]");
       const frozen = identity + menu + 2 * gap;
       const track = el.scrollWidth - frozen;
