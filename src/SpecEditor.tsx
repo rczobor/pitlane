@@ -49,6 +49,12 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
           const { hit, breaker } = specVerdict(spec, def, modelId);
           const preferred = preferredFor(def, modelId);
           const isOpen = spec.id === openId;
+          // "Preferred" only for a confirmed match; otherwise what the user prefers, if anything.
+          const preference = hit
+            ? "Preferred"
+            : preferred.length > 0
+              ? `You prefer ${preferred.map((v) => preferenceLabel(spec.kind, v)).join(" or ")}`
+              : undefined;
           return (
             <div
               key={spec.id}
@@ -65,70 +71,64 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                 <span className="text-sm font-extrabold text-foreground">{index + 1}</span>
                 {spec.name}
               </p>
-              {/* Confirm sits beside the value it confirms, so it never takes a line of its own
-                  where the value leaves room for it. */}
-              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                <p
-                  className={cn(
-                    "flex max-w-full items-center gap-1 px-1.5 py-1 text-[0.9375rem] leading-tight font-semibold break-words",
-                    specTone(spec, { hit }),
-                    spec.value === null && "font-medium text-muted-foreground",
-                  )}
-                >
-                  {spec.kind === "check" && spec.value === "no" && <X className="size-3.5 shrink-0" aria-hidden />}
-                  {specValueText(spec)}
-                  {spec.value === null && <span className="sr-only">unknown</span>}
-                  {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
-                </p>
-                {spec.source === "listing" && (
-                  // Outline: the inverted fill only ever marks a selected value.
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 sm:h-7"
-                    aria-label={`Confirm ${spec.name}: ${specValueText(spec)}`}
-                    onClick={() => save(spec.id, spec.value)}
-                  >
-                    <Check data-icon="inline-start" aria-hidden />
-                    Confirm
-                  </Button>
+              <p
+                className={cn(
+                  "flex max-w-full items-center gap-1 self-start px-1.5 py-1 text-[0.9375rem] leading-tight font-semibold break-words",
+                  specTone(spec, { hit }),
+                  spec.value === null && "font-medium text-muted-foreground",
                 )}
-              </div>
-              {breaker && <InkMark mark="breaker" className="self-start" />}
-              {/* Change ends the source line (floated, so the words wrap around it), and a
-                  sector is only as tall as what it says. */}
-              <p className="text-xs leading-snug text-muted-foreground">
+              >
+                {spec.kind === "check" && spec.value === "no" && <X className="size-3.5 shrink-0" aria-hidden />}
+                {specValueText(spec)}
+                {spec.value === null && <span className="sr-only">unknown</span>}
+                {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
+              </p>
+              {spec.source === "listing" && (
+                // Outline: the inverted fill only ever marks a selected value.
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  // Compact on the line, with a touch target that reaches past it.
-                  className="relative float-right -my-1 -mr-1.5 ml-1 h-6 px-1.5 after:absolute after:-inset-x-1 after:-inset-y-2"
-                  aria-label={`Change ${spec.name}`}
-                  aria-expanded={isOpen}
-                  aria-controls={isOpen ? editorId : undefined}
-                  onClick={() => setOpenId(isOpen ? null : spec.id)}
+                  className="h-9 self-start sm:h-7"
+                  aria-label={`Confirm ${spec.name}: ${specValueText(spec)}`}
+                  onClick={() => save(spec.id, spec.value)}
                 >
-                  Change
+                  <Check data-icon="inline-start" aria-hidden />
+                  Confirm
                 </Button>
-                {spec.source ? sourceWord[spec.source] : "Unknown"}
-                {hit ? (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-foreground">preferred</span>
-                  </>
-                ) : breaker ? null : (
-                  preferred.length > 0 && (
-                    <>
-                      {" · "}
-                      <span className="font-semibold text-foreground">
-                        preferred: {preferred.map((v) => preferenceLabel(spec.kind, v)).join(" or ")}
-                      </span>
-                    </>
-                  )
-                )}
-              </p>
+              )}
+              {breaker && <InkMark mark="breaker" className="self-start" />}
+              {/* A fixed two-line foot pinned to the sector's bottom, so every Change in a row
+                  sits at one height: the source with Change, then the preference. Neither
+                  line wraps; a sector too narrow for "From listing" says "Listing". */}
+              <div className="@container mt-auto pt-1 text-xs leading-snug whitespace-nowrap text-muted-foreground">
+                <p className="flex items-center justify-between gap-1">
+                  {spec.source === "listing" ? (
+                    <span>
+                      <span className="@[7.75rem]:hidden">Listing</span>
+                      <span className="hidden @[7.75rem]:inline">From listing</span>
+                    </span>
+                  ) : (
+                    <span>{spec.source === "you" ? "Yours" : "Unknown"}</span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    // Compact on the line, with a touch target that reaches past it.
+                    className="relative -my-1 -mr-1.5 h-6 px-1.5 after:absolute after:-inset-x-1 after:-inset-y-2"
+                    aria-label={`Change ${spec.name}`}
+                    aria-expanded={isOpen}
+                    aria-controls={isOpen ? editorId : undefined}
+                    onClick={() => setOpenId(isOpen ? null : spec.id)}
+                  >
+                    Change
+                  </Button>
+                </p>
+                <p className="min-h-lh truncate" title={preference}>
+                  {preference}
+                </p>
+              </div>
             </div>
           );
         })}
