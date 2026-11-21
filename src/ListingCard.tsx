@@ -86,12 +86,12 @@ export function RemovedBand({ removedAt, size = "md" }: { removedAt?: number; si
 
 // The price as a pit board bolted to the photo's corner: opaque ink in both themes.
 const plateSizes = {
-  sm: { box: "gap-1.5 pt-1.25 pr-2.25 pb-1 pl-2", price: "text-[1.3125rem]", change: "text-[0.6875rem]" },
-  md: { box: "gap-2 pt-1.75 pr-2.75 pb-1.5 pl-2.5", price: "text-[1.6875rem]", change: "text-xs" },
+  sm: { box: "gap-1.5 pt-1.25 pr-2.25 pb-1 pl-2", price: "text-[1.3125rem]", change: "h-4 text-[0.6875rem]" },
+  md: { box: "gap-2 pt-1.75 pr-2.75 pb-1.5 pl-2.5", price: "text-[1.6875rem]", change: "h-4.5 text-xs" },
   xl: {
     box: "gap-3 pt-2 pr-3.5 pb-2 pl-3 lg:pt-2.5 lg:pr-4 lg:pb-2.25 lg:pl-3.5",
     price: "text-[2.5rem] lg:text-[3.25rem]",
-    change: "text-sm lg:text-[0.9375rem]",
+    change: "h-5.5 px-1.5 text-sm lg:h-6 lg:text-[0.9375rem]",
   },
 };
 
@@ -106,11 +106,12 @@ function PricePlate({ listing, size }: { listing: BoardListing; size: keyof type
       )}
       <span className={cn("condensed leading-none font-extrabold tabular-nums", sizes.price)}>{formatPrice(listing.price)}</span>
       {change !== 0 && (
-        <span className={cn("font-semibold whitespace-nowrap text-plate-muted tabular-nums", sizes.change)}>
-          <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
-          <span aria-hidden>{change < 0 ? "−" : "+"}</span>
-          {formatPrice({ ...listing.price, amount: Math.abs(change) })}
-        </span>
+        <PriceChange
+          change={change}
+          price={listing.firstPrice}
+          amount={size !== "sm"}
+          className={cn("self-center bg-plate-foreground text-plate", sizes.change)}
+        />
       )}
     </p>
   );
@@ -119,6 +120,52 @@ function PricePlate({ listing, size }: { listing: BoardListing; size: keyof type
 /** How far the price has moved since the car was first seen (0 across currencies). */
 export const priceChange = (listing: Pick<BoardListing, "price" | "firstPrice">) =>
   listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
+
+/**
+ * A price change, the same token everywhere a price shows one: an ink chip (inverted fill;
+ * colour only marks change) with an arrow, the amount where there is room, and the
+ * percentage. The caller sizes it, and says "since first seen" where it says when.
+ */
+export function PriceChange({
+  change,
+  price,
+  amount = true,
+  className,
+}: {
+  change: number;
+  /** The first price, which the percentage is of. */
+  price: { amount: number; currency: string };
+  /** Whether to show the amount; without it, only screen readers hear it. */
+  amount?: boolean;
+  className?: string;
+}) {
+  const money = formatPrice({ ...price, amount: Math.abs(change) });
+  const percent = `${((Math.abs(change) / price.amount) * 100).toFixed(1)}%`;
+  return (
+    <span
+      className={cn(
+        "condensed inline-flex shrink-0 items-center gap-1 rounded-[3px] bg-slab px-1 leading-none font-bold whitespace-nowrap text-slab-foreground tabular-nums",
+        className,
+      )}
+    >
+      <svg aria-hidden viewBox="0 0 8 8" className={cn("size-[0.6em]", change > 0 && "rotate-180")}>
+        <path d="M0 1.5h8L4 7z" fill="currentColor" />
+      </svg>
+      <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
+      {amount ? (
+        <>
+          {money} · {percent}
+        </>
+      ) : (
+        <>
+          <span className="sr-only">{money} (</span>
+          {percent}
+          <span className="sr-only">)</span>
+        </>
+      )}
+    </span>
+  );
+}
 
 // The photo box keeps its ratio whatever it holds (shrink-0), and clips the photo
 // (overflow-hidden) so a photo's natural height never overrides the ratio.

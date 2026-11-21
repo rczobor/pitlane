@@ -19,7 +19,7 @@ import {
   tiers,
 } from "./format";
 import { InkMark, specTone, specValueText, specVerdict } from "./KeySpecLedger";
-import { openCar, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
+import { openCar, PriceChange, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
 import { panWithMiddleButton } from "./Strip";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
@@ -316,16 +316,10 @@ function PriceNote({ listing }: { listing: BoardListing }) {
   if (listing.status === "removed") return <span className="text-[0.6875rem] font-semibold text-muted-foreground">Last price</span>;
   const change = priceChange(listing);
   if (change !== 0) {
-    const percent = ((Math.abs(change) / listing.firstPrice.amount) * 100).toFixed(1);
     return (
-      <span className="inline-flex h-4 items-center gap-0.5 rounded-[3px] bg-slab px-1 text-[0.6875rem] font-bold whitespace-nowrap text-slab-foreground [font-stretch:75%]">
-        <svg aria-hidden viewBox="0 0 8 8" className={cn("size-2", change > 0 && "rotate-180")}>
-          <path d="M0 1.5h8L4 7z" fill="currentColor" />
-        </svg>
-        <span className="sr-only">
-          {change < 0 ? "Down" : "Up"} {formatPrice({ ...listing.price, amount: Math.abs(change) })} (
-        </span>
-        {percent}%<span className="sr-only">) since first seen</span>
+      <span>
+        <PriceChange change={change} price={listing.firstPrice} amount={false} className="h-4 text-[0.6875rem]" />
+        <span className="sr-only"> since first seen</span>
       </span>
     );
   }

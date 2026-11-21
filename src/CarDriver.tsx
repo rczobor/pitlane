@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { type BoardData, formatDate, formatKm, formatPower, formatPrice, formatRegistration, type Tier, tiers } from "./format";
+import { PriceChange } from "./ListingCard";
 import { ModelControl } from "./SpecEditor";
 import { slabColor, tierName } from "./TierSlab";
 
@@ -98,15 +99,8 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
             {formatPrice(price)}
           </p>
           {change !== 0 && (
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[0.8125rem]">
-              {/* The ink flag: colour only where something changed. */}
-              <span className="condensed inline-flex h-4.5 items-center gap-1 rounded-xs bg-slab px-1.5 text-xs font-bold whitespace-nowrap text-slab-foreground tabular-nums">
-                <svg viewBox="0 0 8 8" className="size-2" aria-hidden>
-                  <path d={change < 0 ? "M0 1.5h8L4 7z" : "M0 6.5h8L4 1z"} fill="currentColor" />
-                </svg>
-                <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
-                {formatPrice({ ...price, amount: Math.abs(change) })} · {Math.abs((change / prices[0].amount) * 100).toFixed(1)}%
-              </span>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-sm">
+              <PriceChange change={change} price={prices[0]} className="h-6 px-1.5 text-[0.9375rem]" />
               <span>since first seen, {shortDate(prices[0].at)}</span>
             </p>
           )}
