@@ -135,6 +135,8 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
       </div>
       {open && (
         <SpecChips
+          // A fresh editor per spec, so an "Other" draft never saves against the next spec opened.
+          key={open.id}
           id={editorId}
           spec={open}
           choices={board.keySpecs.find((s) => s.id === open.id)?.choices ?? []}
