@@ -19,14 +19,15 @@ type Lap = {
  * equal, and from anywhere else they overstate a change).
  */
 export function priceLaps(history: Capture[]): Lap[] {
-  let previous: number | undefined;
+  let previous: Capture["price"];
   const laps = history.map((capture, index): Lap => {
-    const amount = capture.price?.amount;
+    const price = capture.price;
+    // Amounts in different currencies don't compare, so a currency switch shows no gap.
     const gap =
-      amount !== undefined && previous !== undefined
-        ? { amount: amount - previous, percent: ((amount - previous) / previous) * 100 }
+      price && previous && price.currency === previous.currency
+        ? { amount: price.amount - previous.amount, percent: ((price.amount - previous.amount) / previous.amount) * 100 }
         : undefined;
-    if (amount !== undefined) previous = amount;
+    if (price) previous = price;
     return {
       number: index + 1,
       at: capture.capturedAt,

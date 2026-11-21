@@ -26,7 +26,7 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
   const removed = car.status === "removed";
   const { price } = car;
   const prices = car.history.flatMap((entry) => (entry.price ? [{ ...entry.price, at: entry.capturedAt }] : []));
-  const change = prices.length > 1 ? price.amount - prices[0].amount : 0;
+  const change = prices.length > 1 && prices[0].currency === price.currency ? price.amount - prices[0].amount : 0;
 
   // The car's place among the tier's cars on the board, which hides removed ads.
   const lane = (board?.listings ?? [])

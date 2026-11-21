@@ -24,4 +24,12 @@ describe("priceLaps", () => {
     expect(laps[1]).toMatchObject({ number: 2, gap: undefined });
     expect(laps[0].gap?.amount).toBe(-10_000);
   });
+
+  test("a capture in another currency has no gap", () => {
+    const laps = priceLaps([
+      { capturedAt: 1, price: eur(100_000) },
+      { capturedAt: 2, price: { amount: 400_000, currency: "PLN" } },
+    ]);
+    expect(laps[0].gap).toBeUndefined();
+  });
 });
