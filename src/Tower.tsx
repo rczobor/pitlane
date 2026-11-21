@@ -10,6 +10,7 @@ import {
   type BoardListing,
   formatDistance,
   formatKm,
+  formatPower,
   formatPrice,
   formatRegistration,
   type KeySpecDef,
@@ -271,8 +272,10 @@ function TowerRow({
             <span className="condensed text-[1.1875rem] leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
             <PriceNote listing={listing} />
           </span>
-          {/* The model, unless the board shows only one. */}
-          {modelName && <span className="condensed text-[0.84375rem] leading-tight font-bold">{modelName}</span>}
+          {/* Power sits beside the model, or alone when the board shows one model. */}
+          <span className="condensed text-[0.84375rem] leading-tight font-bold">
+            {[modelName, specs.powerKw !== undefined && formatPower(specs.powerKw)].filter(Boolean).join(" · ")}
+          </span>
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
             {formatRegistration(specs.firstRegistration)}
             {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}
