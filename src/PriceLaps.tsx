@@ -81,7 +81,6 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
                     change={lap.gap.amount}
                     price={{ amount: lap.price.amount - lap.gap.amount, currency: lap.price.currency }}
                     quiet
-                    className="h-5 text-[0.8125rem]"
                   />
                 )
               ) : (

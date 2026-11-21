@@ -3,10 +3,11 @@ import { formatPrice } from "./format";
 import { cn } from "./lib/utils";
 
 /**
- * A price change, the same token everywhere a price shows one: an ink chip (inverted fill;
- * colour only marks change) with an arrow, the amount where there is room, and the
- * percentage. The caller sizes it, and says "since first seen" where it says when; `quiet`
- * is the outlined variant for lists of changes (price history).
+ * A price change, the same token everywhere a price shows one: an ink chip (the inverted
+ * foreground, so it reads the same in both themes; colour only marks change) with an arrow,
+ * the amount where there is room, and the percentage. 12px is its floor: a caller may only
+ * make it larger, and says "since first seen" where it says when. `quiet` is the outlined
+ * variant for lists of changes (price history).
  */
 export function PriceChange({
   change,
@@ -28,8 +29,8 @@ export function PriceChange({
   return (
     <span
       className={cn(
-        "condensed inline-flex shrink-0 items-center gap-1 rounded-[3px] px-1 leading-none font-bold whitespace-nowrap tabular-nums",
-        quiet ? "shadow-[inset_0_0_0_1px_var(--color-foreground)]" : "bg-slab text-slab-foreground",
+        "condensed inline-flex h-5 shrink-0 items-center gap-1 rounded-[3px] px-1.5 text-xs leading-none font-semibold whitespace-nowrap tabular-nums",
+        quiet ? "shadow-[inset_0_0_0_1px_var(--color-foreground)]" : "bg-foreground text-background",
         className,
       )}
     >

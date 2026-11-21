@@ -345,7 +345,8 @@ function PriceNote({ listing }: { listing: BoardListing }) {
   if (change !== 0) {
     return (
       <span>
-        <PriceChange change={change} price={listing.firstPrice} amountClassName="sr-only" className="h-4 text-[0.6875rem]" />
+        {/* Tighter padding, not a smaller chip, keeps it beside the price. */}
+        <PriceChange change={change} price={listing.firstPrice} amountClassName="sr-only" className="gap-0.5 px-1" />
         <span className="sr-only"> since first seen</span>
       </span>
     );

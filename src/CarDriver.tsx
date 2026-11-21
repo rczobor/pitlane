@@ -108,7 +108,7 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
           </p>
           {change !== 0 && (
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-sm">
-              <PriceChange change={change} price={prices[0]} className="h-6 px-1.5 text-[0.9375rem]" />
+              <PriceChange change={change} price={prices[0]} className="h-6 text-[0.9375rem]" />
               <span>since first seen, {shortDate(prices[0].at)}</span>
             </p>
           )}
