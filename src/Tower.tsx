@@ -264,15 +264,22 @@ function TowerRow({
             <span className="condensed text-[1.1875rem] leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
             <PriceNote listing={listing} />
           </span>
-          {/* Power sits beside the model, or alone when the board shows one model. */}
+          {/* Power sits beside the model, or alone when the board shows one model. A line
+              that wraps breaks before a "· value" segment, never inside one. */}
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
-            {[modelName, specs.powerKw !== undefined && formatPower(specs.powerKw)].filter(Boolean).join(" · ")}
+            {modelName}
+            {modelName && specs.powerKw !== undefined && " "}
+            {specs.powerKw !== undefined && (
+              <span className="whitespace-nowrap">
+                {modelName && "· "}
+                {formatPower(specs.powerKw)}
+              </span>
+            )}
           </span>
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
             {formatRegistration(specs.firstRegistration)}
-            {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}
-            {" · "}
-            {formatKm(specs.mileageKm)}
+            {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}{" "}
+            <span className="whitespace-nowrap">· {formatKm(specs.mileageKm)}</span>
             {over("mileage") && <OutsideMark limit="mileage" className="ml-0.75 align-[1px]" />}
           </span>
           {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
