@@ -139,7 +139,7 @@ function Photo({
   const removed = listing.status === "removed";
   const opened = useOpenedCar(listing.listingId);
   return (
-    <div className={cn("@container relative shrink-0 overflow-hidden bg-muted", className)}>
+    <div className={cn("relative shrink-0 overflow-hidden bg-muted", className)}>
       {listing.coverUrl ? (
         <img
           src={listing.coverUrl}

@@ -3,7 +3,8 @@ import { formatPrice } from "./format";
 import { cn } from "./lib/utils";
 
 /**
- * A price change, the same token everywhere a price shows one: an ink chip (the inverted
+ * A price change on the car page, in the tower and in the price history (the photo's price
+ * plate shows plain text, owner's call): an ink chip (the inverted
  * foreground, so it reads the same in both themes; colour only marks change) with an arrow,
  * the amount where there is room, and the percentage. 12px is its floor: a caller may only
  * make it larger, and says "since first seen" where it says when. `quiet` is the outlined
