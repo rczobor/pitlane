@@ -17,14 +17,12 @@ export type Lap = {
 
 /**
  * The price history as a timing printout's lap history: one numbered lap per capture,
- * newest first. Bars share a scale whose floor sits one price range below the lowest
- * price, so the cheapest lap still shows half a bar and the differences stay visible.
+ * newest first. Bars share a scale from zero to the highest price, so a bar's length
+ * never overstates a change.
  */
 export function priceLaps(history: Capture[]): Lap[] {
   const amounts = history.flatMap((c) => (c.price ? [c.price.amount] : []));
   const high = Math.max(...amounts);
-  const low = Math.min(...amounts);
-  const floor = low - (high - low);
   let previous: number | undefined;
   const laps = history.map((capture, index): Lap => {
     const amount = capture.price?.amount;
@@ -37,7 +35,7 @@ export function priceLaps(history: Capture[]): Lap[] {
       number: index + 1,
       at: capture.capturedAt,
       price: capture.price,
-      bar: amount === undefined ? undefined : high === floor ? 100 : ((amount - floor) / (high - floor)) * 100,
+      bar: amount === undefined ? undefined : (amount / high) * 100,
       gap,
     };
   });

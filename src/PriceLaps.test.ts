@@ -4,14 +4,14 @@ import { priceLaps } from "./PriceLaps";
 const eur = (amount: number) => ({ amount, currency: "EUR" });
 
 describe("priceLaps", () => {
-  test("numbers captures oldest first, lists them newest first, with each one's gap and a shorter bar when cheaper", () => {
+  test("numbers captures oldest first, lists them newest first, with each one's gap and a bar scaled from zero", () => {
     const laps = priceLaps([
       { capturedAt: 1, price: eur(170_000) },
       { capturedAt: 2, price: eur(165_000) },
       { capturedAt: 3, price: eur(160_000) },
     ]);
     expect(laps.map((l) => l.number)).toEqual([3, 2, 1]);
-    expect(laps.map((l) => l.bar)).toEqual([50, 75, 100]);
+    expect(laps.map((l) => l.bar)).toEqual([(160_000 / 170_000) * 100, (165_000 / 170_000) * 100, 100]);
     expect(laps[0].gap).toEqual({ amount: -5_000, percent: (-5_000 / 165_000) * 100 });
     expect(laps[2].gap).toBeUndefined();
   });
