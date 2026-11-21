@@ -24,12 +24,15 @@ export function KeySpecLedger({
   specs,
   defs,
   modelId,
+  size = "md",
   className,
 }: {
   specs: ResolvedSpec[];
   /** Every key spec on the board, in priority order. */
   defs: KeySpecDef[];
   modelId: string | null;
+  /** "lg" for the catalogue's feature lot, where the ledger has room to read from further away. */
+  size?: "md" | "lg";
   className?: string;
 }) {
   if (specs.length === 0) return null;
@@ -38,7 +41,7 @@ export function KeySpecLedger({
     <dl aria-label="Key specs" className={cn("grid grid-cols-3 gap-1", className)}>
       {slots.map((spec, index) =>
         spec ? (
-          <LedgerCell key={spec.id} spec={spec} {...specVerdict(spec, defs[index], modelId)} />
+          <LedgerCell key={spec.id} spec={spec} size={size} {...specVerdict(spec, defs[index], modelId)} />
         ) : (
           <div key={index} aria-hidden />
         ),
@@ -69,22 +72,37 @@ export const specTone = (spec: ResolvedSpec, { hit, breaker }: { hit: boolean; b
     breaker && "border-destructive bg-transparent text-destructive dark:bg-transparent",
   );
 
-function LedgerCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
+function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boolean; breaker: boolean; size: "md" | "lg" }) {
   const missing = spec.kind === "check" && spec.value === "no";
   const value = specValueText(spec);
   return (
     // A hover extra, not a focus stop: the sr-only notes below say the same to screen readers.
     <Tooltip>
       <TooltipTrigger
-        render={<div className={cn("group/cell min-w-0 px-1.5 py-0.5", specTone(spec, { hit, breaker }))} />}
+        render={
+          <div
+            className={cn(
+              "group/cell min-w-0",
+              size === "lg" ? "px-2 pt-1 pb-1.5" : "px-1.5 py-0.5",
+              specTone(spec, { hit, breaker }),
+            )}
+          />
+        }
       >
-        <dt className={cn("text-[0.6875rem] leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
+        <dt
+          className={cn(
+            "leading-tight break-words",
+            size === "lg" ? "text-xs" : "text-[0.6875rem]",
+            hit ? "text-background/75" : "text-muted-foreground",
+          )}
+        >
           {spec.name}
         </dt>
         <dd
           className={cn(
             // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
-            "flex items-start gap-0.5 text-xs leading-tight font-semibold break-words",
+            "flex items-start gap-0.5 leading-tight font-semibold break-words",
+            size === "lg" ? "text-sm" : "text-xs",
             // A confirmed "No" is as definite as any other value; only unknown is quiet.
             spec.value === null && "font-medium text-muted-foreground",
           )}
