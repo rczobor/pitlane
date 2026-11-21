@@ -196,7 +196,10 @@ export function ListingCard({
     listing.modelId,
   );
   const outside = (kind: Limit) => checks.some((c) => c.kind === kind && c.status === "missed");
-  const lotLine = <LotLine lot={lot} model={modelName} toConfirm={toConfirm} large={variant === "feature"} />;
+  // An index row says what is left to confirm under its price instead.
+  const lotLine = (
+    <LotLine lot={lot} model={modelName} toConfirm={variant === "index" ? undefined : toConfirm} large={variant === "feature"} />
+  );
   const badges = <Badges listing={listing} home={home} />;
   // Pinned to the placard's foot, so lots in a row end together.
   const ledger = (
@@ -253,6 +256,9 @@ export function ListingCard({
           <span className="condensed text-[1.3125rem] leading-none font-extrabold tabular-nums lg:text-2xl">
             {formatPrice(listing.price)}
           </span>
+          {toConfirm !== undefined && (
+            <span className="mt-1 block text-xs font-semibold whitespace-nowrap">{toConfirm} to confirm</span>
+          )}
         </p>
       </div>
     );
@@ -304,24 +310,29 @@ export function ListingCard({
 function LotLine({ lot, model, toConfirm, large }: { lot?: number; model?: string; toConfirm?: number; large: boolean }) {
   if (lot === undefined && !model && toConfirm === undefined) return null;
   return (
-    <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-      {lot !== undefined && (
-        <span
-          className={cn(
-            "condensed font-bold tracking-[0.07em] whitespace-nowrap text-muted-foreground uppercase",
-            large ? "text-sm" : "text-xs",
-          )}
-        >
-          Lot {lot}
-        </span>
-      )}
-      {model && (
-        <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
-          {model}
-        </span>
-      )}
+    // The count keeps the line's top-right corner; a long model wraps under the lot number instead.
+    <p className="flex min-w-0 items-baseline gap-x-2">
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+        {lot !== undefined && (
+          <span
+            className={cn(
+              "condensed font-bold tracking-[0.07em] whitespace-nowrap text-muted-foreground uppercase",
+              large ? "text-sm" : "text-xs",
+            )}
+          >
+            Lot {lot}
+          </span>
+        )}
+        {model && (
+          <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
+            {model}
+          </span>
+        )}
+      </span>
       {toConfirm !== undefined && (
-        <span className={cn("ml-auto font-semibold whitespace-nowrap", large ? "text-sm" : "text-xs")}>{toConfirm} to confirm</span>
+        <span className={cn("ml-auto shrink-0 font-semibold whitespace-nowrap", large ? "text-sm" : "text-xs")}>
+          {toConfirm} to confirm
+        </span>
       )}
     </p>
   );
