@@ -25,16 +25,13 @@ type Props = {
 
 // The car's key specs as a timing screen's sector readout: one numbered box per spec in
 // the board's priority order, each with its value in the board's ledger state, where the
-// value came from, and the one action it needs (Confirm a listing value, Change the rest).
-// One box at a time opens its value chips below the readout, so the chips for six specs
-// never stack into a wall.
+// value came from, and its actions (Confirm a listing value; Change any value). Change opens
+// that box's value chips below the readout, one box at a time, so the chips for six specs
+// never stack into a wall; none are open until asked, so a value never has two sets of controls.
 export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
   const setValue = useMutation(api.board.setSpecValue);
   const save = (specId: string, value: string | null) => void setValue({ listingId, specId, value });
-  // Opens on the first spec that still needs a look, so its chips are a click closer.
-  const [openId, setOpenId] = useState<string | null>(
-    () => (keySpecs.find((s) => s.source !== "you") ?? keySpecs[0])?.id ?? null,
-  );
+  const [openId, setOpenId] = useState<string | null>(null);
   const editorId = useId();
   if (keySpecs.length === 0) return null;
   const open = keySpecs.find((s) => s.id === openId);
@@ -99,8 +96,8 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                   )
                 )}
               </p>
-              <div className="mt-auto pt-1">
-                {spec.source === "listing" ? (
+              <div className="mt-auto flex flex-wrap items-center gap-x-1 gap-y-1.5 pt-1">
+                {spec.source === "listing" && (
                   // Outline: the inverted fill only ever marks a selected value.
                   <Button
                     type="button"
@@ -113,20 +110,19 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                     <Check data-icon="inline-start" aria-hidden />
                     Confirm
                   </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2 h-9 sm:h-7"
-                    aria-label={`Change ${spec.name}`}
-                    aria-expanded={isOpen}
-                    aria-controls={isOpen ? editorId : undefined}
-                    onClick={() => setOpenId(isOpen ? null : spec.id)}
-                  >
-                    Change
-                  </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn("h-9 sm:h-7", spec.source !== "listing" && "-ml-2")}
+                  aria-label={`Change ${spec.name}`}
+                  aria-expanded={isOpen}
+                  aria-controls={isOpen ? editorId : undefined}
+                  onClick={() => setOpenId(isOpen ? null : spec.id)}
+                >
+                  Change
+                </Button>
               </div>
             </div>
           );
