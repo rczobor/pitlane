@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
 import { InkMark, KeySpecLedger } from "./KeySpecLedger";
+import { PriceChange } from "./PriceChange";
 import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
@@ -109,7 +110,8 @@ function PricePlate({ listing, size }: { listing: BoardListing; size: keyof type
         <PriceChange
           change={change}
           price={listing.firstPrice}
-          amount={size !== "sm"}
+          // A small plate keeps the amount while its photo leaves room for it.
+          amountClassName={size === "sm" ? "@max-[13.5rem]:sr-only" : undefined}
           className={cn("self-center bg-plate-foreground text-plate", sizes.change)}
         />
       )}
@@ -120,52 +122,6 @@ function PricePlate({ listing, size }: { listing: BoardListing; size: keyof type
 /** How far the price has moved since the car was first seen (0 across currencies). */
 export const priceChange = (listing: Pick<BoardListing, "price" | "firstPrice">) =>
   listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
-
-/**
- * A price change, the same token everywhere a price shows one: an ink chip (inverted fill;
- * colour only marks change) with an arrow, the amount where there is room, and the
- * percentage. The caller sizes it, and says "since first seen" where it says when.
- */
-export function PriceChange({
-  change,
-  price,
-  amount = true,
-  className,
-}: {
-  change: number;
-  /** The first price, which the percentage is of. */
-  price: { amount: number; currency: string };
-  /** Whether to show the amount; without it, only screen readers hear it. */
-  amount?: boolean;
-  className?: string;
-}) {
-  const money = formatPrice({ ...price, amount: Math.abs(change) });
-  const percent = `${((Math.abs(change) / price.amount) * 100).toFixed(1)}%`;
-  return (
-    <span
-      className={cn(
-        "condensed inline-flex shrink-0 items-center gap-1 rounded-[3px] bg-slab px-1 leading-none font-bold whitespace-nowrap text-slab-foreground tabular-nums",
-        className,
-      )}
-    >
-      <svg aria-hidden viewBox="0 0 8 8" className={cn("size-[0.6em]", change > 0 && "rotate-180")}>
-        <path d="M0 1.5h8L4 7z" fill="currentColor" />
-      </svg>
-      <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
-      {amount ? (
-        <>
-          {money} · {percent}
-        </>
-      ) : (
-        <>
-          <span className="sr-only">{money} (</span>
-          {percent}
-          <span className="sr-only">)</span>
-        </>
-      )}
-    </span>
-  );
-}
 
 // The photo box keeps its ratio whatever it holds (shrink-0), and clips the photo
 // (overflow-hidden) so a photo's natural height never overrides the ratio.
@@ -185,7 +141,7 @@ function Photo({
   const removed = listing.status === "removed";
   const opened = useOpenedCar(listing.listingId);
   return (
-    <div className={cn("relative shrink-0 overflow-hidden bg-muted", className)}>
+    <div className={cn("@container relative shrink-0 overflow-hidden bg-muted", className)}>
       {listing.coverUrl ? (
         <img
           src={listing.coverUrl}

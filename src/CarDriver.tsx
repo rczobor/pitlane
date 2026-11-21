@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { type BoardData, formatDate, formatKm, formatPower, formatPrice, formatRegistration, type Tier, tiers } from "./format";
-import { PriceChange } from "./ListingCard";
+import { PriceChange } from "./PriceChange";
 import { ModelControl } from "./SpecEditor";
 import { slabColor, tierName } from "./TierSlab";
 

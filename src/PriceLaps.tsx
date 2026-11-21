@@ -1,6 +1,7 @@
 // Relative, not "@/": the unit test loads this file without the app's path alias.
 import { cn } from "./lib/utils";
 import { formatDateTime, formatPrice } from "./format";
+import { PriceChange } from "./PriceChange";
 
 type Capture = { capturedAt: number; price?: { amount: number; currency: string } };
 
@@ -42,9 +43,6 @@ export function priceLaps(history: Capture[]): Lap[] {
   });
   return laps.toReversed();
 }
-
-const signed = (amount: number, currency: string) =>
-  `${amount < 0 ? "−" : "+"}${formatPrice({ amount: Math.abs(amount), currency })}`;
 
 /** Captures arrive oldest first. */
 export function PriceLaps({ history, removed }: { history: Capture[]; removed: boolean }) {
@@ -94,10 +92,12 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
                 lap.gap.amount === 0 ? (
                   <span className="text-muted-foreground">Same price</span>
                 ) : (
-                  <>
-                    {signed(lap.gap.amount, lap.price.currency)}{" "}
-                    <span className="text-muted-foreground">{Math.abs(lap.gap.percent).toFixed(1)}%</span>
-                  </>
+                  <PriceChange
+                    change={lap.gap.amount}
+                    price={{ amount: lap.price.amount - lap.gap.amount, currency: lap.price.currency }}
+                    quiet
+                    className="h-5 text-[0.8125rem]"
+                  />
                 )
               ) : (
                 first && <span className="text-muted-foreground">First seen</span>

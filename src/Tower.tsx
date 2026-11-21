@@ -19,7 +19,8 @@ import {
   tiers,
 } from "./format";
 import { InkMark, specTone, specValueText, specVerdict } from "./KeySpecLedger";
-import { openCar, PriceChange, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
+import { openCar, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
+import { PriceChange } from "./PriceChange";
 import { panWithMiddleButton } from "./Strip";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
@@ -338,7 +339,7 @@ function PriceNote({ listing }: { listing: BoardListing }) {
   if (change !== 0) {
     return (
       <span>
-        <PriceChange change={change} price={listing.firstPrice} amount={false} className="h-4 text-[0.6875rem]" />
+        <PriceChange change={change} price={listing.firstPrice} amountClassName="sr-only" className="h-4 text-[0.6875rem]" />
         <span className="sr-only"> since first seen</span>
       </span>
     );
