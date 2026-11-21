@@ -27,15 +27,16 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // The frozen car column: position, thumbnail, then price, "model · power" and
-// "registration · km" on a line each, leaving two spec columns and a peek of the next at 390.
+// "registration · km" on a line each, leaving two spec columns and the edge of the next at 390.
 const identity = 182;
 // The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
 // column may get before one fewer fits on screen.
 const menu = 32;
 const gap = 4;
 const minColumn = 52;
-// What a phone shows of the next hidden column, under the trailing fade (1.5rem).
-const peek = 24;
+// What a phone shows of the next hidden column at rest: its edge (a cell's border and
+// padding), never its text. With the gap before it, the trailing fade covers exactly this.
+const edge = 4;
 
 /**
  * The board under 640px: a timing tower. One row per car in rank order, the car column
@@ -125,9 +126,10 @@ function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   );
 }
 
-// The frozen columns fade the scrolling ones at an end that hides some (1.5rem on phones).
+// The frozen columns fade the scrolling ones at an end that hides some: over a column gap and
+// a cell's edge (gap + edge), so no text sits under it.
 const fade =
-  "before:pointer-events-none before:absolute before:inset-y-0 before:w-6 before:from-(--row-bg) before:to-transparent before:opacity-0";
+  "before:pointer-events-none before:absolute before:inset-y-0 before:w-2 before:from-(--row-bg) before:to-transparent before:opacity-0";
 const startFade = cn(fade, "before:left-full before:bg-linear-to-r group-data-more-start/tower:before:opacity-100");
 const endFade = cn(fade, "before:right-full before:bg-linear-to-l group-data-more-end/tower:before:opacity-100");
 
@@ -400,10 +402,10 @@ function useSideScroll(columns: number) {
     const update = () => {
       el.style.setProperty("--pw", `${el.clientWidth}px`);
       const room = el.clientWidth - identity - menu - 2 * gap;
-      // As many whole columns as fit; when some stay hidden, they leave room for a peek of the next.
+      // As many whole columns as fit; when some stay hidden, the next shows only its edge.
       const all = Math.floor((room + gap) / (minColumn + gap)) >= columns;
-      const fit = all ? columns : Math.max(1, Math.floor((room - peek) / (minColumn + gap)));
-      setWidth(Math.max(minColumn, all ? (room - (fit - 1) * gap) / fit : (room - peek - fit * gap) / fit));
+      const fit = all ? columns : Math.max(1, Math.floor((room + gap - edge) / (minColumn + gap)));
+      setWidth(Math.max(minColumn, all ? (room - (fit - 1) * gap) / fit : (room + gap - edge) / fit - gap));
       const hidden = el.scrollWidth - el.clientWidth;
       el.toggleAttribute("data-overflow", hidden > 1);
       el.toggleAttribute("data-more-start", el.scrollLeft > 1);
