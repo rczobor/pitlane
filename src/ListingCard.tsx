@@ -280,7 +280,7 @@ export function ListingCard({
         <Photo listing={listing} className="aspect-[4/3] sm:aspect-[3/2]">
           <PricePlate listing={listing} size="xl" />
         </Photo>
-        <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6">
+        <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6 lg:pb-7">
           {lotLine}
           <h3 className="text-base leading-snug">{listing.title}</h3>
           <div className="flex flex-wrap items-end gap-y-2">
@@ -292,7 +292,8 @@ export function ListingCard({
             {confirmCount}
           </div>
           {badges}
-          {ledger}
+          {/* Pinned to the foot, on the price plate's line, so the panel has no dead band. */}
+          <div className="mt-auto">{ledger}</div>
         </div>
       </div>
     );
