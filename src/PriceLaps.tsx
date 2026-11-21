@@ -5,7 +5,7 @@ import { PriceChange } from "./PriceChange";
 
 type Capture = { capturedAt: number; price?: { amount: number; currency: string } };
 
-export type Lap = {
+type Lap = {
   number: number;
   at: number;
   price?: { amount: number; currency: string };

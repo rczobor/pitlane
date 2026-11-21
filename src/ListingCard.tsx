@@ -314,7 +314,7 @@ export function ListingCard({
 
   const frame = cn(
     subgrid ? "row-span-2 grid grid-rows-subgrid" : "block h-full",
-    "w-(--board-card) shrink-0 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    "w-(--board-card) shrink-0 scroll-mt-14 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
     lifted && "-rotate-2 bg-card shadow-[0_18px_40px_rgb(0_0_0/0.28),0_2px_6px_rgb(0_0_0/0.2)]",
     className,
   );

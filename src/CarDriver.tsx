@@ -1,4 +1,3 @@
-import { useMutation } from "convex/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ReactNode } from "react";
 import type { FunctionReturnType } from "convex/server";
@@ -10,45 +9,20 @@ import { cn } from "@/lib/utils";
 import { type BoardData, formatDate, formatKm, formatPower, formatPrice, formatRegistration, type Tier, tiers } from "./format";
 import { PriceChange } from "./PriceChange";
 import { ModelControl } from "./SpecEditor";
-import { slabColor, tierName } from "./TierSlab";
+import { useMoveListing } from "./Board";
+import { ordinal, rankBetween } from "./boardOrder";
+import { sectionSlabColor, tierName } from "./TierSlab";
 
 type Car = NonNullable<FunctionReturnType<typeof api.board.listing>>;
 
-const ordinal = (n: number) => {
-  const tens = n % 100;
-  const suffix = tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
-  return `${n}${suffix}`;
-};
-
 const shortDate = (timestamp: number) =>
   new Date(timestamp).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-
-// Halfway between two neighbours' ranks; past either end, one step beyond it.
-function rankBetween(before: number | undefined, after: number | undefined) {
-  if (before !== undefined && after !== undefined) return (before + after) / 2;
-  if (before !== undefined) return before + 1;
-  if (after !== undefined) return after - 1;
-  return Date.now();
-}
-
-// Moves the car on the board locally at once; Convex replaces this with the server's answer.
-function useMove() {
-  return useMutation(api.board.move).withOptimisticUpdate((store, { listingId, tier, rank }) => {
-    const board = store.getQuery(api.board.get, {});
-    if (!board) return;
-    store.setQuery(
-      api.board.get,
-      {},
-      { ...board, listings: board.listings.map((l) => (l.listingId === listingId ? { ...l, tier, rank } : l)) },
-    );
-  });
-}
 
 // The "driver detail" of a timing screen: the car's title, its tier slab beside the model
 // and price, and the tier control with its place in the tier. The facts that decide a trip
 // (price change, VAT, distance) sit under the price.
 export function CarDriver({ car, board, distance }: { car: Car; board: BoardData | null | undefined; distance: string | null }) {
-  const move = useMove();
+  const move = useMoveListing();
   const removed = car.status === "removed";
   const { price } = car;
   const prices = car.history.flatMap((entry) => (entry.price ? [{ ...entry.price, at: entry.capturedAt }] : []));
@@ -76,7 +50,7 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
         <div
           className={cn(
             "condensed flex w-21 shrink-0 flex-col justify-between rounded-md px-3 pt-2.5 pb-2 sm:w-27",
-            car.tier === "rejected" ? "bg-muted text-foreground" : slabColor(car.tier),
+            sectionSlabColor(car.tier),
           )}
         >
           <span

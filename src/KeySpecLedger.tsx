@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { avoidedFor, preferredFor, verdict } from "../shared/fit";
 import type { KeySpecDef, ResolvedSpec } from "./format";
 
-export function specDescription(spec: ResolvedSpec, hit = false) {
+function specDescription(spec: ResolvedSpec, hit = false) {
   const value = spec.value === null ? "unknown" : spec.value;
   const source = spec.source === "listing" ? ", from the listing, not confirmed" : "";
   return `${spec.name}: ${value}${source}${hit ? ", preferred" : ""}`;

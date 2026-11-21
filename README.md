@@ -114,7 +114,7 @@ Claude through OAuth.
    count on each card and a "How it fits" breakdown on the car page; a check mode
    for confirming specs against the photos; notes, pros and cons per car.
 4. ✅ Chrome extension (manual route).
-5. ✅ Re-checks (due list, failed checks retried later) and the price history chart.
+5. ✅ Re-checks (due list, failed checks retried later) and the price history.
 6. ✅ Side-by-side comparison of up to three cars.
 
 ## Development

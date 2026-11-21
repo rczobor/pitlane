@@ -335,8 +335,8 @@ function BoardSkeleton() {
 
 const hasRemoved = (listings: BoardListing[]) => listings.some((l) => l.status === "removed");
 
-// Moves the card locally at once; Convex replaces this with the server's answer.
-function useMoveListing() {
+// Moves the car locally at once (board and car page); Convex replaces this with the server's answer.
+export function useMoveListing() {
   return useMutation(api.board.move).withOptimisticUpdate((store, { listingId, tier, rank }) => {
     const board = store.getQuery(api.board.get, {});
     if (!board) return;

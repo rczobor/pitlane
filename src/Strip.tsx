@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 // Whether items are hidden at each end, the first and last item on screen (at least half
 // clear of the fades, or else the most visible one), and the scroll as an item index, from
 // the first item at the start to the last at the end. Null when every item fits.
-export type StripView = { start: boolean; end: boolean; first: number; last: number; position: number };
+type StripView = { start: boolean; end: boolean; first: number; last: number; position: number };
 
 export const stripFade =
   "[--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/strip:[--fade-end:var(--fade)] group-data-more-start/strip:[--fade-start:var(--fade)]";
