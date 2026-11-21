@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatDateTime, formatDistance, formatDrivetrain, formatKm, formatPower, formatRegistration } from "./format";
+import { formatDateTime, formatDistance, formatDrivetrain } from "./format";
 import { toCheck } from "../shared/fit";
 import { lastBoardSearch } from "./Board";
 import { CarDriver, CarNumbers } from "./CarDriver";
@@ -52,10 +52,8 @@ export function ListingPage({ listingId }: { listingId: string }) {
   const removed = listing.status === "removed";
   // A failed re-check leaves the data as it was; say so until a later check succeeds.
   const failed = listing.lastFailedCheckAt !== undefined && listing.lastFailedCheckAt > listing.lastCheckedAt;
+  // Registration, mileage and power are in the numbers beside the price.
   const specs = [
-    ["First registration", formatRegistration(details.firstRegistration)],
-    ["Mileage", formatKm(details.mileageKm)],
-    ["Power", details.powerKw === undefined ? undefined : `${details.powerKw} kW (${formatPower(details.powerKw)})`],
     ["Gearbox", formatDrivetrain(details)],
     ["Body", details.bodyType],
     ["Colour", details.color],
@@ -147,7 +145,8 @@ export function ListingPage({ listingId }: { listingId: string }) {
     <main className="max-w-[1600px] px-4 pb-16 sm:px-8">
       <BackLink />
       {/* Wide screens: photos with the key-spec readout under them (it is checked against
-          them), and the car's "driver detail" beside. Phones: one column in task order, with
+          them), then your take, options and description; the car's "driver detail" beside.
+          Phones: one column in task order, with
           the columns dissolved (display: contents) so `order` can interleave them: photos,
           price and tier, the numbers, key specs, how it fits, listing details, price
           history, options, description, your take, location, then off the board. On wide
@@ -192,6 +191,23 @@ export function ListingPage({ listingId }: { listingId: string }) {
           <div className="order-10 min-w-0 lg:order-none">
             <YourTake listingId={listing.listingId} notes={listing.notes} pros={listing.pros} cons={listing.cons} />
           </div>
+          {details.options.length > 0 && (
+            <Section title="Options" className="order-8 lg:order-none">
+              <ul className="gap-6 text-sm sm:columns-2">
+                {details.options.map((option) => (
+                  <li key={option} className="break-inside-avoid py-0.5">
+                    {option}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {listing.description && (
+            <div className="order-9 min-w-0 lg:order-none">
+              <Description original={listing.description} translation={listing.descriptionTranslation} />
+            </div>
+          )}
         </div>
 
         <div className="contents lg:flex lg:flex-col lg:gap-7">
@@ -317,23 +333,6 @@ export function ListingPage({ listingId }: { listingId: string }) {
             </Section>
           )}
 
-          {details.options.length > 0 && (
-            <Section title="Options" className="order-8 lg:order-none">
-              <ul className="gap-6 text-sm sm:columns-2">
-                {details.options.map((option) => (
-                  <li key={option} className="break-inside-avoid py-0.5">
-                    {option}
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-
-          {listing.description && (
-            <div className="order-9 min-w-0 lg:order-none">
-              <Description original={listing.description} translation={listing.descriptionTranslation} />
-            </div>
-          )}
           {!removed && offBoard}
         </div>
       </div>

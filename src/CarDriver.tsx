@@ -1,5 +1,6 @@
 import { useMutation } from "convex/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import type { ReactNode } from "react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
@@ -206,17 +207,28 @@ function TierPosition({
 // Registration, mileage and power as a three-cell readout, read at a glance like the
 // board's year, mileage and power columns.
 export function CarNumbers({ details }: { details: Car["details"] }) {
-  const cells = [
+  const { powerKw } = details;
+  const cells: [string, ReactNode][] = [
     ["Registered", formatRegistration(details.firstRegistration)],
     ["Mileage", formatKm(details.mileageKm)],
-    ["Power", details.powerKw === undefined ? "—" : formatPower(details.powerKw)],
+    [
+      "Power",
+      powerKw === undefined ? (
+        "—"
+      ) : (
+        <>
+          <span className="whitespace-nowrap">{formatPower(powerKw)}</span>{" "}
+          <span className="text-sm whitespace-nowrap text-muted-foreground @md:text-base">{powerKw}&nbsp;kW</span>
+        </>
+      ),
+    ],
   ];
   return (
     <dl aria-label="Registration, mileage and power" className="@container grid grid-cols-3 rounded-md bg-card">
       {cells.map(([label, value]) => (
         <div key={label} className="flex min-w-0 flex-col gap-0.5 border-l px-2.5 py-2.5 first:border-l-0 @md:px-3.5">
           <dt className="condensed text-xs font-bold tracking-wide text-muted-foreground uppercase">{label}</dt>
-          <dd className="condensed text-[1.375rem] leading-none font-bold whitespace-nowrap tabular-nums @md:text-[1.75rem]">
+          <dd className="condensed text-[1.375rem] leading-none font-bold tabular-nums @md:text-[1.75rem]">
             {value}
           </dd>
         </div>
