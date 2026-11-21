@@ -66,13 +66,11 @@ export function rankIn(lanes: Lanes, id: string, rankOf: (id: string) => number 
 }
 
 /**
- * Lot numbers: each car's place in the order it reached the board, from 1. Derived, so they
- * need no stored counter; they stay put while cars move between tiers or come and go from
- * view, and only a deleted car's later lots move up by one.
+ * Lot numbers: each car's place in the order the board shows it, best first, from 1. The
+ * catalogue's lots and the tower's position column read the same numbers.
  */
-export function lotNumbers(listings: { listingId: string; firstSeenAt: number }[]) {
-  const order = listings.toSorted((a, b) => a.firstSeenAt - b.firstSeenAt || a.listingId.localeCompare(b.listingId));
-  return new Map(order.map((l, index) => [l.listingId, index + 1]));
+export function lotNumbers(lanes: Lanes) {
+  return new Map(tierOrder.flatMap((tier) => lanes[tier]).map((id, index) => [id, index + 1]));
 }
 
 export function ordinal(n: number) {

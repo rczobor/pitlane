@@ -95,7 +95,7 @@ export function Board() {
     lanes,
     byId,
     cardProps,
-    lots: lotNumbers(board.listings),
+    lots: lotNumbers(lanes),
     canMarkRemoved: board.canMarkRemoved,
     onAction: (listing: BoardListing, action: CarAction) => {
       if (action === "move") {

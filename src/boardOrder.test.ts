@@ -27,16 +27,14 @@ test("a moved car is ranked between its new neighbours", () => {
   });
 });
 
-test("lot numbers follow the order cars reached the board, whatever their tier", () => {
-  const lots = lotNumbers([
-    { listingId: "b", firstSeenAt: 200 },
-    { listingId: "a", firstSeenAt: 100 },
-    { listingId: "c", firstSeenAt: 200 },
-  ]);
+test("lot numbers follow the board's order, best tier first", () => {
+  const lots = lotNumbers({ S: ["s1"], A: ["a1", "a2"], B: [], watching: ["w1"], rejected: ["r1"] });
   expect([...lots]).toEqual([
-    ["a", 1],
-    ["b", 2],
-    ["c", 3],
+    ["s1", 1],
+    ["a1", 2],
+    ["a2", 3],
+    ["w1", 4],
+    ["r1", 5],
   ]);
 });
 

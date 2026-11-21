@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // The frozen car column, as wide as the mock's timing tower: position, thumbnail, price, model.
-const identity = 200;
+const identity = 204;
 // The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
 // column may get before one fewer fits on screen.
 const menu = 32;
@@ -92,7 +92,7 @@ export function Tower({
       <DragOverlay>
         {active && (
           <div style={style}>
-            <TowerRow listing={active} position={drag.lanes[active.tier].indexOf(active.listingId) + 1} lifted {...rowProps} />
+            <TowerRow listing={active} lifted {...rowProps} />
           </div>
         )}
       </DragOverlay>
@@ -174,8 +174,8 @@ function TowerSector({
       >
         {pending && <PendingRows className="sticky left-0 w-(--pw) border-t" />}
         <SortableContext items={listings.map((l) => l.listingId)} strategy={verticalListSortingStrategy}>
-          {listings.map((listing, index) => (
-            <SortableRow key={listing.listingId} listing={listing} position={index + 1} {...rowProps} />
+          {listings.map((listing) => (
+            <SortableRow key={listing.listingId} listing={listing} {...rowProps} />
           ))}
         </SortableContext>
         {count === 0 && (
@@ -192,12 +192,11 @@ type RowProps = { view: TierViewProps; specDefs: KeySpecDef[] };
 
 // A long press lifts the row to drag it up or down the tower; Alt+↑/↓ moves the focused car
 // one place, into the next tier at a sector's edge.
-function SortableRow({ listing, position, ...props }: RowProps & { listing: BoardListing; position: number }) {
+function SortableRow({ listing, ...props }: RowProps & { listing: BoardListing }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: listing.listingId });
   return (
     <TowerRow
       listing={listing}
-      position={position}
       {...props}
       rowRef={setNodeRef}
       placeholder={isDragging}
@@ -215,7 +214,6 @@ function SortableRow({ listing, position, ...props }: RowProps & { listing: Boar
 
 function TowerRow({
   listing,
-  position,
   view,
   specDefs,
   lifted = false,
@@ -224,7 +222,6 @@ function TowerRow({
   rowProps,
 }: RowProps & {
   listing: BoardListing;
-  position: number;
   lifted?: boolean;
   /** The row's old place while it is dragged: a flat tint. */
   placeholder?: boolean;
@@ -263,8 +260,9 @@ function TowerRow({
         data-car={listing.listingId}
         className="sticky left-0 z-10 flex min-w-0 items-center gap-1.75 self-stretch bg-(--row-bg) py-1.5 pl-1.5 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
       >
-        <span className="condensed w-3 shrink-0 text-center text-[0.9375rem] font-bold">
-          {position}
+        {/* The car's lot number, as the catalogue shows it. */}
+        <span className="condensed w-4 shrink-0 text-center text-[0.9375rem] font-bold tabular-nums">
+          {view.lots.get(listing.listingId)}
           <span className="sr-only">.</span>
         </span>
         <Thumb listing={listing} />
