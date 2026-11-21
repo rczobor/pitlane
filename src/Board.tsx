@@ -76,6 +76,8 @@ export function Board() {
       criteria: carModel,
       specDefs: board.keySpecs,
       home: board.home,
+      // The check view says what is left to check on each car, as its page's Check button does.
+      ...(check && { toConfirm: toCheck(listing.keySpecs) }),
     };
   };
   const byId = new Map(board.listings.map((l) => [l.listingId as string, l]));

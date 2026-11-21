@@ -29,6 +29,8 @@ export type CardProps = {
   specDefs: KeySpecDef[];
   /** The user's home, for the distance to the seller. */
   home?: Point | null;
+  /** In the check view: how many key specs are still from the listing or unknown. */
+  toConfirm?: number;
 };
 
 /**
@@ -165,6 +167,7 @@ export function ListingCard({
   criteria,
   specDefs,
   home,
+  toConfirm,
   lot,
   variant = "lot",
   lifted = false,
@@ -192,7 +195,7 @@ export function ListingCard({
     listing.keySpecs,
     listing.modelId,
   );
-  const lotLine = <LotLine lot={lot} model={modelName} large={variant === "feature"} />;
+  const lotLine = <LotLine lot={lot} model={modelName} toConfirm={toConfirm} large={variant === "feature"} />;
   const badges = <Badges listing={listing} home={home} />;
   // Pinned to the placard's foot, so lots in a row end together.
   const ledger = (
@@ -294,11 +297,12 @@ export function ListingCard({
   );
 }
 
-// "LOT 2  718 GT4 RS": the lot number to say out loud, then the model when the board shows several.
-function LotLine({ lot, model, large }: { lot?: number; model?: string; large: boolean }) {
-  if (lot === undefined && !model) return null;
+// "LOT 2  718 GT4 RS": the lot number to say out loud, then the model when the board shows
+// several, and in the check view how many key specs are left to confirm.
+function LotLine({ lot, model, toConfirm, large }: { lot?: number; model?: string; toConfirm?: number; large: boolean }) {
+  if (lot === undefined && !model && toConfirm === undefined) return null;
   return (
-    <p className="flex min-w-0 items-baseline gap-2">
+    <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
       {lot !== undefined && (
         <span
           className={cn(
@@ -313,6 +317,9 @@ function LotLine({ lot, model, large }: { lot?: number; model?: string; large: b
         <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
           {model}
         </span>
+      )}
+      {toConfirm !== undefined && (
+        <span className={cn("ml-auto font-semibold whitespace-nowrap", large ? "text-sm" : "text-xs")}>{toConfirm} to confirm</span>
       )}
     </p>
   );

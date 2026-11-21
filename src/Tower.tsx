@@ -229,7 +229,7 @@ function TowerRow({
   rowProps?: HTMLAttributes<HTMLDivElement>;
 }) {
   const { specs } = listing;
-  const { criteria, home, modelName } = view.cardProps(listing);
+  const { criteria, home, modelName, toConfirm } = view.cardProps(listing);
   const removed = listing.status === "removed";
   const { checks } = evaluate(
     { price: listing.price, firstRegistration: specs.firstRegistration, mileageKm: specs.mileageKm },
@@ -279,6 +279,7 @@ function TowerRow({
             <span className={cn(over("mileage") && "text-destructive")}>{formatKm(specs.mileageKm)}</span>
             {over("mileage") && <span className="sr-only"> (over the model's limit)</span>}
           </span>
+          {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
           {/* The title names the car for screen readers and find-in-page; the row shows the model. */}
           <span className="sr-only">{listing.title}</span>
         </span>
