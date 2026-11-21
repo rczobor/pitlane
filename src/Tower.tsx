@@ -3,7 +3,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { Link } from "@tanstack/react-router";
 import { ImageOff, X } from "lucide-react";
-import { type CSSProperties, type HTMLAttributes, type ReactNode, type Ref, useEffect, useRef } from "react";
+import { type CSSProperties, type HTMLAttributes, type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { evaluate } from "../shared/fit";
 import { CardMenu } from "./BoardActions";
 import {
@@ -28,6 +28,11 @@ import { cn } from "@/lib/utils";
 
 // The frozen car column, as wide as the mock's timing tower: position, thumbnail, price, model.
 const identity = 200;
+// The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
+// column may get before one fewer fits on screen.
+const menu = 32;
+const gap = 4;
+const minColumn = 52;
 
 /**
  * The board under 640px: a timing tower. One row per car in rank order, the car column
@@ -49,9 +54,10 @@ export function Tower({
   const drag = useTierDrag({ ...view, axis: "y" });
   const sections = sectionsOf(drag.lanes, view.byId, tiers);
   const hasCars = sections.some((s) => s.listings.length > 0);
-  const scroller = useSideScroll();
-  const cols = `${identity}px repeat(${specDefs.length}, 3.5rem) 1px 6.5rem 2.75rem`;
-  const style = { "--cols": cols } as CSSProperties;
+  // The key specs, then the seller.
+  const [scroller, column] = useSideScroll(specDefs.length + 1);
+  const cols = `${identity}px repeat(${specDefs.length + 1}, ${column}px) ${menu}px`;
+  const style = { "--cols": cols, scrollPaddingInline: `${identity + gap}px ${menu + gap}px` } as CSSProperties;
   const { active } = drag;
   const rowProps = { view, specDefs };
   return (
@@ -64,7 +70,9 @@ export function Tower({
         data-scroll-restoration-id="tower"
         onMouseDown={panWithMiddleButton}
         // Positioned, so screen-reader-only text inside stays clipped instead of widening the page.
-        className="group/tower relative overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // The columns snap between the frozen ones, so the ones on screen are whole at rest; a
+        // middle-button pan follows the mouse and snaps when it lets go.
+        className="group/tower relative snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] in-data-grabbing:snap-none [&::-webkit-scrollbar]:hidden"
       >
         <div className="w-max min-w-full">
           {/* Hidden until a car exists: an empty board has nothing to read down. */}
@@ -97,20 +105,20 @@ const headText = "text-[0.71875rem] leading-tight font-bold tracking-[0.05em] te
 function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   return (
     <div className="[--row-bg:var(--color-background)]">
-      <div aria-hidden className="grid grid-cols-(--cols) items-end gap-x-2 border-b-2 border-foreground pb-1.25">
+      <div aria-hidden className="grid grid-cols-(--cols) items-end gap-x-1 border-b-2 border-foreground pb-1.25">
         <div className={cn(headText, "sticky left-0 z-10 self-stretch bg-background")}>Car · price</div>
+        {/* The header's cells are the snap points for every row. */}
         {specDefs.map((def) => (
-          <div key={def.id} className={cn(headText, "pl-1.75")}>
+          <div key={def.id} className={cn(headText, "snap-start pl-1.75")}>
             {def.name}
           </div>
         ))}
-        <div />
-        <div className={headText}>Seller</div>
+        <div className={cn(headText, "snap-start border-l pl-1.75")}>Seller</div>
         <EndCell />
       </div>
       {/* One continuous rail with the stretch on screen in ink, under the scrolling columns. */}
       <div aria-hidden className="sticky left-0 hidden w-(--pw) pt-1.25 group-data-overflow/tower:block">
-        <div className="relative h-0.75 rounded-full bg-foreground/20" style={{ marginLeft: identity }}>
+        <div className="relative h-0.75 rounded-full bg-foreground/20" style={{ marginLeft: identity + gap, marginRight: menu + gap }}>
           <i data-rail className="absolute inset-y-0 rounded-full bg-foreground" />
         </div>
       </div>
@@ -118,11 +126,11 @@ function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
   );
 }
 
-// The frozen end of a row, holding its actions. A fade before it shows that columns hide
-// under it, until the tower is scrolled to its end.
+// The frozen end of a row, holding its actions in a column of their own: the scrolling
+// columns stop at its edge, which takes a rule while columns hide under it.
 function EndCell({ children }: { children?: ReactNode }) {
   return (
-    <div className="sticky right-0 z-10 flex items-center justify-center self-stretch bg-(--row-bg) before:pointer-events-none before:absolute before:inset-y-0 before:right-full before:w-6 before:bg-linear-to-l before:from-(--row-bg) before:to-transparent group-data-end/tower:before:hidden">
+    <div className="sticky right-0 z-10 flex items-center justify-end self-stretch bg-(--row-bg) group-data-overflow/tower:shadow-[-1px_0_0_var(--color-border)]">
       {children}
     </div>
   );
@@ -240,7 +248,7 @@ function TowerRow({
       ref={rowRef}
       {...rowProps}
       className={cn(
-        "group/card relative grid min-h-14.5 grid-cols-(--cols) items-center gap-x-2 border-t bg-(--row-bg) select-none [-webkit-touch-callout:none]",
+        "group/card relative grid min-h-14.5 grid-cols-(--cols) items-center gap-x-1 border-t bg-(--row-bg) select-none [-webkit-touch-callout:none]",
         // A removed ad sits on the concrete, with full-ink text.
         removed && "[--row-bg:var(--color-background)]",
         lifted && "-rotate-[0.6deg] rounded-md border-0 shadow-[0_14px_30px_-8px_rgb(0_0_0/0.35),0_0_0_1px_var(--color-input)] [--row-bg:var(--color-card)]",
@@ -281,8 +289,7 @@ function TowerRow({
         const spec = listing.keySpecs.find((s) => s.id === def.id);
         return <div key={def.id} className="min-w-0">{spec && <SpecCell spec={spec} {...specVerdict(spec, def, listing.modelId)} />}</div>;
       })}
-      <div aria-hidden className="self-stretch bg-border" />
-      <p className="flex min-w-0 flex-col text-[0.78125rem] leading-tight break-words">
+      <p className="flex min-w-0 flex-col justify-center self-stretch border-l pl-1.75 text-[0.78125rem] leading-tight break-words">
         <span className="sr-only">Seller: </span>
         {distance && <span className="font-semibold">{distance}</span>}
         <span className="text-muted-foreground">{listing.location ?? listing.country}</span>
@@ -375,23 +382,27 @@ function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; br
 }
 
 // Tracks the shared sideways scroll without re-rendering the tower: the scroller's width
-// (--pw, for the sticky full-width parts), whether it overflows and whether it is at its end
-// (data attributes), and the rail's ink stretch.
-function useSideScroll() {
+// (--pw, for the sticky full-width parts), whether it overflows (a data attribute), and the
+// rail's ink stretch. Returns the scrolling columns' width, which divides the room between
+// the frozen columns evenly, so whole columns fill it exactly and snapping leaves none cut.
+function useSideScroll(columns: number) {
   const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(minColumn);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const update = () => {
       el.style.setProperty("--pw", `${el.clientWidth}px`);
-      const max = el.scrollWidth - el.clientWidth;
-      el.toggleAttribute("data-overflow", max > 1);
-      el.toggleAttribute("data-end", el.scrollLeft >= max - 1);
+      const room = el.clientWidth - identity - menu - 2 * gap;
+      const fit = Math.min(columns, Math.max(1, Math.floor((room + gap) / (minColumn + gap))));
+      setWidth(Math.max(minColumn, (room - (fit - 1) * gap) / fit));
+      el.toggleAttribute("data-overflow", el.scrollWidth - el.clientWidth > 1);
       const rail = el.querySelector<HTMLElement>("[data-rail]");
-      const track = el.scrollWidth - identity;
+      const frozen = identity + menu + 2 * gap;
+      const track = el.scrollWidth - frozen;
       if (rail && track > 0) {
         rail.style.left = `${(el.scrollLeft / track) * 100}%`;
-        rail.style.width = `${((el.clientWidth - identity) / track) * 100}%`;
+        rail.style.width = `${((el.clientWidth - frozen) / track) * 100}%`;
       }
     };
     update();
@@ -403,6 +414,6 @@ function useSideScroll() {
       el.removeEventListener("scroll", update);
       observer.disconnect();
     };
-  }, []);
-  return ref;
+  }, [columns]);
+  return [ref, width] as const;
 }
