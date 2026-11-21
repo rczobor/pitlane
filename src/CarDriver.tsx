@@ -151,7 +151,6 @@ function TierPosition({
         <Button
           type="button"
           variant="outline"
-          size="sm"
           className="max-sm:h-11"
           disabled={place === 0}
           aria-label={`Move up in ${tierName(tier)}`}
@@ -163,7 +162,6 @@ function TierPosition({
         <Button
           type="button"
           variant="outline"
-          size="sm"
           className="max-sm:h-11"
           disabled={place === count - 1}
           aria-label={`Move down in ${tierName(tier)}`}
