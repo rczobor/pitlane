@@ -211,11 +211,11 @@ export function CarNumbers({ details }: { details: Car["details"] }) {
     ["Power", details.powerKw === undefined ? "—" : formatPower(details.powerKw)],
   ];
   return (
-    <dl aria-label="Registration, mileage and power" className="grid grid-cols-3 rounded-md bg-card">
+    <dl aria-label="Registration, mileage and power" className="@container grid grid-cols-3 rounded-md bg-card">
       {cells.map(([label, value]) => (
-        <div key={label} className="flex min-w-0 flex-col gap-0.5 border-l px-2.5 py-2.5 first:border-l-0 sm:px-3.5">
+        <div key={label} className="flex min-w-0 flex-col gap-0.5 border-l px-2.5 py-2.5 first:border-l-0 @md:px-3.5">
           <dt className="condensed text-xs font-bold tracking-wide text-muted-foreground uppercase">{label}</dt>
-          <dd className="condensed text-[1.375rem] leading-none font-bold whitespace-nowrap tabular-nums sm:text-[1.75rem]">
+          <dd className="condensed text-[1.375rem] leading-none font-bold whitespace-nowrap tabular-nums @md:text-[1.75rem]">
             {value}
           </dd>
         </div>

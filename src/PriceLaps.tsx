@@ -50,7 +50,8 @@ const signed = (amount: number, currency: string) =>
 export function PriceLaps({ history, removed }: { history: Capture[]; removed: boolean }) {
   const laps = priceLaps(history);
   return (
-    <ol className="mb-3">
+    // Sized by its column, not the screen: theatre mode narrows the column on wide screens.
+    <ol className="@container mb-3">
       {laps.map((lap, index) => {
         const now = index === 0 && !removed;
         const first = index === laps.length - 1;
@@ -59,14 +60,14 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
             key={lap.at}
             className={cn(
               "grid items-center gap-x-2.5 gap-y-1 border-t py-2 text-sm first:border-t-0",
-              // Phones: number, date over bar, price over gap. Wider: one line per lap.
+              // Narrow: number, date over bar, price over gap. Wider: one line per lap.
               "grid-cols-[1rem_1fr_auto] [grid-template-areas:'n_d_p''n_b_g']",
-              "sm:grid-cols-[1.125rem_8.5rem_1fr_5.75rem_7rem_2.25rem] sm:[grid-template-areas:'n_d_b_p_g_t']",
+              "@md:grid-cols-[1.125rem_8.5rem_1fr_5.75rem_7rem_2.25rem] @md:[grid-template-areas:'n_d_b_p_g_t']",
             )}
           >
             <span
               className={cn(
-                "condensed self-start text-[0.9375rem] font-extrabold [grid-area:n] sm:self-center",
+                "condensed self-start text-[0.9375rem] font-extrabold [grid-area:n] @md:self-center",
                 !now && "text-muted-foreground",
               )}
             >
@@ -75,7 +76,7 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
             </span>
             <span className={cn("text-[0.8125rem] whitespace-nowrap [grid-area:d]", !now && "text-muted-foreground")}>
               {formatDateTime(lap.at)}
-              {now && <span className="font-semibold sm:hidden"> · Now</span>}
+              {now && <span className="font-semibold @md:hidden"> · Now</span>}
             </span>
             <span aria-hidden className="h-2 overflow-hidden rounded-xs bg-foreground/8 [grid-area:b]">
               {lap.bar !== undefined && (
@@ -88,7 +89,7 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
             <span className="condensed text-right text-xl leading-none font-bold tabular-nums [grid-area:p]">
               {lap.price ? formatPrice(lap.price) : "Ad removed"}
             </span>
-            <span className="text-right text-xs whitespace-nowrap tabular-nums [grid-area:g] sm:text-left sm:text-[0.8125rem]">
+            <span className="text-right text-xs whitespace-nowrap tabular-nums [grid-area:g] @md:text-left @md:text-[0.8125rem]">
               {lap.gap && lap.price ? (
                 lap.gap.amount === 0 ? (
                   <span className="text-muted-foreground">Same price</span>
@@ -102,7 +103,7 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
                 first && <span className="text-muted-foreground">First seen</span>
               )}
             </span>
-            <span className="hidden font-semibold [grid-area:t] sm:block">{now && "Now"}</span>
+            <span className="hidden font-semibold [grid-area:t] @md:block">{now && "Now"}</span>
           </li>
         );
       })}
