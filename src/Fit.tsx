@@ -37,7 +37,7 @@ export function FitSection({ car, criteria, specDefs, keySpecs, modelId }: Props
       ) : (
       <ul className="space-y-1 text-sm">
         {dealBreakers.map((d) => (
-          <li key={d.specId} className="flex items-center gap-2 font-semibold text-destructive">
+          <li key={d.specId} className="flex items-center gap-2 font-semibold">
             <Ban className="size-4 shrink-0" aria-hidden />
             Deal-breaker: {dealBreakerLabel(d, keySpecs)}
           </li>

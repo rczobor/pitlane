@@ -61,16 +61,43 @@ export function specVerdict(spec: ResolvedSpec, def: KeySpecDef | undefined, mod
 export const specValueText = (spec: ResolvedSpec) =>
   spec.value === null ? "—" : spec.kind === "check" ? (spec.value === "no" ? "No" : "Yes") : spec.value;
 
-/** The cell states shared by card ledgers and the comparison table. */
-export const specTone = (spec: ResolvedSpec, { hit, breaker }: { hit: boolean; breaker: boolean }) =>
+/**
+ * The cell states shared by card ledgers and the comparison table. A deal-breaker keeps its
+ * state and takes an InkMark: red is kept for deleting.
+ */
+export const specTone = (spec: ResolvedSpec, { hit }: { hit: boolean }) =>
   cn(
     "rounded-sm border border-transparent",
     spec.value !== null && spec.source === "you" && "bg-secondary/60 dark:bg-secondary",
     spec.value !== null && spec.source === "listing" && "border-dashed border-foreground/45",
     hit && "bg-foreground text-background dark:bg-foreground",
-    // A confirmed value the user ruled out for this model.
-    breaker && "border-destructive bg-transparent text-destructive dark:bg-transparent",
   );
+
+const marks = {
+  year: ["Out", "outside the model's years"],
+  mileage: ["Over", "over the model's mileage limit"],
+  breaker: ["Deal-breaker", "a deal-breaker for this model"],
+} as const;
+
+/**
+ * A year or mileage outside the model's limits, or a value ruled out for the model: a small
+ * ink tag beside or under the value, never colour (colour only marks change, and red would
+ * be a second accent).
+ */
+export function InkMark({ mark, className }: { mark: keyof typeof marks; className?: string }) {
+  const [text, description] = marks[mark];
+  return (
+    <span
+      className={cn(
+        "inline-flex h-3.75 items-center rounded-[3px] bg-slab px-1 font-sans text-[0.625rem] leading-none font-bold tracking-wide whitespace-nowrap text-slab-foreground uppercase [font-stretch:75%]",
+        className,
+      )}
+    >
+      <span aria-hidden>{text}</span>
+      <span className="sr-only">({description})</span>
+    </span>
+  );
+}
 
 function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boolean; breaker: boolean; size: "md" | "lg" }) {
   const missing = spec.kind === "check" && spec.value === "no";
@@ -84,7 +111,7 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
             className={cn(
               "group/cell min-w-0",
               size === "lg" ? "px-2 pt-1 pb-1.5" : "px-1.5 py-0.5",
-              specTone(spec, { hit, breaker }),
+              specTone(spec, { hit }),
             )}
           />
         }
@@ -101,7 +128,7 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
         <dd
           className={cn(
             // Most values fit one line; a long choice ("Adaptive sport seats") wraps, never truncates.
-            "flex items-start gap-0.5 leading-tight font-semibold break-words",
+            "flex flex-wrap items-start gap-0.5 leading-tight font-semibold break-words",
             size === "lg" ? "text-sm" : "text-xs",
             // A confirmed "No" is as definite as any other value; only unknown is quiet.
             spec.value === null && "font-medium text-muted-foreground",
@@ -111,7 +138,11 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
           <span className="min-w-0">{value}</span>
           {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
           {hit && <span className="sr-only">(preferred)</span>}
-          {breaker && <span className="sr-only">(deal-breaker)</span>}
+          {breaker && (
+            <span className="basis-full">
+              <InkMark mark="breaker" />
+            </span>
+          )}
         </dd>
       </TooltipTrigger>
       <TooltipContent>{specDescription(spec, hit)}</TooltipContent>

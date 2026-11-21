@@ -18,8 +18,8 @@ import {
   type Tier,
   tiers,
 } from "./format";
-import { specTone, specValueText, specVerdict } from "./KeySpecLedger";
-import { openCar, OutsideMark, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
+import { InkMark, specTone, specValueText, specVerdict } from "./KeySpecLedger";
+import { openCar, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
 import { panWithMiddleButton } from "./Strip";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
@@ -280,11 +280,11 @@ function TowerRow({
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
             <span className="whitespace-nowrap">
               {formatRegistration(specs.firstRegistration)}
-              {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}
+              {over("year") && <InkMark mark="year" className="ml-0.75 align-[1px]" />}
             </span>{" "}
             <span className="whitespace-nowrap">
               · {formatKm(specs.mileageKm)}
-              {over("mileage") && <OutsideMark limit="mileage" className="ml-0.75 align-[1px]" />}
+              {over("mileage") && <InkMark mark="mileage" className="ml-0.75 align-[1px]" />}
             </span>
           </span>
           {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
@@ -372,7 +372,7 @@ function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; br
     <div
       className={cn(
         "px-1 py-0.75 text-[0.71875rem] leading-tight font-semibold break-words hyphens-auto",
-        specTone(spec, { hit, breaker }),
+        specTone(spec, { hit }),
         spec.value === null && "font-medium text-muted-foreground",
       )}
     >
@@ -383,7 +383,8 @@ function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; br
       </span>
       {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
       {hit && <span className="sr-only"> (preferred)</span>}
-      {breaker && <span className="sr-only"> (deal-breaker)</span>}
+      {/* A narrow column breaks the tag at its hyphen rather than overflowing. */}
+      {breaker && <InkMark mark="breaker" className="mt-0.5 flex h-auto w-fit py-0.5 whitespace-normal" />}
     </div>
   );
 }

@@ -113,7 +113,7 @@ function CompareTable({ board, ids, onChange }: { board: BoardData; ids: string[
             if (spec.value === null) return <span className="text-muted-foreground">Unknown</span>;
             const { hit, breaker } = specVerdict(spec, def, car.modelId);
             return (
-              <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 font-semibold", specTone(spec, { hit, breaker }))}>
+              <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 font-semibold", specTone(spec, { hit }))}>
                 {breaker && <Ban className="size-3.5" aria-hidden />}
                 {hit && <Check className="size-3.5" aria-hidden />}
                 {specValueText(spec)}
@@ -301,7 +301,7 @@ function FitCell({ car, result }: { car: BoardListing; result: ReturnType<typeof
         </p>
       )}
       {dealBreakers.map((d) => (
-        <p key={d.specId} className="flex items-center gap-1 font-semibold text-destructive">
+        <p key={d.specId} className="flex items-center gap-1 font-semibold">
           <Ban className="size-3.5 shrink-0" aria-hidden />
           {dealBreakerLabel(d, car.keySpecs)}
           <span className="sr-only">(deal-breaker)</span>

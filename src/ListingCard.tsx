@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
-import { KeySpecLedger } from "./KeySpecLedger";
+import { InkMark, KeySpecLedger } from "./KeySpecLedger";
 import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
@@ -203,7 +203,7 @@ export function ListingCard({
     <div className={cn("space-y-2", variant !== "feature" && "mt-auto")}>
       <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
       {dealBreakers.length > 0 && (
-        <p className="flex items-center gap-1 text-xs font-semibold text-destructive">
+        <p className="flex items-center gap-1 text-xs font-semibold">
           <Ban className="size-3.5 shrink-0" aria-hidden />
           Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
         </p>
@@ -333,31 +333,13 @@ function Figure({ label, value, mark = false }: { label: string; value: string; 
       <dt className="text-[0.6875rem] font-bold tracking-[0.07em] text-muted-foreground uppercase">{label}</dt>
       <dd className="condensed text-[1.6875rem] leading-tight font-bold tabular-nums sm:text-[2rem]">
         {value}
-        {mark && <OutsideMark limit={mark} className="ml-1.5 align-middle" />}
+        {mark && <InkMark mark={mark} className="ml-1.5 align-middle" />}
       </dd>
     </div>
   );
 }
 
 type Limit = "year" | "mileage";
-
-/**
- * A year or mileage outside the model's limits: a small ink tag after the value, never
- * colour (colour only marks change, and red would be a second accent).
- */
-export function OutsideMark({ limit, className }: { limit: Limit; className?: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-3.75 items-center rounded-[3px] bg-slab px-1 font-sans text-[0.625rem] leading-none font-bold tracking-wide whitespace-nowrap text-slab-foreground uppercase [font-stretch:75%]",
-        className,
-      )}
-    >
-      <span aria-hidden>{limit === "mileage" ? "Over" : "Out"}</span>
-      <span className="sr-only">({limit === "mileage" ? "over the model's mileage limit" : "outside the model's years"})</span>
-    </span>
-  );
-}
 
 // Year, mileage and power stay at glance level, above the key specs. The values explain
 // themselves; the labels are there for screen readers.
@@ -388,7 +370,7 @@ function Stats({
           <dt className="sr-only">{label}</dt>
           <dd>
             {value}
-            {mark && <OutsideMark limit={mark} className="ml-1 -translate-y-px align-middle" />}
+            {mark && <InkMark mark={mark} className="ml-1 -translate-y-px align-middle" />}
           </dd>
         </div>
       ))}

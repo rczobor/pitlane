@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { preferredFor } from "../shared/fit";
-import { specTone, specValueText, specVerdict } from "./KeySpecLedger";
+import { InkMark, specTone, specValueText, specVerdict } from "./KeySpecLedger";
 import type { BoardData, ResolvedSpec } from "./format";
 
 export const preferenceLabel = (kind: ResolvedSpec["kind"], value: string) =>
@@ -71,7 +71,7 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
               <p
                 className={cn(
                   "flex max-w-full items-center gap-1 self-start px-1.5 py-1 text-[0.9375rem] leading-tight font-semibold break-words",
-                  specTone(spec, { hit, breaker }),
+                  specTone(spec, { hit }),
                   spec.value === null && "font-medium text-muted-foreground",
                 )}
               >
@@ -80,6 +80,7 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                 {spec.value === null && <span className="sr-only">unknown</span>}
                 {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
               </p>
+              {breaker && <InkMark mark="breaker" className="self-start" />}
               <p className="text-xs leading-snug text-muted-foreground">
                 {spec.source ? sourceWord[spec.source] : "Unknown"}
                 {hit ? (
@@ -87,12 +88,7 @@ export function SpecReadout({ listingId, modelId, keySpecs, board }: Props) {
                     {" · "}
                     <span className="font-semibold text-foreground">preferred</span>
                   </>
-                ) : breaker ? (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-destructive">deal-breaker</span>
-                  </>
-                ) : (
+                ) : breaker ? null : (
                   preferred.length > 0 && (
                     <>
                       {" · "}
