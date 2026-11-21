@@ -188,13 +188,14 @@ export function ListingCard({
   preview?: boolean;
 }) {
   const { specs } = listing;
-  const { dealBreakers } = evaluate(
+  const { dealBreakers, checks } = evaluate(
     { price: listing.price, firstRegistration: specs.firstRegistration, mileageKm: specs.mileageKm },
     criteria,
     specDefs,
     listing.keySpecs,
     listing.modelId,
   );
+  const outside = (kind: Limit) => checks.some((c) => c.kind === kind && c.status === "missed");
   const lotLine = <LotLine lot={lot} model={modelName} toConfirm={toConfirm} large={variant === "feature"} />;
   const badges = <Badges listing={listing} home={home} />;
   // Pinned to the placard's foot, so lots in a row end together.
@@ -227,8 +228,8 @@ export function ListingCard({
           {lotLine}
           <h3 className="text-base leading-snug">{listing.title}</h3>
           <dl className="flex flex-wrap gap-x-7 gap-y-2">
-            <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} />
-            <Figure label="Mileage" value={formatKm(specs.mileageKm)} />
+            <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
+            <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
             {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
           </dl>
           {badges}
@@ -244,7 +245,7 @@ export function ListingCard({
         {lotLine}
         <h3 className="sr-only text-[0.8125rem] lg:not-sr-only lg:truncate">{listing.title}</h3>
         <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 lg:col-span-1 lg:col-start-auto">
-          <Stats specs={specs} className="text-sm" />
+          <Stats specs={specs} outside={outside} className="text-sm" />
           {badges}
         </div>
         <p className="col-start-3 row-start-1 text-right lg:col-start-auto lg:row-start-auto">
@@ -267,7 +268,7 @@ export function ListingCard({
           {lotLine}
           <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <Stats specs={specs} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
+            <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
             <div className="ml-auto">{badges}</div>
           </div>
           {ledger}
@@ -325,26 +326,58 @@ function LotLine({ lot, model, toConfirm, large }: { lot?: number; model?: strin
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+function Figure({ label, value, mark = false }: { label: string; value: string; mark?: Limit | false }) {
   return (
     <div>
       <dt className="text-[0.6875rem] font-bold tracking-[0.07em] text-muted-foreground uppercase">{label}</dt>
-      <dd className="condensed text-[1.6875rem] leading-tight font-bold tabular-nums sm:text-[2rem]">{value}</dd>
+      <dd className="condensed text-[1.6875rem] leading-tight font-bold tabular-nums sm:text-[2rem]">
+        {value}
+        {mark && <OutsideMark limit={mark} className="ml-1.5 align-middle" />}
+      </dd>
     </div>
+  );
+}
+
+type Limit = "year" | "mileage";
+
+/**
+ * A year or mileage outside the model's limits: a small ink tag after the value, never
+ * colour (colour only marks change, and red would be a second accent).
+ */
+export function OutsideMark({ limit, className }: { limit: Limit; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-3.75 items-center rounded-[3px] bg-slab px-1 font-sans text-[0.625rem] leading-none font-bold tracking-wide whitespace-nowrap text-slab-foreground uppercase [font-stretch:75%]",
+        className,
+      )}
+    >
+      <span aria-hidden>{limit === "mileage" ? "Over" : "Out"}</span>
+      <span className="sr-only">({limit === "mileage" ? "over the model's mileage limit" : "outside the model's years"})</span>
+    </span>
   );
 }
 
 // Year, mileage and power stay at glance level, above the key specs. The values explain
 // themselves; the labels are there for screen readers.
-function Stats({ specs, className }: { specs: BoardListing["specs"]; className?: string }) {
+function Stats({
+  specs,
+  outside,
+  className,
+}: {
+  specs: BoardListing["specs"];
+  /** Whether the value is outside the model's limits. */
+  outside: (limit: Limit) => boolean;
+  className?: string;
+}) {
   const values = [
-    ["First registration", formatRegistrationYear(specs.firstRegistration)],
-    ["Mileage", formatKm(specs.mileageKm)],
-    ...(specs.powerKw !== undefined ? [["Power", formatPower(specs.powerKw)]] : []),
-  ];
+    { label: "First registration", value: formatRegistrationYear(specs.firstRegistration), mark: outside("year") && "year" },
+    { label: "Mileage", value: formatKm(specs.mileageKm), mark: outside("mileage") && "mileage" },
+    ...(specs.powerKw !== undefined ? [{ label: "Power", value: formatPower(specs.powerKw), mark: false as const }] : []),
+  ] satisfies { label: string; value: string; mark: Limit | false }[];
   return (
-    <dl className={cn("flex items-baseline gap-x-1.5 font-semibold whitespace-nowrap tabular-nums", className)}>
-      {values.map(([label, value], index) => (
+    <dl className={cn("flex flex-wrap items-baseline gap-x-1.5 font-semibold whitespace-nowrap tabular-nums", className)}>
+      {values.map(({ label, value, mark }, index) => (
         <div key={label} className="flex items-baseline gap-x-1.5">
           {index > 0 && (
             <span aria-hidden className="font-normal text-muted-foreground">
@@ -352,7 +385,10 @@ function Stats({ specs, className }: { specs: BoardListing["specs"]; className?:
             </span>
           )}
           <dt className="sr-only">{label}</dt>
-          <dd>{value}</dd>
+          <dd>
+            {value}
+            {mark && <OutsideMark limit={mark} className="ml-1 -translate-y-px align-middle" />}
+          </dd>
         </div>
       ))}
     </dl>

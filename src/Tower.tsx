@@ -18,7 +18,7 @@ import {
   tiers,
 } from "./format";
 import { specTone, specValueText, specVerdict } from "./KeySpecLedger";
-import { openCar, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
+import { openCar, OutsideMark, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
 import { PendingRows } from "./PendingCaptures";
 import { panWithMiddleButton } from "./Strip";
 import { sectionSlabColor } from "./TierSlab";
@@ -274,10 +274,11 @@ function TowerRow({
           {/* The model, unless the board shows only one. */}
           {modelName && <span className="condensed text-[0.84375rem] leading-tight font-bold">{modelName}</span>}
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
-            <span className={cn(over("year") && "text-destructive")}>{formatRegistration(specs.firstRegistration)}</span>
+            {formatRegistration(specs.firstRegistration)}
+            {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}
             {" · "}
-            <span className={cn(over("mileage") && "text-destructive")}>{formatKm(specs.mileageKm)}</span>
-            {over("mileage") && <span className="sr-only"> (over the model's limit)</span>}
+            {formatKm(specs.mileageKm)}
+            {over("mileage") && <OutsideMark limit="mileage" className="ml-0.75 align-[1px]" />}
           </span>
           {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
           {/* The title names the car for screen readers and find-in-page; the row shows the model. */}
