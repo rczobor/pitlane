@@ -27,14 +27,16 @@ import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierD
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-// The frozen car column: position, thumbnail, price, model. Narrow enough for three spec
-// columns at 390; its lines wrap between their parts instead.
-const identity = 154;
+// The frozen car column: position, thumbnail, then price, "model · power" and
+// "registration · km" on a line each, leaving two spec columns and a peek of the next at 390.
+const identity = 182;
 // The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
 // column may get before one fewer fits on screen.
 const menu = 32;
 const gap = 4;
 const minColumn = 52;
+// What a phone shows of the next hidden column, under the trailing fade (1.5rem).
+const peek = 24;
 
 /**
  * The board under 640px: a timing tower. One row per car in rank order, the car column
@@ -265,12 +267,12 @@ function TowerRow({
         onClick={() => openCar(listing.listingId)}
         data-car={listing.listingId}
         className={cn(
-          "sticky left-0 z-10 flex min-w-0 items-center gap-1 self-stretch bg-(--row-bg) py-1.5 pl-1 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+          "sticky left-0 z-10 flex min-w-0 items-center gap-1 self-stretch bg-(--row-bg) py-1.5 pl-0.5 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
           startFade,
         )}
       >
         {/* The car's lot number, as the catalogue shows it. */}
-        <span className="condensed w-4 shrink-0 text-center text-[0.9375rem] font-bold tabular-nums">
+        <span className="condensed w-3.5 shrink-0 text-center text-[0.9375rem] font-bold tabular-nums">
           {view.lots.get(listing.listingId)}
           <span className="sr-only">.</span>
         </span>
@@ -280,29 +282,22 @@ function TowerRow({
             <span className="condensed text-[1.1875rem] leading-none font-bold tabular-nums">{formatPrice(listing.price)}</span>
             <PriceNote listing={listing} />
           </span>
-          {/* Power sits beside the model, or alone when the board shows one model. A line
-              that wraps breaks before a "· value" segment, never inside one. */}
-          <span className="condensed text-[0.84375rem] leading-tight font-bold">
-            {modelName}
-            {modelName && specs.powerKw !== undefined && " "}
-            {specs.powerKw !== undefined && (
-              <span className="whitespace-nowrap">
-                {modelName && "· "}
-                {formatPower(specs.powerKw)}
-              </span>
-            )}
-          </span>
+          {/* Power sits beside the model, or alone when the board shows one model. */}
+          <Segments>
+            {modelName && <span className="min-w-0">{modelName}</span>}
+            {specs.powerKw !== undefined && <span className="whitespace-nowrap">{formatPower(specs.powerKw)}</span>}
+          </Segments>
           {/* A tag stays on the line of the value it qualifies, so it never reads as the other's. */}
-          <span className="condensed text-[0.84375rem] leading-tight font-bold">
+          <Segments>
             <span className="whitespace-nowrap">
               {formatRegistration(specs.firstRegistration)}
               {over("year") && <InkMark mark="year" className="ml-0.75 align-[1px]" />}
-            </span>{" "}
+            </span>
             <span className="whitespace-nowrap">
-              · {formatKm(specs.mileageKm)}
+              {formatKm(specs.mileageKm)}
               {over("mileage") && <InkMark mark="mileage" className="ml-0.75 align-[1px]" />}
             </span>
-          </span>
+          </Segments>
           {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
           {/* The title names the car for screen readers and find-in-page; the row shows the model. */}
           <span className="sr-only">{listing.title}</span>
@@ -328,6 +323,18 @@ function TowerRow({
         )}
       </EndCell>
     </div>
+  );
+}
+
+// A line of " · "-separated parts that wraps between parts. Each part's dot hangs to its left,
+// and the line's start is clipped, so a part that wraps starts its line without a dot.
+function Segments({ children }: { children: ReactNode }) {
+  return (
+    <span className="overflow-hidden">
+      <span className="condensed -ml-[0.75em] flex flex-wrap text-[0.84375rem] leading-tight font-bold *:before:inline-block *:before:w-[0.75em] *:before:text-center *:before:font-normal *:before:text-muted-foreground *:before:content-['·']">
+        {children}
+      </span>
+    </span>
   );
 }
 
@@ -417,8 +424,10 @@ function useSideScroll(columns: number) {
     const update = () => {
       el.style.setProperty("--pw", `${el.clientWidth}px`);
       const room = el.clientWidth - identity - menu - 2 * gap;
-      const fit = Math.min(columns, Math.max(1, Math.floor((room + gap) / (minColumn + gap))));
-      setWidth(Math.max(minColumn, (room - (fit - 1) * gap) / fit));
+      // As many whole columns as fit; when some stay hidden, they leave room for a peek of the next.
+      const all = Math.floor((room + gap) / (minColumn + gap)) >= columns;
+      const fit = all ? columns : Math.max(1, Math.floor((room - peek) / (minColumn + gap)));
+      setWidth(Math.max(minColumn, all ? (room - (fit - 1) * gap) / fit : (room - peek - fit * gap) / fit));
       const hidden = el.scrollWidth - el.clientWidth;
       el.toggleAttribute("data-overflow", hidden > 1);
       el.toggleAttribute("data-more-start", el.scrollLeft > 1);
