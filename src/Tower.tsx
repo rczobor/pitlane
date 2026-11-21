@@ -276,11 +276,16 @@ function TowerRow({
               </span>
             )}
           </span>
+          {/* A tag stays on the line of the value it qualifies, so it never reads as the other's. */}
           <span className="condensed text-[0.84375rem] leading-tight font-bold">
-            {formatRegistration(specs.firstRegistration)}
-            {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}{" "}
-            <span className="whitespace-nowrap">· {formatKm(specs.mileageKm)}</span>
-            {over("mileage") && <OutsideMark limit="mileage" className="ml-0.75 align-[1px]" />}
+            <span className="whitespace-nowrap">
+              {formatRegistration(specs.firstRegistration)}
+              {over("year") && <OutsideMark limit="year" className="ml-0.75 align-[1px]" />}
+            </span>{" "}
+            <span className="whitespace-nowrap">
+              · {formatKm(specs.mileageKm)}
+              {over("mileage") && <OutsideMark limit="mileage" className="ml-0.75 align-[1px]" />}
+            </span>
           </span>
           {toConfirm !== undefined && <span className="text-[0.75rem] leading-tight font-semibold">{toConfirm} to confirm</span>}
           {/* The title names the car for screen readers and find-in-page; the row shows the model. */}
