@@ -273,7 +273,6 @@ export function ListingPage({ listingId }: { listingId: string }) {
           >
             <PriceLaps history={listing.history} removed={removed} />
             <p className="text-[0.8125rem] text-muted-foreground">
-              {listing.history.length > 1 && "Shorter bar, lower price. "}
               Added {formatDateTime(listing.firstSeenAt)}; last checked {formatDateTime(listing.lastCheckedAt)}. A
               re-check that finds no change adds no line.
             </p>

@@ -9,20 +9,16 @@ export type Lap = {
   number: number;
   at: number;
   price?: { amount: number; currency: string };
-  /** Bar length in percent: shorter means cheaper. */
-  bar?: number;
   /** Change from the capture before it; undefined for the first capture or one without a price. */
   gap?: { amount: number; percent: number };
 };
 
 /**
  * The price history as a timing printout's lap history: one numbered lap per capture,
- * newest first. Bars share a scale from zero to the highest price, so a bar's length
- * never overstates a change.
+ * newest first, each with its change from the lap before (no bars: from zero they all look
+ * equal, and from anywhere else they overstate a change).
  */
 export function priceLaps(history: Capture[]): Lap[] {
-  const amounts = history.flatMap((c) => (c.price ? [c.price.amount] : []));
-  const high = Math.max(...amounts);
   let previous: number | undefined;
   const laps = history.map((capture, index): Lap => {
     const amount = capture.price?.amount;
@@ -35,7 +31,6 @@ export function priceLaps(history: Capture[]): Lap[] {
       number: index + 1,
       at: capture.capturedAt,
       price: capture.price,
-      bar: amount === undefined ? undefined : (amount / high) * 100,
       gap,
     };
   });
@@ -56,9 +51,9 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
             key={lap.at}
             className={cn(
               "grid items-center gap-x-2.5 gap-y-1 border-t py-2 text-sm first:border-t-0",
-              // Narrow: number, date over bar, price over gap. Wider: one line per lap.
-              "grid-cols-[1rem_1fr_auto] [grid-template-areas:'n_d_p''n_b_g']",
-              "@md:grid-cols-[1.125rem_8.5rem_1fr_5.75rem_7rem_2.25rem] @md:[grid-template-areas:'n_d_b_p_g_t']",
+              // Narrow: number, date, price over its change. Wider: one line per lap.
+              "grid-cols-[1rem_1fr_auto] [grid-template-areas:'n_d_p''n_._g']",
+              "@md:grid-cols-[1.125rem_minmax(0,1fr)_auto_7rem_2.25rem] @md:[grid-template-areas:'n_d_p_g_t']",
             )}
           >
             <span
@@ -73,14 +68,6 @@ export function PriceLaps({ history, removed }: { history: Capture[]; removed: b
             <span className={cn("text-[0.8125rem] whitespace-nowrap [grid-area:d]", !now && "text-muted-foreground")}>
               {formatDateTime(lap.at)}
               {now && <span className="font-semibold @md:hidden"> · Now</span>}
-            </span>
-            <span aria-hidden className="h-2 overflow-hidden rounded-xs bg-foreground/8 [grid-area:b]">
-              {lap.bar !== undefined && (
-                <span
-                  className={cn("block h-full", now ? "bg-foreground" : "bg-foreground/45")}
-                  style={{ width: `${lap.bar}%` }}
-                />
-              )}
             </span>
             <span className="condensed text-right text-xl leading-none font-bold tabular-nums [grid-area:p]">
               {lap.price ? formatPrice(lap.price) : "Ad removed"}
