@@ -137,6 +137,20 @@
   --input: #4a5157;
 }
 
+/* Car page (timing-tower readout): the open key-spec sector's fill, a step off the card. */
+:root {
+  --selected: color-mix(in srgb, var(--foreground) 6%, var(--card));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --selected: color-mix(in srgb, var(--foreground) 7%, var(--card));
+  }
+}
+@theme inline {
+  --color-selected: var(--selected);
+}
+/* End car page. */
+
 /* The viewer's zoom hint shows for a few seconds, then gets out of the photo's way. */
 @keyframes hint-out {
   to {

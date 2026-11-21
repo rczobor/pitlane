@@ -107,7 +107,7 @@ export function Gallery({ photos, removed, removedAt, className, theatre, onThea
   if (photos.length === 0) {
     return (
       <section aria-label="Photos" className={className}>
-        <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+        <div className="aspect-[4/3] overflow-hidden bg-muted sm:rounded-xl">
           <NoPhoto />
         </div>
       </section>
@@ -124,7 +124,7 @@ export function Gallery({ photos, removed, removedAt, className, theatre, onThea
           <CarouselContent className="ml-0">
             {photos.map((p, i) => (
               <CarouselItem key={p.sourceUrl} className="pl-0">
-                <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                <div className="aspect-[4/3] overflow-hidden bg-muted sm:rounded-xl">
                   {/* A mouse shortcut: keyboards use the Full screen button or F. */}
                   {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
                   <img
@@ -149,7 +149,7 @@ export function Gallery({ photos, removed, removedAt, className, theatre, onThea
               says it on a pit board across the photo's foot instead: the slab's colours,
               opaque, so the photo keeps its edge on the dark page too. */}
           {removed && (
-            <p className="condensed pointer-events-none absolute inset-x-0 bottom-0 rounded-b-xl bg-slab py-2.5 text-center text-2xl leading-none font-extrabold tracking-wide text-slab-foreground uppercase sm:text-3xl">
+            <p className="condensed pointer-events-none absolute inset-x-0 bottom-0 bg-slab sm:rounded-b-xl py-2.5 text-center text-2xl leading-none font-extrabold tracking-wide text-slab-foreground uppercase sm:text-3xl">
               Ad removed{removedAt !== undefined && ` ${formatDate(removedAt)}`}
             </p>
           )}
@@ -207,7 +207,7 @@ export function Gallery({ photos, removed, removedAt, className, theatre, onThea
                 total={photos.length}
                 onShowAll={() => setSheet(true)}
                 className={cn(
-                  "absolute right-3 bottom-3 rounded-md bg-black/75 px-2 py-1 text-white hover:bg-black/90 sm:hidden",
+                  "absolute right-3 bottom-3 rounded-full bg-black/75 px-2.5 py-1 text-white hover:bg-black/90 sm:hidden",
                   removed && "bottom-15",
                 )}
               />
@@ -228,7 +228,8 @@ export function Gallery({ photos, removed, removedAt, className, theatre, onThea
                 className="rounded-sm border border-current/60 px-1.5 py-0.5 hover:bg-current/10"
               />
             }
-            className="mt-2"
+            // On phones the photo runs edge to edge; the strip keeps the page's gutter.
+            className="mt-2 max-sm:px-4"
           />
         )}
       </Carousel>
