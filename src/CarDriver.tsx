@@ -171,9 +171,8 @@ function TierPosition({
 }) {
   return (
     <div className="mt-2.5 flex items-center gap-1.5 text-[0.8125rem]">
-      <span className="text-muted-foreground">Position in {tierName(tier)}</span>
-      <span className="condensed text-xl leading-none font-extrabold tabular-nums">{place + 1}</span>
-      <span className="text-muted-foreground">of {count}</span>
+      {/* The slab's foot already counts the place; this line only moves it. */}
+      <span className="text-muted-foreground">Move within {tierName(tier)}</span>
       <span className="ml-auto flex gap-1.5">
         <Button
           type="button"
