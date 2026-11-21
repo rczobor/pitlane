@@ -20,12 +20,15 @@ function variantFor(tier: Tier, count: number): CardVariant {
   return "lot";
 }
 
+// Each lot spans two rows of its grid (see ListingCard's subgrid) and pads its own foot, as a
+// row gap would also fall between a lot's two rows; the grid takes back the last row's.
 const grids: Record<CardVariant, string> = {
   feature: "",
-  lot: "grid gap-6 sm:grid-cols-2 lg:grid-cols-3",
-  compact: "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
+  lot: "grid gap-x-6 not-empty:-mb-6 sm:grid-cols-2 lg:grid-cols-3",
+  compact: "grid grid-cols-2 gap-x-4 not-empty:-mb-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
   index: "border-t",
 };
+const lotFoot: Partial<Record<CardVariant, string>> = { lot: "pb-6", compact: "pb-4" };
 
 /**
  * The board from 640px up: one catalogue read top to bottom, a section per tier with every
@@ -249,6 +252,7 @@ function CatalogueSection({
 // up and down change its tier, left and right its place in the section.
 function SortableLot({ listing, variant, view }: { listing: BoardListing; variant: CardVariant; view: TierViewProps }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: listing.listingId });
+  const subgrid = variant === "lot" || variant === "compact";
   return (
     // Alt+arrow keys arrive here from the focused lot link.
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
@@ -260,6 +264,7 @@ function SortableLot({ listing, variant, view }: { listing: BoardListing; varian
       className={cn(
         "group/card relative select-none [-webkit-touch-callout:none]",
         variant === "index" && "border-b",
+        subgrid && cn("row-span-2 grid grid-rows-subgrid bg-clip-content", lotFoot[variant]),
         // The lot's old place: a flat tinted slot, never dashed (dashed means "from the listing").
         isDragging && "rounded-sm bg-foreground/8 *:invisible",
       )}
@@ -279,6 +284,7 @@ function SortableLot({ listing, variant, view }: { listing: BoardListing; varian
         lot={view.lots.get(listing.listingId)}
         variant={variant}
         {...view.cardProps(listing)}
+        subgrid={subgrid}
         className={cn("w-full", variant === "index" && "pr-11")}
       />
       <CardMenu

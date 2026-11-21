@@ -220,6 +220,7 @@ export function ListingCard({
   lifted = false,
   preview = false,
   showTier = false,
+  subgrid = false,
   className,
 }: CardProps & {
   listing: BoardListing;
@@ -233,6 +234,8 @@ export function ListingCard({
   showTier?: boolean;
   /** A static rendering for the settings preview: no link, so unsaved edits are not lost. */
   preview?: boolean;
+  /** A lot or compact card whose parent spans two rows of the catalogue's grid as a subgrid. */
+  subgrid?: boolean;
 }) {
   const { specs } = listing;
   const { dealBreakers, checks } = evaluate(
@@ -248,9 +251,8 @@ export function ListingCard({
     <LotLine lot={lot} model={modelName} toConfirm={variant === "index" ? undefined : toConfirm} large={variant === "feature"} />
   );
   const badges = <Badges listing={listing} home={home} />;
-  // Pinned to the placard's foot, so lots in a row end together.
   const ledger = (
-    <div className={cn("space-y-2", variant !== "feature" && "mt-auto")}>
+    <div className="space-y-2">
       <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
       {dealBreakers.length > 0 && (
         <p className="flex items-center gap-1 text-xs font-semibold">
@@ -312,27 +314,33 @@ export function ListingCard({
   } else {
     const compact = variant === "compact";
     card = (
-      <div className="flex h-full min-w-0 flex-col">
-        <Photo listing={listing} className={cn("rounded-t-sm", compact ? "aspect-[4/3]" : "aspect-[3/2]")}>
-          <PricePlate listing={listing} size={compact ? "sm" : "md"} />
-        </Photo>
-        {tierSlab}
-        <div className={cn("flex flex-1 flex-col rounded-b-sm bg-card", compact ? "gap-1.5 p-2.5" : "gap-2 px-3.5 pt-3 pb-3.5")}>
-          {lotLine}
-          <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
-          {/* The badges follow the stats, and wrap under them from the left. */}
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
-            {badges}
+      // A lot is two rows: everything down to the stats, then the ledger. In the catalogue they
+      // are its row's tracks (a subgrid), so every ledger in a row starts at one height;
+      // elsewhere the ledger is pinned to the foot, so lots that end together align.
+      <div className={cn("min-w-0 rounded-sm bg-card", subgrid ? "row-span-2 grid grid-rows-subgrid" : "flex h-full flex-col")}>
+        <div className="flex flex-col">
+          <Photo listing={listing} className={cn("rounded-t-sm", compact ? "aspect-[4/3]" : "aspect-[3/2]")}>
+            <PricePlate listing={listing} size={compact ? "sm" : "md"} />
+          </Photo>
+          {tierSlab}
+          <div className={cn("flex flex-col", compact ? "gap-1.5 px-2.5 pt-2.5" : "gap-2 px-3.5 pt-3")}>
+            {lotLine}
+            <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
+            {/* The badges follow the stats, and wrap under them from the left. */}
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
+              {badges}
+            </div>
           </div>
-          {ledger}
         </div>
+        <div className={cn(compact ? "px-2.5 pt-1.5 pb-2.5" : "px-3.5 pt-2 pb-3.5", !subgrid && "mt-auto")}>{ledger}</div>
       </div>
     );
   }
 
   const frame = cn(
-    "block h-full w-(--board-card) shrink-0 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    subgrid ? "row-span-2 grid grid-rows-subgrid" : "block h-full",
+    "w-(--board-card) shrink-0 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
     lifted && "-rotate-2 bg-card shadow-[0_18px_40px_rgb(0_0_0/0.28),0_2px_6px_rgb(0_0_0/0.2)]",
     className,
   );
