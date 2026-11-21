@@ -86,9 +86,16 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
           >
             {label}
           </span>
+          {/* The car's place in its tier in lap-board type: the number large, "/8" quieter. */}
           {place >= 0 && (
-            <span className="mt-2 text-xs font-bold sm:text-[0.8125rem]">
-              {ordinal(place + 1)} of {lane.length}
+            <span className="mt-2 leading-none font-bold whitespace-nowrap tabular-nums">
+              <span aria-hidden>
+                <span className="text-[1.375rem] sm:text-[1.625rem]">{place + 1}</span>
+                <span className="text-sm opacity-70 sm:text-base"> /{lane.length}</span>
+              </span>
+              <span className="sr-only">
+                {ordinal(place + 1)} of {lane.length}
+              </span>
             </span>
           )}
         </div>
