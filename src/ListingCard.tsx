@@ -203,23 +203,32 @@ export function ListingCard({
   );
   const outside = (kind: Limit) => checks.some((c) => c.kind === kind && c.status === "missed");
   const lotLine = <LotLine lot={lot} model={modelName} large={variant === "feature"} />;
-  // In the check view: closes the year · km · hp line, so the lot line stays one line. An index
-  // row says it under its price instead.
-  const confirmCount = toConfirm !== undefined && (
-    <span className={cn("ml-auto shrink-0 self-center pl-2 font-semibold whitespace-nowrap", variant === "feature" ? "text-sm" : "text-xs")}>
-      {toConfirm} to confirm
-    </span>
+  // In the check view, the ledger's caption: how many key specs are left to confirm, on the
+  // ledger's top edge, the one place it has on every card. With none left it keeps its line, so
+  // the ledgers in a catalogue row still start level.
+  const caption = toConfirm !== undefined && (
+    <p
+      className={cn(
+        "mb-1 min-h-lh text-right leading-tight font-semibold text-muted-foreground",
+        variant === "feature" ? "text-xs" : "text-[0.6875rem]",
+      )}
+    >
+      {toConfirm > 0 && `${toConfirm} to confirm`}
+    </p>
   );
   const badges = <Badges listing={listing} home={home} />;
   const ledger = (
-    <div className="space-y-2">
-      <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
-      {dealBreakers.length > 0 && (
-        <p className="flex items-center gap-1 text-xs font-semibold">
-          <Ban className="size-3.5 shrink-0" aria-hidden />
-          Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
-        </p>
-      )}
+    <div>
+      {caption}
+      <div className="space-y-2">
+        <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
+        {dealBreakers.length > 0 && (
+          <p className="flex items-center gap-1 text-xs font-semibold">
+            <Ban className="size-3.5 shrink-0" aria-hidden />
+            Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
+          </p>
+        )}
+      </div>
     </div>
   );
   const tierSlab = showTier && (
@@ -239,14 +248,11 @@ export function ListingCard({
         <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6 lg:pb-7">
           {lotLine}
           <h3 className="text-base leading-snug">{listing.title}</h3>
-          <div className="flex flex-wrap items-end gap-y-2">
-            <dl className="flex flex-wrap gap-x-7 gap-y-2">
-              <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
-              <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
-              {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
-            </dl>
-            {confirmCount}
-          </div>
+          <dl className="flex flex-wrap gap-x-7 gap-y-2">
+            <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
+            <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
+            {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
+          </dl>
           {badges}
           {/* Pinned to the foot, on the price plate's line, so the panel has no dead band. */}
           <div className="mt-auto">{ledger}</div>
@@ -265,6 +271,7 @@ export function ListingCard({
           <h3 className="sr-only text-[0.8125rem] leading-snug lg:not-sr-only lg:mt-0.5 lg:line-clamp-2">{listing.title}</h3>
         </div>
         <div className="col-span-2 col-start-2 row-start-3 lg:col-span-1 lg:col-start-auto lg:row-start-auto">
+          {caption}
           <SpecRow specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} />
         </div>
         <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 lg:col-span-1 lg:col-start-auto">
@@ -276,9 +283,6 @@ export function ListingCard({
           <span className="condensed text-[1.3125rem] leading-none font-extrabold tabular-nums lg:text-2xl">
             {formatPrice(listing.price)}
           </span>
-          {toConfirm !== undefined && (
-            <span className="mt-1 block text-xs font-semibold whitespace-nowrap">{toConfirm} to confirm</span>
-          )}
         </p>
       </div>
     );
@@ -301,7 +305,6 @@ export function ListingCard({
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
               {badges}
-              {confirmCount}
             </div>
           </div>
         </div>
