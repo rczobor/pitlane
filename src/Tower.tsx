@@ -2,7 +2,7 @@ import { DndContext, DragOverlay, useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Link } from "@tanstack/react-router";
-import { ImageOff, X } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { type CSSProperties, type HTMLAttributes, type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { evaluate } from "../shared/fit";
 import { CardMenu } from "./BoardActions";
@@ -14,11 +14,10 @@ import {
   formatPrice,
   formatRegistration,
   type KeySpecDef,
-  type ResolvedSpec,
-  type Tier,
+    type Tier,
   tiers,
 } from "./format";
-import { InkMark, specTone, specValueText, specVerdict } from "./KeySpecLedger";
+import { InkMark, SpecCell, specVerdict } from "./KeySpecLedger";
 import { openCar, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
 import { PriceChange } from "./PriceChange";
 import { panWithMiddleButton } from "./Strip";
@@ -384,30 +383,6 @@ function Thumb({ listing }: { listing: BoardListing }) {
         </span>
       )}
     </span>
-  );
-}
-
-// The ledger's four states, laid along the row; the column header names the spec.
-function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
-  const missing = spec.kind === "check" && spec.value === "no";
-  return (
-    <div
-      className={cn(
-        "px-1 py-0.75 text-[0.71875rem] leading-tight font-semibold break-words hyphens-auto",
-        specTone(spec, { hit }),
-        spec.value === null && "font-medium text-muted-foreground",
-      )}
-    >
-      <span className="sr-only">{spec.name}: </span>
-      <span className="inline-flex items-start gap-0.5">
-        {missing && <X className="mt-px size-2.75 shrink-0" aria-hidden />}
-        {specValueText(spec)}
-      </span>
-      {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
-      {hit && <span className="sr-only"> (preferred)</span>}
-      {/* A narrow column breaks the tag at its hyphen rather than overflowing. */}
-      {breaker && <InkMark mark="breaker" className="mt-0.5 flex h-auto w-fit py-0.5 whitespace-normal" />}
-    </div>
   );
 }
 

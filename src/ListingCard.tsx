@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
-import { InkMark, KeySpecLedger } from "./KeySpecLedger";
+import { InkMark, KeySpecLedger, SpecRow } from "./KeySpecLedger";
 import { PriceChange } from "./PriceChange";
 import { TierSlab } from "./TierSlab";
 import {
@@ -39,7 +39,7 @@ export type CardProps = {
  * - feature: S, a spread with the photo beside the facts;
  * - lot: A and B (and cars shown on their own), photo over a placard;
  * - compact: Watching, a smaller lot;
- * - index: Rejected, one row with a thumbnail and no ledger.
+ * - index: Rejected, one row with a thumbnail and its key specs on one line.
  */
 export type CardVariant = "feature" | "lot" | "compact" | "index";
 
@@ -255,11 +255,18 @@ export function ListingCard({
     );
   } else if (variant === "index") {
     card = (
-      // Index rows have no ledger: rejected cars are decided, and their specs are a click away.
+      // An index row's key specs are one line of value cells, as the tower shows them: they are
+      // why the car was rejected. Wide screens lay them along the row's middle; narrower ones
+      // under its stats, in the room the thumbnail leaves.
       <div className="grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-2 lg:grid-cols-[6.5rem_13rem_minmax(0,1fr)_auto_7rem] lg:gap-x-5">
-        <Photo listing={listing} small className="row-span-2 aspect-[4/3] w-24 rounded-xs lg:row-span-1 lg:w-26" />
-        {lotLine}
-        <h3 className="sr-only text-[0.8125rem] lg:not-sr-only lg:truncate">{listing.title}</h3>
+        <Photo listing={listing} small className="row-span-3 aspect-[4/3] w-24 rounded-xs lg:row-span-1 lg:w-26" />
+        <div className="min-w-0">
+          {lotLine}
+          <h3 className="sr-only text-[0.8125rem] leading-snug lg:not-sr-only lg:mt-0.5 lg:line-clamp-2">{listing.title}</h3>
+        </div>
+        <div className="col-span-2 col-start-2 row-start-3 lg:col-span-1 lg:col-start-auto lg:row-start-auto">
+          <SpecRow specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} />
+        </div>
         <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 lg:col-span-1 lg:col-start-auto">
           <Stats specs={specs} outside={outside} className="text-sm" />
           {badges}

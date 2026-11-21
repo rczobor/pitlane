@@ -99,6 +99,57 @@ export function InkMark({ mark, className }: { mark: keyof typeof marks; classNa
   );
 }
 
+/**
+ * The key specs as one line of value-only cells, for a row with no room for the ledger's
+ * names (the catalogue's Rejected rows). Same order and blanks as the ledger, so a cell sits
+ * under its spec's place; the name is on hover and for screen readers.
+ */
+export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs: KeySpecDef[]; modelId: string | null }) {
+  if (specs.length === 0) return null;
+  const slots = defs.slice(0, ledgerSize);
+  return (
+    <div aria-label="Key specs" role="group" className="grid grid-cols-6 items-start gap-1">
+      {slots.map((def) => {
+        const spec = specs.find((s) => s.id === def.id);
+        if (!spec) return <div key={def.id} aria-hidden />;
+        const verdict = specVerdict(spec, def, modelId);
+        return (
+          <Tooltip key={def.id}>
+            <TooltipTrigger render={<div className="min-w-0" />}>
+              <SpecCell spec={spec} {...verdict} />
+            </TooltipTrigger>
+            <TooltipContent>{specDescription(spec, verdict.hit)}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+// The ledger's four states without the spec's name: a tower column's header or a hover names it.
+export function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
+  const missing = spec.kind === "check" && spec.value === "no";
+  return (
+    <div
+      className={cn(
+        "px-1 py-0.75 text-[0.71875rem] leading-tight font-semibold break-words hyphens-auto",
+        specTone(spec, { hit }),
+        spec.value === null && "font-medium text-muted-foreground",
+      )}
+    >
+      <span className="sr-only">{spec.name}: </span>
+      <span className="inline-flex items-start gap-0.5">
+        {missing && <X className="mt-px size-2.75 shrink-0" aria-hidden />}
+        {specValueText(spec)}
+      </span>
+      {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
+      {hit && <span className="sr-only"> (preferred)</span>}
+      {/* A narrow column breaks the tag at its hyphen rather than overflowing. */}
+      {breaker && <InkMark mark="breaker" className="mt-0.5 flex h-auto w-fit py-0.5 whitespace-normal" />}
+    </div>
+  );
+}
+
 function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boolean; breaker: boolean; size: "md" | "lg" }) {
   const missing = spec.kind === "check" && spec.value === "no";
   const value = specValueText(spec);
