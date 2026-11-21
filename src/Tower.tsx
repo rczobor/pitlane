@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // The frozen car column, as wide as the mock's timing tower: position, thumbnail, price, model.
-const identity = 204;
+const identity = 200;
 // The frozen actions column at the row's end, the grid's gap, and the narrowest a scrolling
 // column may get before one fewer fits on screen.
 const menu = 32;
@@ -109,7 +109,7 @@ function TowerHeader({ specDefs }: { specDefs: KeySpecDef[] }) {
         <div className={cn(headText, "sticky left-0 z-10 self-stretch bg-background")}>Car · price</div>
         {/* The header's cells are the snap points for every row. */}
         {specDefs.map((def) => (
-          <div key={def.id} className={cn(headText, "snap-start pl-1.75")}>
+          <div key={def.id} className={cn(headText, "snap-start pl-1.25")}>
             {def.name}
           </div>
         ))}
@@ -258,7 +258,7 @@ function TowerRow({
         draggable={false}
         onClick={() => openCar(listing.listingId)}
         data-car={listing.listingId}
-        className="sticky left-0 z-10 flex min-w-0 items-center gap-1.75 self-stretch bg-(--row-bg) py-1.5 pl-1.5 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+        className="sticky left-0 z-10 flex min-w-0 items-center gap-1.5 self-stretch bg-(--row-bg) py-1.5 pl-1 shadow-[1px_0_0_var(--color-border)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
       >
         {/* The car's lot number, as the catalogue shows it. */}
         <span className="condensed w-4 shrink-0 text-center text-[0.9375rem] font-bold tabular-nums">
@@ -333,7 +333,7 @@ function Thumb({ listing }: { listing: BoardListing }) {
   const removed = listing.status === "removed";
   const opened = useOpenedCar(listing.listingId);
   return (
-    <span className="relative flex aspect-video w-15 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground">
+    <span className="relative flex aspect-video w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted text-muted-foreground">
       {listing.coverUrl ? (
         <img
           src={listing.coverUrl}
@@ -364,7 +364,7 @@ function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; br
   return (
     <div
       className={cn(
-        "px-1.5 py-0.75 text-[0.71875rem] leading-tight font-semibold [overflow-wrap:anywhere]",
+        "px-1 py-0.75 text-[0.71875rem] leading-tight font-semibold break-words hyphens-auto",
         specTone(spec, { hit, breaker }),
         spec.value === null && "font-medium text-muted-foreground",
       )}
