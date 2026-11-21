@@ -20,7 +20,6 @@ import {
 } from "./format";
 import { specTone, specValueText, specVerdict } from "./KeySpecLedger";
 import { openCar, OutsideMark, priceChange, RemovedBand, useOpenedCar, carPhotoTransition } from "./ListingCard";
-import { PendingRows } from "./PendingCaptures";
 import { panWithMiddleButton } from "./Strip";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
@@ -44,13 +43,10 @@ const minColumn = 52;
 export function Tower({
   view,
   specDefs,
-  pending,
 }: {
   view: TierViewProps;
   /** The board's key specs, in priority order: one column each. */
   specDefs: KeySpecDef[];
-  /** Shared listings waiting at the top of Watching. */
-  pending: boolean;
 }) {
   const drag = useTierDrag({ ...view, axis: "y" });
   const sections = sectionsOf(drag.lanes, view.byId, tiers);
@@ -84,7 +80,6 @@ export function Tower({
               {...section}
               dragging={active !== undefined}
               target={drag.targetTier === section.tier}
-              pending={pending && section.tier === "watching"}
               rowProps={rowProps}
             />
           ))}
@@ -143,7 +138,6 @@ function TowerSector({
   listings,
   dragging,
   target,
-  pending,
   rowProps,
 }: {
   tier: Tier;
@@ -151,7 +145,6 @@ function TowerSector({
   listings: BoardListing[];
   dragging: boolean;
   target: boolean;
-  pending: boolean;
   rowProps: RowProps;
 }) {
   const { setNodeRef } = useDroppable({ id: tier });
@@ -173,7 +166,6 @@ function TowerSector({
           target && "[--row-bg:color-mix(in_oklab,var(--color-foreground)_9%,var(--color-card))]",
         )}
       >
-        {pending && <PendingRows className="sticky left-0 w-(--pw) border-t" />}
         <SortableContext items={listings.map((l) => l.listingId)} strategy={verticalListSortingStrategy}>
           {listings.map((listing) => (
             <SortableRow key={listing.listingId} listing={listing} {...rowProps} />

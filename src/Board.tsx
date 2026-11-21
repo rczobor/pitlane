@@ -153,12 +153,6 @@ export function Board() {
           </p>
         </div>
       )}
-      {!filter && !check && !empty && !wide && (
-        <p className="mb-3 text-[0.8125rem] text-muted-foreground">
-          <b className="font-semibold text-foreground">{visible.length}</b> {visible.length === 1 ? "car" : "cars"} ranked
-          {lastCheck > 0 && <> · Last re-check {formatDateTime(lastCheck)}</>}
-        </p>
-      )}
       {empty && (
         <div className="mb-6 max-w-prose space-y-2">
           <h1 className="condensed text-4xl leading-none font-extrabold">{wide ? "Your catalogue is empty" : "Your board is empty"}</h1>
@@ -176,14 +170,14 @@ export function Board() {
         </div>
       )}
       {/* Shared cars have no model or specs yet, so filtered views leave them out. */}
-      {wide ? (
-        <>
-          {!filter && !check && <PendingCaptures />}
-          <Catalogue {...view} />
-        </>
-      ) : (
-        <Tower view={view} specDefs={board.keySpecs} pending={!filter && !check} />
+      {!filter && !check && <PendingCaptures />}
+      {!filter && !check && !empty && !wide && (
+        <p className="mb-3 text-[0.8125rem] text-muted-foreground">
+          <b className="font-semibold text-foreground">{visible.length}</b> {visible.length === 1 ? "car" : "cars"} ranked
+          {lastCheck > 0 && <> · Last re-check {formatDateTime(lastCheck)}</>}
+        </p>
       )}
+      {wide ? <Catalogue {...view} /> : <Tower view={view} specDefs={board.keySpecs} />}
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
