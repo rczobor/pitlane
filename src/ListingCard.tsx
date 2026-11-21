@@ -216,7 +216,7 @@ export function ListingCard({
   let card: ReactNode;
   if (variant === "feature") {
     card = (
-      <article className="grid h-full overflow-hidden rounded-sm bg-card lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid h-full overflow-hidden rounded-sm bg-card lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <Photo listing={listing} className="aspect-[4/3] sm:aspect-[3/2]">
           <PricePlate listing={listing} size="xl" />
         </Photo>
@@ -231,12 +231,12 @@ export function ListingCard({
           {badges}
           {ledger}
         </div>
-      </article>
+      </div>
     );
   } else if (variant === "index") {
     card = (
       // Index rows have no ledger: rejected cars are decided, and their specs are a click away.
-      <article className="grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-2 lg:grid-cols-[6.5rem_13rem_minmax(0,1fr)_auto_7rem] lg:gap-x-5">
+      <div className="grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-2 lg:grid-cols-[6.5rem_13rem_minmax(0,1fr)_auto_7rem] lg:gap-x-5">
         <Photo listing={listing} small className="row-span-2 aspect-[4/3] w-24 rounded-xs lg:row-span-1 lg:w-26" />
         {lotLine}
         <h3 className="sr-only text-[0.8125rem] lg:not-sr-only lg:truncate">{listing.title}</h3>
@@ -250,12 +250,12 @@ export function ListingCard({
             {formatPrice(listing.price)}
           </span>
         </p>
-      </article>
+      </div>
     );
   } else {
     const compact = variant === "compact";
     card = (
-      <article className="flex h-full min-w-0 flex-col">
+      <div className="flex h-full min-w-0 flex-col">
         <Photo listing={listing} className={cn("rounded-t-sm", compact ? "aspect-[4/3]" : "aspect-[3/2]")}>
           <PricePlate listing={listing} size={compact ? "sm" : "md"} />
         </Photo>
@@ -269,7 +269,7 @@ export function ListingCard({
           </div>
           {ledger}
         </div>
-      </article>
+      </div>
     );
   }
 
