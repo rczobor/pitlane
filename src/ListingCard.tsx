@@ -194,8 +194,9 @@ export function ListingCard({
   );
   const lotLine = <LotLine lot={lot} model={modelName} large={variant === "feature"} />;
   const badges = <Badges listing={listing} home={home} />;
+  // Pinned to the placard's foot, so lots in a row end together.
   const ledger = (
-    <div className="mt-auto space-y-2">
+    <div className={cn("space-y-2", variant !== "feature" && "mt-auto")}>
       <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
       {dealBreakers.length > 0 && (
         <p className="flex items-center gap-1 text-xs font-semibold text-destructive">

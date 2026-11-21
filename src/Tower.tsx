@@ -177,9 +177,10 @@ function TowerSector({
           <b className="condensed text-[1.0625rem] font-extrabold">{count}</b> {count === 1 ? "car" : "cars"}
         </p>
       </div>
+      {/* Clipped, not hidden: overflow-hidden would make this a scroller and unstick the frozen columns. */}
       <div
         className={cn(
-          "overflow-hidden rounded-b-md bg-(--row-bg) transition-colors [--row-bg:var(--color-card)] [&>*:first-child]:border-t-0",
+          "overflow-clip rounded-b-md bg-(--row-bg) transition-colors [--row-bg:var(--color-card)] [&>*:first-child]:border-t-0",
           // The sector a dragged car would land in tints.
           target && "[--row-bg:color-mix(in_oklab,var(--color-foreground)_9%,var(--color-card))]",
         )}
@@ -304,9 +305,9 @@ function TowerRow({
       </Link>
       {!filtered && (
         <>
-          <Number value={formatRegistrationYear(specs.firstRegistration)} label="Year" />
-          <Number value={formatKm(specs.mileageKm)} label="Mileage" />
-          <Number value={specs.powerKw === undefined ? "" : formatPower(specs.powerKw)} label="Power" />
+          <NumberCell value={formatRegistrationYear(specs.firstRegistration)} label="Year" />
+          <NumberCell value={formatKm(specs.mileageKm)} label="Mileage" />
+          <NumberCell value={specs.powerKw === undefined ? "" : formatPower(specs.powerKw)} label="Power" />
           <div aria-hidden className="self-stretch bg-border" />
         </>
       )}
@@ -333,7 +334,7 @@ function TowerRow({
   );
 }
 
-function Number({ value, label }: { value: string; label: string }) {
+function NumberCell({ value, label }: { value: string; label: string }) {
   return (
     <p className="text-right text-[0.8125rem] font-medium whitespace-nowrap tabular-nums">
       {value && <span className="sr-only">{label}: </span>}

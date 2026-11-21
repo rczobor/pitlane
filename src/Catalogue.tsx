@@ -229,7 +229,7 @@ function CatalogueSection({
         )}
       >
         <SortableContext items={listings.map((l) => l.listingId)} strategy={rectSortingStrategy}>
-          <div className={grids[variant]}>
+          <div className={cn(grids[variant], empty && "border-t-0")}>
             {listings.map((listing) => (
               <SortableLot key={listing.listingId} listing={listing} variant={variant} view={view} />
             ))}
