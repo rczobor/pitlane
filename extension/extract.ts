@@ -170,7 +170,7 @@ export function extract(): PageDraft {
     ...[product?.image].flat().flatMap((image) => (isObject(image) ? clean(image.url ?? image.contentUrl) : clean(image)) ?? []),
     ...[...document.querySelectorAll('meta[property="og:image"]')].flatMap((m) => m.getAttribute("content") ?? []),
     ...[...gallery.querySelectorAll("img")].flatMap((img) => {
-      const link = img.closest("a[href]") as HTMLAnchorElement | null;
+      const link = img.closest<HTMLAnchorElement>("a[href]");
       if (link && link.href.split("#")[0] !== here) return [];
       const srcset = img.getAttribute("srcset")?.split(",").at(-1)?.trim().split(/\s+/)[0];
       return [srcset, img.getAttribute("data-src"), img.getAttribute("src")].flatMap((u) => {
