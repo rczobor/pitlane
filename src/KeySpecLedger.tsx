@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { avoidedFor, preferredFor, verdict } from "../shared/fit";
 import type { KeySpecDef, ResolvedSpec } from "./format";
 
-export function specDescription(spec: ResolvedSpec, hit = false) {
+function specDescription(spec: ResolvedSpec, hit = false) {
   const value = spec.value === null ? "unknown" : spec.value;
   const source = spec.source === "listing" ? ", from the listing, not confirmed" : "";
   return `${spec.name}: ${value}${source}${hit ? ", preferred" : ""}`;
@@ -24,12 +24,15 @@ export function KeySpecLedger({
   specs,
   defs,
   modelId,
+  size = "md",
   className,
 }: {
   specs: ResolvedSpec[];
   /** Every key spec on the board, in priority order. */
   defs: KeySpecDef[];
   modelId: string | null;
+  /** "lg" for the catalogue's feature lot, where the ledger has room to read from further away. */
+  size?: "md" | "lg";
   className?: string;
 }) {
   if (specs.length === 0) return null;
@@ -38,7 +41,7 @@ export function KeySpecLedger({
     <dl aria-label="Key specs" className={cn("grid grid-cols-3 gap-1", className)}>
       {slots.map((spec, index) =>
         spec ? (
-          <LedgerCell key={spec.id} spec={spec} {...specVerdict(spec, defs[index], modelId)} />
+          <LedgerCell key={spec.id} spec={spec} size={size} {...specVerdict(spec, defs[index], modelId)} />
         ) : (
           <div key={index} aria-hidden />
         ),
@@ -58,42 +61,156 @@ export function specVerdict(spec: ResolvedSpec, def: KeySpecDef | undefined, mod
 export const specValueText = (spec: ResolvedSpec) =>
   spec.value === null ? "—" : spec.kind === "check" ? (spec.value === "no" ? "No" : "Yes") : spec.value;
 
-/** The cell states shared by card ledgers and the comparison table. */
-export const specTone = (spec: ResolvedSpec, { hit, breaker }: { hit: boolean; breaker: boolean }) =>
+/**
+ * The cell states shared by card ledgers and the comparison table. A deal-breaker keeps its
+ * state and takes an InkMark: red is kept for deleting.
+ */
+export const specTone = (spec: ResolvedSpec, { hit }: { hit: boolean }) =>
   cn(
     "rounded-sm border border-transparent",
     spec.value !== null && spec.source === "you" && "bg-secondary/60 dark:bg-secondary",
     spec.value !== null && spec.source === "listing" && "border-dashed border-foreground/45",
     hit && "bg-foreground text-background dark:bg-foreground",
-    // A confirmed value the user ruled out for this model.
-    breaker && "border-destructive bg-transparent text-destructive dark:bg-transparent",
   );
 
-function LedgerCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
+const marks = {
+  year: ["Out", "outside the model's years"],
+  mileage: ["Over", "over the model's mileage limit"],
+  breaker: ["Deal-breaker", "a deal-breaker for this model"],
+} as const;
+
+/**
+ * A year or mileage outside the model's limits, or a value ruled out for the model: a small
+ * ink tag beside or under the value, never colour (colour only marks change, and red would
+ * be a second accent).
+ */
+export function InkMark({ mark, className }: { mark: keyof typeof marks; className?: string }) {
+  const [text, description] = marks[mark];
+  return (
+    <span
+      className={cn(
+        "inline-flex h-3.75 items-center rounded-[3px] bg-slab px-1 font-sans text-[0.625rem] leading-none font-bold tracking-wide whitespace-nowrap text-slab-foreground uppercase [font-stretch:75%]",
+        className,
+      )}
+    >
+      <span aria-hidden>{text}</span>
+      <span className="sr-only">({description})</span>
+    </span>
+  );
+}
+
+/**
+ * The key specs as one line of cells, for the catalogue's Rejected rows. Same order, blanks
+ * and spec-name-over-value as the ledger, so a dash or a "Yes" is never read without its spec.
+ */
+export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs: KeySpecDef[]; modelId: string | null }) {
+  if (specs.length === 0) return null;
+  const slots = defs.slice(0, ledgerSize);
+  return (
+    <div aria-label="Key specs" role="group" className="grid grid-cols-6 items-start gap-1">
+      {slots.map((def) => {
+        const spec = specs.find((s) => s.id === def.id);
+        if (!spec) return <div key={def.id} aria-hidden />;
+        const verdict = specVerdict(spec, def, modelId);
+        return (
+          <Tooltip key={def.id}>
+            <TooltipTrigger render={<div className="min-w-0" />}>
+              <SpecCell spec={spec} {...verdict} named />
+            </TooltipTrigger>
+            <TooltipContent>{specDescription(spec, verdict.hit)}</TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+// The ledger's four states. A tower column's header names its spec, so its cells leave the
+// name to screen readers; `named` shows it over the value, as the ledger does.
+export function SpecCell({
+  spec,
+  hit,
+  breaker,
+  named = false,
+}: {
+  spec: ResolvedSpec;
+  hit: boolean;
+  breaker: boolean;
+  named?: boolean;
+}) {
+  const missing = spec.kind === "check" && spec.value === "no";
+  return (
+    <div
+      className={cn(
+        "px-1 py-0.75 text-[0.71875rem] leading-tight font-semibold break-words hyphens-auto",
+        specTone(spec, { hit }),
+        spec.value === null && "font-medium text-muted-foreground",
+      )}
+    >
+      {named ? (
+        <span className={cn("block text-[0.6875rem] font-normal", hit ? "text-background/75" : "text-muted-foreground")}>
+          {spec.name}
+          <span className="sr-only">: </span>
+        </span>
+      ) : (
+        <span className="sr-only">{spec.name}: </span>
+      )}
+      <span className="inline-flex items-start gap-0.5">
+        {missing && <X className="mt-px size-2.75 shrink-0" aria-hidden />}
+        {specValueText(spec)}
+      </span>
+      {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
+      {hit && <span className="sr-only"> (preferred)</span>}
+      {/* A narrow column breaks the tag at its hyphen rather than overflowing. */}
+      {breaker && <InkMark mark="breaker" className="mt-0.5 flex h-auto w-fit py-0.5 whitespace-normal" />}
+    </div>
+  );
+}
+
+function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boolean; breaker: boolean; size: "md" | "lg" }) {
   const missing = spec.kind === "check" && spec.value === "no";
   const value = specValueText(spec);
   return (
     // A hover extra, not a focus stop: the sr-only notes below say the same to screen readers.
     <Tooltip>
       <TooltipTrigger
-        render={<div className={cn("group/cell min-w-0 px-1.5 py-0.5", specTone(spec, { hit, breaker }))} />}
+        render={
+          <div
+            className={cn(
+              "group/cell min-w-0",
+              size === "lg" ? "px-2 pt-1 pb-1.5" : "px-1.5 py-0.5",
+              specTone(spec, { hit }),
+            )}
+          />
+        }
       >
-        <dt className={cn("text-[0.6875rem] leading-tight break-words", hit ? "text-background/75" : "text-muted-foreground")}>
+        <dt
+          className={cn(
+            "leading-tight break-words",
+            size === "lg" ? "text-xs" : "text-[0.6875rem]",
+            hit ? "text-background/75" : "text-muted-foreground",
+          )}
+        >
           {spec.name}
         </dt>
         <dd
           className={cn(
-            // Most values fit one line; a long choice ("Adaptive sport seats") wraps to a second.
-            "flex items-start gap-0.5 text-xs leading-tight font-semibold break-words",
+            // Most values fit one line; a long choice ("Adaptive sport seats") wraps, never truncates.
+            "flex flex-wrap items-start gap-0.5 leading-tight font-semibold break-words",
+            size === "lg" ? "text-sm" : "text-xs",
             // A confirmed "No" is as definite as any other value; only unknown is quiet.
             spec.value === null && "font-medium text-muted-foreground",
           )}
         >
           {missing && <X className="mt-px size-3 shrink-0" aria-hidden />}
-          <span className="line-clamp-3 sm:line-clamp-2">{value}</span>
+          <span className="min-w-0">{value}</span>
           {spec.source === "listing" && <span className="sr-only">(from the listing, not confirmed)</span>}
           {hit && <span className="sr-only">(preferred)</span>}
-          {breaker && <span className="sr-only">(deal-breaker)</span>}
+          {breaker && (
+            <span className="basis-full">
+              <InkMark mark="breaker" />
+            </span>
+          )}
         </dd>
       </TooltipTrigger>
       <TooltipContent>{specDescription(spec, hit)}</TooltipContent>

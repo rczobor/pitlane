@@ -1,35 +1,23 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Columns3, Flag, Languages, ScanSearch, Trash2, Undo2 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { lazy, type ReactNode, Suspense, useState } from "react";
+import { lazy, type ReactNode, Suspense, useId, useState } from "react";
 import { api } from "../convex/_generated/api";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import {
-  formatDate,
-  formatDateTime,
-  formatDistance,
-  formatDrivetrain,
-  formatKm,
-  formatPower,
-  formatPrice,
-  formatRegistration,
-  tiers,
-} from "./format";
+import { formatDateTime, formatDistance, formatDrivetrain } from "./format";
 import { toCheck } from "../shared/fit";
 import { lastBoardSearch } from "./Board";
+import { CarDriver, CarNumbers } from "./CarDriver";
 import { CheckMode } from "./CheckMode";
-import { FitList } from "./Fit";
+import { FitSection } from "./Fit";
 import { Gallery, galleryColumns, useTheatre } from "./Gallery";
 import { mapboxToken } from "./mapbox";
-import { PriceChart } from "./PriceChart";
+import { PriceLaps } from "./PriceLaps";
 import { type CarExit, RemoveCarDialog } from "./RemoveCar";
-import { SpecEditor } from "./SpecEditor";
-import { TierSlab } from "./TierSlab";
+import { SpecReadout } from "./SpecEditor";
 import { YourTake } from "./YourTake";
 
 const SellerMap = lazy(() => import("./SellerMap"));
@@ -38,7 +26,6 @@ export function ListingPage({ listingId }: { listingId: string }) {
   const listing = useQuery(api.board.listing, { listingId });
   // Model and key-spec definitions live on the board; this shares the board's subscription.
   const board = useQuery(api.board.get);
-  const move = useMutation(api.board.move);
   const putBack = useMutation(api.board.putBack);
   const [putBackFailed, setPutBackFailed] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -61,18 +48,12 @@ export function ListingPage({ listingId }: { listingId: string }) {
     );
   }
 
-  const { details, price, seller } = listing;
+  const { details, seller } = listing;
   const removed = listing.status === "removed";
-  // Price history arrives oldest first; the change is measured from the first price seen.
-  const prices = listing.history.flatMap((entry) => (entry.price ? [{ ...entry.price, at: entry.capturedAt }] : []));
-  const change = prices.length > 1 ? price.amount - prices[0].amount : 0;
   // A failed re-check leaves the data as it was; say so until a later check succeeds.
   const failed = listing.lastFailedCheckAt !== undefined && listing.lastFailedCheckAt > listing.lastCheckedAt;
-  const history = listing.history.toReversed();
+  // Registration, mileage and power are in the numbers beside the price.
   const specs = [
-    ["First registration", formatRegistration(details.firstRegistration)],
-    ["Mileage", formatKm(details.mileageKm)],
-    ["Power", details.powerKw === undefined ? undefined : `${details.powerKw} kW (${formatPower(details.powerKw)})`],
     ["Gearbox", formatDrivetrain(details)],
     ["Body", details.bodyType],
     ["Colour", details.color],
@@ -104,172 +85,226 @@ export function ListingPage({ listingId }: { listingId: string }) {
     );
   }
 
+  // The way off the board comes last at every width: it is rare, and one of its actions
+  // deletes the user's take on the car. A removed ad has nothing else left to decide (put
+  // back or delete), so there it follows the price and tier.
+  const offBoard = (
+    <Section title="Off the board" id="off-board" className="order-12 lg:order-none">
+      <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[11rem_1fr] sm:items-start">
+        {removed && board?.canMarkRemoved && (
+          <ExitRow
+            icon={<Undo2 data-icon="inline-start" aria-hidden />}
+            label="Put back on board"
+            hint="If the ad is still up: shows it on the board again, and re-checks resume."
+            error={putBackFailed ? "Putting it back failed. Try again." : undefined}
+            onClick={() => {
+              setPutBackFailed(false);
+              putBack({ listingId: listing.listingId }).catch(() => setPutBackFailed(true));
+            }}
+          />
+        )}
+        {!removed && board?.canMarkRemoved && (
+          <ExitRow
+            icon={<Flag data-icon="inline-start" aria-hidden />}
+            label="Mark ad as removed"
+            hint="Sold or withdrawn. Keeps everything: tier, notes, key specs, price history and photos. Hidden from the board; “Show removed” lists it."
+            onClick={() => {
+              setExitKind("markRemoved");
+              setExitOpen(true);
+            }}
+          />
+        )}
+        <ExitRow
+          icon={<Trash2 data-icon="inline-start" aria-hidden />}
+          label="Delete from board"
+          hint={
+            removed
+              ? "Deletes everything: tier, notes, key specs, price history and photos. The ad is gone, so this can't be undone."
+              : "Deletes everything: tier, notes, key specs, price history and photos. Adding the listing again starts it over in Watching."
+          }
+          onClick={() => {
+            setExitKind("remove");
+            setExitOpen(true);
+          }}
+        />
+      </div>
+      <RemoveCarDialog
+        kind={exitKind}
+        car={listing}
+        open={exitOpen}
+        onOpenChange={setExitOpen}
+        onLeaving={setLeaving}
+        onRemoved={() =>
+          exitKind === "remove" ? navigate({ to: "/", search: lastBoardSearch(), replace: true }) : undefined
+        }
+      />
+    </Section>
+  );
+
   return (
     <main className="max-w-[1600px] px-4 pb-16 sm:px-8">
       <BackLink />
-      {/* Wide screens: photos with the key-spec editor under them (it is checked against
-          them), and the car's details beside. Phones: one column in task order, with the
-          columns dissolved (display: contents) so `order` can interleave them: photos,
-          price and tier, key specs, listing details, then options and description. */}
-      <div className={cn("mt-4 flex flex-col gap-8 lg:grid lg:items-start", galleryColumns(theatre && listing.photos.length > 0))}>
+      {/* Wide screens: photos with the key-spec readout under them (it is checked against
+          them), then your take, options and description; the car's "driver detail" beside.
+          Phones: one column in task order, with
+          the columns dissolved (display: contents) so `order` can interleave them: photos,
+          price and tier, the numbers, key specs, how it fits, listing details, price
+          history, options, description, your take, location, then off the board. On wide
+          screens the orders reset and each column follows its source order. */}
+      <div className={cn("mt-2 flex flex-col gap-7 lg:grid lg:items-start lg:gap-x-11", galleryColumns(theatre && listing.photos.length > 0))}>
         <div className="contents lg:flex lg:flex-col lg:gap-8">
-        <Gallery
-          photos={listing.photos}
-          removed={removed}
-          removedAt={listing.removedAt}
-          theatre={theatre}
-          onTheatreToggle={toggleTheatre}
-          className="order-1"
-        />
-        {board && (
-          <div className="order-3 min-w-0">
-            <SpecEditor listingId={listing.listingId} modelId={listing.modelId} keySpecs={listing.keySpecs} board={board} />
-          </div>
-        )}
-        <div className="order-3 min-w-0">
-          <YourTake listingId={listing.listingId} notes={listing.notes} pros={listing.pros} cons={listing.cons} />
-        </div>
-        </div>
-
-        <div className="contents lg:flex lg:flex-col lg:gap-6">
-        <section aria-label="Price and tier" className="order-2 min-w-0 space-y-6">
-          <div className="space-y-3">
-            {/* With photos, the band across the photo says it. */}
-            {removed && listing.removedAt && listing.photos.length === 0 && (
-              <Badge>Ad removed {formatDate(listing.removedAt)}</Badge>
-            )}
-            <h1 className="text-xl leading-snug font-semibold">{listing.title}</h1>
-            <div className="flex items-stretch gap-4">
-              <TierSlab tier={listing.tier} className="min-w-20" />
-              <div className="space-y-1">
-                {removed && <p className="text-sm text-muted-foreground">Last price</p>}
-                <p className="condensed text-5xl leading-none font-bold">{formatPrice(price)}</p>
-                {change !== 0 && (
-                  <p className="text-sm font-medium">
-                    {change < 0 ? "Down" : "Up"} {formatPrice({ ...price, amount: Math.abs(change) })} (
-                    {Math.abs((change / prices[0].amount) * 100).toFixed(1)}%) since first seen
-                  </p>
-                )}
-                {price.vatDeductible && (
-                  <p className="text-sm text-muted-foreground">
-                    VAT reclaimable
-                    {price.netAmount !== undefined && `, ${formatPrice({ ...price, amount: price.netAmount })} net`}
-                  </p>
-                )}
-                {/* How far is a buy-or-skip fact, so it sits with the price (details in Location). */}
-                {distance && (
-                  <p className="text-sm text-muted-foreground">
-                    {seller.location} · <span className="text-foreground">{distance} away</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2 id="tier-label" className="font-semibold">
-              Tier
-            </h2>
-            <Separator className="my-3" />
-            <ToggleGroup
-              aria-labelledby="tier-label"
-              variant="outline"
-              value={[listing.tier]}
-              onValueChange={(value) => {
-                const tier = tiers.find((t) => t.tier === value[0])?.tier;
-                if (tier) void move({ listingId: listing.listingId, tier, rank: Date.now() });
-              }}
-              className="flex-wrap"
+          <Gallery
+            photos={listing.photos}
+            removed={removed}
+            removedAt={listing.removedAt}
+            theatre={theatre}
+            onTheatreToggle={toggleTheatre}
+            className="order-1 max-sm:-mx-4 lg:order-none"
+          />
+          {board && listing.keySpecs.length > 0 && (
+            <Section
+              title="Key specs"
+              note={unchecked > 0 ? `${unchecked} to confirm` : undefined}
+              aside={
+                // The photo-side checker; wide screens only, as phones confirm here.
+                unchecked > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setChecking(true)} className="-my-1 max-sm:hidden">
+                    <ScanSearch data-icon="inline-start" aria-hidden />
+                    Check {unchecked === 1 ? "1 key spec" : `${unchecked} key specs`}
+                  </Button>
+                )
+              }
+              className="order-4 lg:order-none"
             >
-              {tiers.map(({ tier, label }) => (
-                <ToggleGroupItem
-                  key={tier}
-                  value={tier}
-                  // The slab beside the price carries the colour; the control only marks the choice.
-                  className="condensed text-lg font-bold"
-                >
-                  {label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
-          {/* The cue that something still needs a look; opens the photo-side checker. Wide
-              screens only: on a phone the key specs section below confirms specs. */}
-          {board && unchecked > 0 && (
-            <Button variant="outline" onClick={() => setChecking(true)} className="max-sm:hidden">
-              <ScanSearch data-icon="inline-start" aria-hidden />
-              Check {unchecked === 1 ? "1 key spec" : `${unchecked} key specs`}
-            </Button>
+              <p className="mb-3 text-[0.8125rem] text-muted-foreground">
+                In your priority order. Dashed values come from the listing: confirm them against the photos, or pick
+                another.
+              </p>
+              <SpecReadout
+                listingId={listing.listingId}
+                modelId={listing.modelId}
+                keySpecs={listing.keySpecs}
+                board={board}
+              />
+            </Section>
           )}
+          <div className="order-10 min-w-0 lg:order-none">
+            <YourTake listingId={listing.listingId} notes={listing.notes} pros={listing.pros} cons={listing.cons} />
+          </div>
+          {details.options.length > 0 && (
+            <Section title="Options" className="order-8 lg:order-none">
+              <ul className="gap-6 text-sm sm:columns-2">
+                {details.options.map((option) => (
+                  <li key={option} className="break-inside-avoid py-0.5">
+                    {option}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {listing.description && (
+            <div className="order-9 min-w-0 lg:order-none">
+              <Description original={listing.description} translation={listing.descriptionTranslation} />
+            </div>
+          )}
+        </div>
+
+        <div className="contents lg:flex lg:flex-col lg:gap-7">
+          <div className="order-2 min-w-0 lg:order-none">
+            <CarDriver car={listing} board={board} distance={distance} />
+          </div>
+          <div className="order-3 min-w-0 lg:order-none">
+            <CarNumbers details={details} />
+          </div>
+          {removed && <div className="order-3 min-w-0 lg:order-none">{offBoard}</div>}
           {board && (
-            <section aria-labelledby="fit">
-              <h2 id="fit" className="font-semibold">
-                How it fits
-              </h2>
-              <Separator className="my-3" />
-              <FitList
-                car={{ price, firstRegistration: details.firstRegistration, mileageKm: details.mileageKm }}
+            <div className="order-5 min-w-0 lg:order-none">
+              <FitSection
+                car={{ price: listing.price, firstRegistration: details.firstRegistration, mileageKm: details.mileageKm }}
                 criteria={model}
                 specDefs={board.keySpecs}
                 keySpecs={listing.keySpecs}
                 modelId={listing.modelId}
               />
-            </section>
+            </div>
           )}
-        </section>
 
-        <section aria-labelledby="listing-details" className="order-4 min-w-0 space-y-6">
-          <div>
-            {/* As the listing states them; key specs above are where the user's own values live. */}
-            <h2 id="listing-details" className="font-semibold">
-              Listing details
-            </h2>
-            <Separator className="my-3" />
-          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
-            {specs.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="text-muted-foreground">{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
-            <dt className="text-muted-foreground">Seller</dt>
-            <dd>
-              {[seller.name, seller.location].filter(Boolean).join(", ")}
-              <span className="text-muted-foreground"> ({seller.type === "dealer" ? "dealer" : "private seller"})</span>
-            </dd>
-          </dl>
-          </div>
+          {/* As the listing states them; the key specs are where the user's own values live. */}
+          <Section title="Listing details" id="listing-details" className="order-6 lg:order-none">
+            <dl className="mb-3.5 grid grid-cols-[7.75rem_1fr] gap-x-3 gap-y-2 sm:grid-cols-[8.75rem_1fr]">
+              {specs.map(([label, value]) => (
+                <div key={label} className="contents">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+              <dt className="text-muted-foreground">Seller</dt>
+              <dd>
+                {[seller.name, seller.location].filter(Boolean).join(", ")}
+                <span className="text-muted-foreground"> ({seller.type === "dealer" ? "dealer" : "private seller"})</span>
+              </dd>
+            </dl>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={listing.url}
+                target="_blank"
+                rel="noreferrer"
+                className={buttonVariants({ variant: "outline", className: "max-sm:h-11" })}
+              >
+                Open the listing
+                <ArrowUpRight data-icon="inline-end" aria-hidden />
+              </a>
+              <Link
+                to="/compare"
+                search={{ ids: listing.listingId }}
+                className={buttonVariants({ variant: "outline", className: "max-sm:h-11" })}
+              >
+                <Columns3 data-icon="inline-start" aria-hidden />
+                Compare with others
+              </Link>
+            </div>
+          </Section>
 
-          <div className="flex flex-wrap gap-2">
-            <a href={listing.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline" })}>
-              Open the listing
-              <ArrowUpRight data-icon="inline-end" aria-hidden />
-            </a>
-            <Link to="/compare" search={{ ids: listing.listingId }} className={buttonVariants({ variant: "outline" })}>
-              <Columns3 data-icon="inline-start" aria-hidden />
-              Compare with others
-            </Link>
-          </div>
+          <Section
+            title="Price history"
+            note={listing.history.length === 1 ? "1 capture" : `${listing.history.length} captures`}
+            className="order-7 lg:order-none"
+          >
+            <PriceLaps history={listing.history} removed={removed} />
+            <p className="text-[0.8125rem] text-muted-foreground">
+              Added {formatDateTime(listing.firstSeenAt)}; last checked {formatDateTime(listing.lastCheckedAt)}. A
+              re-check that finds no change adds no line.
+            </p>
+            {failed && (
+              <p className="mt-1 text-[0.8125rem] text-muted-foreground">
+                The last re-check, {formatDateTime(listing.lastFailedCheckAt!)}, could not read the ad
+                {listing.failureReason && ` (${listing.failureReason})`}. It will be tried again.
+              </p>
+            )}
+          </Section>
 
           {/* Pitlane's own measure, so it has its own section outside the listing's facts. */}
           {listing.geo && (
-            <section aria-labelledby="location-heading">
-              <h2 id="location-heading" className="font-semibold">
-                Location
-              </h2>
-              <Separator className="my-3" />
-              <p className="text-sm text-muted-foreground">
+            <Section title="Location" id="location-heading" className="order-11 lg:order-none">
+              <p className="text-sm">
                 {seller.location}
                 {distance ? (
-                  <span className="text-foreground"> · {distance} away</span>
-                ) : (
                   <>
+                    {" "}
+                    · {distance} away
+                    {board?.home && (
+                      <span className="text-muted-foreground"> (straight line from home, {board.home.place})</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
                     {seller.location && ". "}Set your home on the{" "}
                     <Link to="/map" className="text-foreground underline underline-offset-4">
                       map
                     </Link>{" "}
                     to see how far this car is.
-                  </>
+                  </span>
                 )}
               </p>
               {mapboxToken && (
@@ -294,122 +329,46 @@ export function ListingPage({ listingId }: { listingId: string }) {
                   />
                 </Suspense>
               )}
-            </section>
+            </Section>
           )}
 
-          <section>
-            <h2 className="font-semibold">Price history</h2>
-            <Separator className="my-3" />
-            {prices.length > 1 && (
-              <PriceChart
-                points={prices}
-                currency={price.currency}
-                until={(removed && listing.removedAt) || listing.lastCheckedAt}
-              />
-            )}
-            <ol className="mt-3 space-y-1">
-                {history.map((entry, index) => (
-                  <li key={entry.capturedAt} className="flex gap-4 tabular-nums">
-                    <span className="w-40 text-muted-foreground">{formatDateTime(entry.capturedAt)}</span>
-                    <span className={cn(index === 0 && "font-semibold")}>
-                      {entry.price ? formatPrice(entry.price) : "Ad removed"}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {index === 0 && !removed ? "Now" : index === history.length - 1 ? "First seen" : ""}
-                    </span>
-                  </li>
-                ))}
-            </ol>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Added {formatDate(listing.firstSeenAt)}, last checked {formatDateTime(listing.lastCheckedAt)}.
-            </p>
-            {failed && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                The last re-check, {formatDateTime(listing.lastFailedCheckAt!)}, could not read the ad
-                {listing.failureReason && ` (${listing.failureReason})`}. It will be tried again.
-              </p>
-            )}
-          </section>
-        </section>
-        {/* The way off the board comes last at every width: it is rare, and one of its
-            actions deletes the user's take on the car. A removed ad has nothing else left to
-            decide (put back or delete), so there it follows the price and tier. */}
-        <section aria-labelledby="off-board" className={cn("min-w-0", removed ? "order-2" : "order-6 lg:mt-4")}>
-          <h2 id="off-board" className="font-semibold">
-            Off the board
-          </h2>
-          <Separator className="my-3" />
-          <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[11rem_1fr] sm:items-start">
-            {removed && board?.canMarkRemoved && (
-              <ExitRow
-                icon={<Undo2 data-icon="inline-start" aria-hidden />}
-                label="Put back on board"
-                hint="If the ad is still up: shows it on the board again, and re-checks resume."
-                error={putBackFailed ? "Putting it back failed. Try again." : undefined}
-                onClick={() => {
-                  setPutBackFailed(false);
-                  putBack({ listingId: listing.listingId }).catch(() => setPutBackFailed(true));
-                }}
-              />
-            )}
-            {!removed && board?.canMarkRemoved && (
-              <ExitRow
-                icon={<Flag data-icon="inline-start" aria-hidden />}
-                label="Mark ad as removed"
-                hint="Sold or withdrawn. Keeps everything: tier, notes, key specs, price history and photos. Hidden from the board; “Show removed” lists it."
-                onClick={() => {
-                  setExitKind("markRemoved");
-                  setExitOpen(true);
-                }}
-              />
-            )}
-            <ExitRow
-              icon={<Trash2 data-icon="inline-start" aria-hidden />}
-              label="Delete from board"
-              hint={
-                removed
-                  ? "Deletes everything: tier, notes, key specs, price history and photos. The ad is gone, so this can't be undone."
-                  : "Deletes everything: tier, notes, key specs, price history and photos. Adding the listing again starts it over in Watching."
-              }
-              onClick={() => {
-                setExitKind("remove");
-                setExitOpen(true);
-              }}
-            />
-          </div>
-          <RemoveCarDialog
-            kind={exitKind}
-            car={listing}
-            open={exitOpen}
-            onOpenChange={setExitOpen}
-            onLeaving={setLeaving}
-            onRemoved={() =>
-              exitKind === "remove" ? navigate({ to: "/", search: lastBoardSearch(), replace: true }) : undefined
-            }
-          />
-        </section>
-        <div className="order-5 min-w-0 space-y-10 lg:mt-4">
-        {details.options.length > 0 && (
-          <section>
-            <h2 className="font-semibold">Options</h2>
-            <Separator className="my-3" />
-            <ul className="columns-2 gap-6 text-sm sm:columns-3 lg:columns-2">
-              {details.options.map((option) => (
-                <li key={option} className="break-inside-avoid py-0.5">
-                  {option}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {listing.description && (
-          <Description original={listing.description} translation={listing.descriptionTranslation} />
-        )}
-        </div>
+          {!removed && offBoard}
         </div>
       </div>
     </main>
+  );
+}
+
+// A car-page section: heading (with an optional muted note and an action at its end), a
+// hairline, then the content. No section sits in its own card.
+function Section({
+  title,
+  note,
+  aside,
+  id,
+  className,
+  children,
+}: {
+  title: string;
+  note?: string;
+  aside?: ReactNode;
+  id?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const headingId = useId();
+  return (
+    <section aria-labelledby={id ?? headingId} className={cn("min-w-0", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id={id ?? headingId} className="font-semibold">
+          {title}
+          {note && <span className="font-normal text-muted-foreground"> · {note}</span>}
+        </h2>
+        {aside}
+      </div>
+      <Separator className="my-3" />
+      {children}
+    </section>
   );
 }
 

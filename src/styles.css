@@ -45,8 +45,13 @@
   --signal: #f4be1a;
   --signal-foreground: #23272b;
   --radius: 0.375rem;
-  /* Cards grow on wide screens so photos use the lane, within a readable range. */
+  /* A card shown on its own (the map's results, the settings preview) grows with the screen,
+     within a readable range. On the board, the catalogue's grid sizes cards instead. */
   --board-card: clamp(16rem, 22vw, 22.5rem);
+  /* The price plate sits on a photo, not on the page, so it is the same in both themes. */
+  --plate: #16191c;
+  --plate-foreground: #f6f6f3;
+  --plate-muted: #b8bdb7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -99,6 +104,9 @@
   --color-slab-foreground: var(--slab-foreground);
   --color-signal: var(--signal);
   --color-signal-foreground: var(--signal-foreground);
+  --color-plate: var(--plate);
+  --color-plate-foreground: var(--plate-foreground);
+  --color-plate-muted: var(--plate-muted);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -128,6 +136,20 @@
   --border: #3b4146;
   --input: #4a5157;
 }
+
+/* Car page (timing-tower readout): the open key-spec sector's fill, a step off the card. */
+:root {
+  --selected: color-mix(in srgb, var(--foreground) 6%, var(--card));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --selected: color-mix(in srgb, var(--foreground) 7%, var(--card));
+  }
+}
+@theme inline {
+  --color-selected: var(--selected);
+}
+/* End car page. */
 
 /* The viewer's zoom hint shows for a few seconds, then gets out of the photo's way. */
 @keyframes hint-out {

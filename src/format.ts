@@ -48,14 +48,15 @@ export function dealBreakerLabel(
   return `${breaker.value} (${breaker.name})`;
 }
 
-export const formatKm = (km: number) => `${km.toLocaleString("en-IE")} km`;
+// A non-breaking space keeps every number on the line with its unit.
+export const formatKm = (km: number) => `${km.toLocaleString("en-IE")}\u00a0km`;
 
 // Straight-line distance from home, e.g. "355 km"; null until both places are known.
 export const formatDistance = (home: Point | null | undefined, geo: Point | null) =>
   home && geo ? formatKm(Math.round(distanceKm(home, geo))) : null;
 
 // Listings give power in kW and hp; hp is what people compare by.
-export const formatPower = (kw: number) => `${Math.round(kw * 1.35962)} hp`;
+export const formatPower = (kw: number) => `${Math.round(kw * 1.35962)}\u00a0hp`;
 
 export function formatRegistration(yyyyMm: string | undefined) {
   if (!yyyyMm) return "New";

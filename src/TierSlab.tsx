@@ -22,3 +22,7 @@ export function TierSlab({ tier, className }: { tier: Tier; className?: string }
     </span>
   );
 }
+
+// A board section's slab: Rejected is quieter through its fill only, with a full-contrast
+// label, so its cars never look removed.
+export const sectionSlabColor = (tier: Tier) => (tier === "rejected" ? "bg-muted text-foreground" : slabColor(tier));

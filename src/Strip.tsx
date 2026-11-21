@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// A row that scrolls sideways: a board lane of cars, or a gallery's thumbnails. Both fade
+// A row that scrolls sideways: a gallery's or the viewer's thumbnails. It fades
 // out at an end that hides items, offer arrows under a mouse, and show one tick per item.
 //
 // The frame (`group/strip`, with `stripEnds(view)`) holds the scrolling row (`stripFade`), its
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 // Whether items are hidden at each end, the first and last item on screen (at least half
 // clear of the fades, or else the most visible one), and the scroll as an item index, from
 // the first item at the start to the last at the end. Null when every item fits.
-export type StripView = { start: boolean; end: boolean; first: number; last: number; position: number };
+type StripView = { start: boolean; end: boolean; first: number; last: number; position: number };
 
 export const stripFade =
   "[--fade-end:0px] [--fade-start:0px] [mask-image:linear-gradient(to_right,transparent,black_var(--fade-start),black_calc(100%-var(--fade-end)),transparent)] [scrollbar-width:none] group-data-more-end/strip:[--fade-end:var(--fade)] group-data-more-start/strip:[--fade-start:var(--fade)]";
@@ -31,8 +31,7 @@ export function stripEnds(view: StripView | null) {
 
 // Measures the row on scroll and resize. Re-renders only when the view changes, not on every
 // scroll event. `items` re-measures when items come or go: the row's own box keeps its size.
-// `fit` runs before each measure on resize (the board sizes its cards to the lane).
-export function useStrip(items: number, fit?: (frame: HTMLElement, row: HTMLElement) => void) {
+export function useStrip(items: number) {
   const frame = useRef<HTMLDivElement>(null);
   const row = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<StripView | null>(null);
@@ -48,20 +47,16 @@ export function useStrip(items: number, fit?: (frame: HTMLElement, row: HTMLElem
           : next,
       );
     };
-    const resized = () => {
-      fit?.(frameEl, rowEl);
-      update();
-    };
     // Once now, so the first paint already shows the count, fades and ticks.
-    resized();
-    const resize = new ResizeObserver(resized);
+    update();
+    const resize = new ResizeObserver(update);
     resize.observe(rowEl);
     rowEl.addEventListener("scroll", update, { passive: true });
     return () => {
       rowEl.removeEventListener("scroll", update);
       resize.disconnect();
     };
-  }, [items, fit]);
+  }, [items]);
   return { frame, row, view };
 }
 
@@ -81,7 +76,7 @@ function measureStrip(row: HTMLElement): StripView | null {
   });
   const shown = clear.flatMap((part, index) => (part >= 0.5 ? [index] : []));
   if (shown.length === 0) shown.push(clear.indexOf(Math.max(...clear)));
-  // Rounded, so a lane about one card wide reads the car at its start after a jump. The ends
+  // Rounded, so a strip about one item wide reads the item at its start after a jump. The ends
   // come from the same 1px tolerance as `start` and `end`, so the count reads the last item
   // once the end fade goes.
   const progress = !start ? 0 : !end ? 1 : row.scrollLeft / hidden;

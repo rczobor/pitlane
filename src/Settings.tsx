@@ -452,7 +452,7 @@ function PreferredEditor({
         {breakers.length > 0 && (
           <>
             <span className="text-muted-foreground">Deal-breaker</span>
-            <span className="text-destructive">{summary(breakers)}</span>
+            <span className="font-semibold">{summary(breakers)}</span>
           </>
         )}
         <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => setOpen(true)}>
@@ -473,7 +473,7 @@ function PreferredEditor({
               key={`${p.value}-${i}`}
               className={cn(
                 "inline-flex h-8 items-center gap-1 rounded-md border pr-1 pl-2.5 text-sm",
-                p.avoid && "border-destructive text-destructive",
+                p.avoid && "border-foreground font-semibold",
               )}
             >
               {p.avoid && <Ban className="size-3.5" aria-hidden />}

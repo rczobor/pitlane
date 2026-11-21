@@ -1,19 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { Ban, ImageOff } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { type Criteria, evaluate } from "../shared/fit";
 import type { Point } from "../shared/geo";
-import { KeySpecLedger } from "./KeySpecLedger";
+import { InkMark, KeySpecLedger, SpecRow } from "./KeySpecLedger";
 import { TierSlab } from "./TierSlab";
 import {
   type BoardListing,
   type KeySpecDef,
-  formatDate,
   formatDistance,
   formatKm,
   formatPower,
@@ -31,16 +29,18 @@ export type CardProps = {
   specDefs: KeySpecDef[];
   /** The user's home, for the distance to the seller. */
   home?: Point | null;
+  /** In the check view: how many key specs are still from the listing or unknown. */
+  toConfirm?: number;
 };
 
-// Covers a removed car's photo panel, on the card and in the board's photo indexes, so a gone
-// car reads the same everywhere. The overlay, not a photo filter, darkens the panel, so the
-// white stamp also reads on a car without a photo. The smallest tiles drop the date.
-const stampSizes = {
-  sm: "border px-1 pt-0.5 text-[0.625rem]",
-  md: "border-2 px-1.5 pt-0.5 text-sm",
-  lg: "border-2 px-3 pt-1 pb-0.5 text-3xl",
-};
+/**
+ * How much room a car gets. The catalogue gives cars less further down the board:
+ * - feature: S, a spread with the photo beside the facts;
+ * - lot: A and B (and cars shown on their own), photo over a placard;
+ * - compact: Watching, a smaller lot;
+ * - index: Rejected, one row with a thumbnail and its key specs on one line.
+ */
+export type CardVariant = "feature" | "lot" | "compact" | "index";
 
 // The card's photo and the car page's first photo are the same image, so opening a car morphs
 // one into the other and coming back morphs it home (the router's view transition, main.tsx).
@@ -62,16 +62,103 @@ export function openCar(listingId: string) {
   flushSync(() => openedCarListeners.forEach((listener) => listener()));
 }
 
-export function RemovedStamp({ removedAt, size = "lg" }: { removedAt?: number; size?: keyof typeof stampSizes }) {
+/** Whether this car's photo carries the morph to and from its page. */
+export const useOpenedCar = (listingId: string) =>
+  useSyncExternalStore(subscribeOpenedCar, () => openedCar === listingId);
+
+// A removed ad's pit board across the photo's foot, in opaque slab colours so it holds on any
+// photo; the photo itself turns grey. The smallest thumbnails drop the date.
+export function RemovedBand({ removedAt, size = "md" }: { removedAt?: number; size?: "sm" | "md" }) {
   return (
-    <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/65 text-white">
-      <span className={cn("condensed -rotate-3 border-current leading-none font-bold tracking-wide uppercase", stampSizes[size])}>
-        Ad removed
-      </span>
+    <span
+      className={cn(
+        "condensed block w-full bg-slab text-center leading-none font-extrabold tracking-wide whitespace-nowrap text-slab-foreground uppercase",
+        size === "sm" ? "py-0.5 text-[0.625rem]" : "py-1 text-sm",
+      )}
+    >
+      Ad removed
       {removedAt !== undefined && size !== "sm" && (
-        <span className={cn("font-semibold", size === "lg" ? "text-xs" : "text-[0.625rem]")}>{formatDate(removedAt)}</span>
+        <> {new Date(removedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</>
       )}
     </span>
+  );
+}
+
+// The price as a pit board bolted to the photo's corner: opaque ink in both themes.
+const plateSizes = {
+  sm: { box: "gap-1.5 pt-1.25 pr-2.25 pb-1 pl-2", price: "text-[1.3125rem]", change: "text-[0.6875rem]" },
+  md: { box: "gap-2 pt-1.75 pr-2.75 pb-1.5 pl-2.5", price: "text-[1.6875rem]", change: "text-xs" },
+  xl: {
+    box: "gap-3 pt-2 pr-3.5 pb-2 pl-3 lg:pt-2.5 lg:pr-4 lg:pb-2.25 lg:pl-3.5",
+    price: "text-[2.5rem] lg:text-[3.25rem]",
+    change: "text-sm lg:text-[0.9375rem]",
+  },
+};
+
+function PricePlate({ listing, size }: { listing: BoardListing; size: keyof typeof plateSizes }) {
+  const change = priceChange(listing);
+  const sizes = plateSizes[size];
+  return (
+    <p className={cn("flex items-baseline rounded-tr-sm bg-plate text-plate-foreground", sizes.box)}>
+      {/* A removed ad keeps its price unstruck; strikethrough would read as "reduced". */}
+      {listing.status === "removed" && (
+        <span className="self-center text-[0.6875rem] font-semibold tracking-wide text-plate-muted uppercase">Last price</span>
+      )}
+      <span className={cn("condensed leading-none font-extrabold tabular-nums", sizes.price)}>{formatPrice(listing.price)}</span>
+      {/* Plain on the plate (owner's call): the chip stays for the car page and the tower. */}
+      {change !== 0 && (
+        <span className={cn("font-semibold whitespace-nowrap text-plate-muted tabular-nums", sizes.change)}>
+          <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
+          <span aria-hidden>{change < 0 ? "−" : "+"}</span>
+          {formatPrice({ ...listing.price, amount: Math.abs(change) })}
+        </span>
+      )}
+    </p>
+  );
+}
+
+/** How far the price has moved since the car was first seen (0 across currencies). */
+export const priceChange = (listing: Pick<BoardListing, "price" | "firstPrice">) =>
+  listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
+
+// The photo box keeps its ratio whatever it holds (shrink-0), and the photo fills it out of
+// flow, so its natural height never sizes the box.
+function Photo({
+  listing,
+  small = false,
+  className,
+  children,
+}: {
+  listing: BoardListing;
+  /** A thumbnail: the no-photo panel says less. */
+  small?: boolean;
+  className?: string;
+  /** Laid along the photo's foot: the price plate, then a removed ad's band. */
+  children?: ReactNode;
+}) {
+  const removed = listing.status === "removed";
+  const opened = useOpenedCar(listing.listingId);
+  return (
+    <div className={cn("relative shrink-0 overflow-hidden bg-muted", className)}>
+      {listing.coverUrl ? (
+        <img
+          src={listing.coverUrl}
+          alt=""
+          draggable={false}
+          loading="lazy"
+          style={opened ? carPhotoTransition : undefined}
+          className={cn("absolute inset-0 size-full object-cover", removed && "grayscale")}
+        />
+      ) : small ? (
+        <NoPhoto className="flex-col gap-1 text-xs" label="No photo" />
+      ) : (
+        <NoPhoto className="flex-col gap-1.5 text-[0.8125rem] font-medium [&_svg]:size-5.5" />
+      )}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-start">
+        {children}
+        {removed && <RemovedBand removedAt={listing.removedAt} size={children ? "md" : "sm"} />}
+      </div>
+    </div>
   );
 }
 
@@ -81,140 +168,156 @@ export function ListingCard({
   criteria,
   specDefs,
   home,
+  toConfirm,
+  lot,
+  variant = "lot",
   lifted = false,
   preview = false,
   showTier = false,
+  subgrid = false,
   className,
 }: CardProps & {
   listing: BoardListing;
+  /** The car's lot number on the board. */
+  lot?: number;
+  variant?: CardVariant;
   /** Overrides the card's width. */
   className?: string;
   lifted?: boolean;
-  /** Off the board (the map), where no lane says the car's tier. */
+  /** Off the board (the map), where no section says the car's tier. */
   showTier?: boolean;
   /** A static rendering for the settings preview: no link, so unsaved edits are not lost. */
   preview?: boolean;
+  /** A lot or compact card whose parent spans two rows of the catalogue's grid as a subgrid. */
+  subgrid?: boolean;
 }) {
   const { specs } = listing;
-  const removed = listing.status === "removed";
-  const opened = useSyncExternalStore(subscribeOpenedCar, () => openedCar === listing.listingId);
-  const { dealBreakers } = evaluate(
+  const { dealBreakers, checks } = evaluate(
     { price: listing.price, firstRegistration: specs.firstRegistration, mileageKm: specs.mileageKm },
     criteria,
     specDefs,
     listing.keySpecs,
     listing.modelId,
   );
-  const distance = formatDistance(home, listing.geo);
-  const country = listing.country;
-  const place = [listing.location ?? country, distance && `${distance} away`].filter(Boolean).join(" · ");
-  const fuel = otherFuel(specs.fuel);
-  const change =
-    listing.price.currency === listing.firstPrice.currency ? listing.price.amount - listing.firstPrice.amount : 0;
-  const card = (
-    <>
-      {/* A removed car keeps only its outline on the board, so it reads as gone at a glance.
-          Lifted, it floats over other cards, so it takes its fill back. */}
-      <Card
-        size="sm"
-        className={cn(
-          "h-full rounded-lg pt-0",
-          removed && "bg-transparent text-muted-foreground",
-          lifted && "rotate-1 bg-card shadow-xl",
+  const outside = (kind: Limit) => checks.some((c) => c.kind === kind && c.status === "missed");
+  const lotLine = <LotLine lot={lot} model={modelName} large={variant === "feature"} />;
+  // In the check view, the ledger's caption: how many key specs are left to confirm, on the
+  // ledger's top edge, the one place it has on every card. With none left it keeps its line, so
+  // the ledgers in a catalogue row still start level.
+  const caption = toConfirm !== undefined && (
+    <p
+      className={cn(
+        "mb-1 min-h-lh text-right leading-tight font-semibold text-muted-foreground",
+        variant === "feature" ? "text-xs" : "text-[0.6875rem]",
+      )}
+    >
+      {toConfirm > 0 && `${toConfirm} to confirm`}
+    </p>
+  );
+  const badges = <Badges listing={listing} home={home} />;
+  const ledger = (
+    <div>
+      {caption}
+      <div className="space-y-2">
+        <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} size={variant === "feature" ? "lg" : "md"} />
+        {dealBreakers.length > 0 && (
+          <p className="flex items-center gap-1 text-xs font-semibold">
+            <Ban className="size-3.5 shrink-0" aria-hidden />
+            Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
+          </p>
         )}
-      >
-        {/* overflow-hidden lets aspect-ratio win over a photo's natural height. */}
-        <div className="relative aspect-video shrink-0 overflow-hidden bg-muted">
-          {listing.coverUrl ? (
-            <img
-              src={listing.coverUrl}
-              alt=""
-              draggable={false}
-              loading="lazy"
-              style={opened ? carPhotoTransition : undefined}
-              className={cn("size-full object-cover", removed && "grayscale")}
-            />
-          ) : (
-            // The removed stamp takes the empty panel's place.
-            !removed && <NoPhoto />
-          )}
-          {removed && <RemovedStamp removedAt={listing.removedAt} />}
-          {showTier && (
-            <TierSlab
-              tier={listing.tier}
-              className={cn("absolute top-2 left-2 h-8 min-w-8 px-2", listing.tier.length === 1 ? "text-2xl" : "text-base")}
-            />
-          )}
+      </div>
+    </div>
+  );
+  const tierSlab = showTier && (
+    <TierSlab
+      tier={listing.tier}
+      className={cn("absolute top-2 left-2 h-8 min-w-8 px-2", listing.tier.length === 1 ? "text-2xl" : "text-base")}
+    />
+  );
+
+  let card: ReactNode;
+  if (variant === "feature") {
+    card = (
+      <div className="grid h-full overflow-hidden rounded-sm bg-card lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {/* 16:9 over the panel; beside it, the panel's content sets the height and the photo is
+            cropped to it, so the panel never has a dead band. */}
+        <Photo listing={listing} className="aspect-video lg:aspect-auto lg:min-h-72">
+          <PricePlate listing={listing} size="xl" />
+        </Photo>
+        <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6 lg:pb-7">
+          {lotLine}
+          <h3 className="text-base leading-snug">{listing.title}</h3>
+          <dl className="flex flex-wrap gap-x-7 gap-y-2">
+            <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
+            <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
+            {specs.powerKw !== undefined && <Figure label="Power" value={formatPower(specs.powerKw)} />}
+          </dl>
+          {badges}
+          {ledger}
         </div>
-        <CardHeader>
-          {/* Wraps on narrow cards: the badge drops below the price instead of being clipped. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            <p className="flex items-baseline gap-1.5">
-              <span className="condensed text-3xl leading-none font-bold">{formatPrice(listing.price)}</span>
-              {change !== 0 && (
-                <span className="text-xs font-semibold whitespace-nowrap tabular-nums">
-                  <span className="sr-only">{change < 0 ? "Down" : "Up"} </span>
-                  <span aria-hidden>{change < 0 ? "−" : "+"}</span>
-                  {formatPrice({ ...listing.price, amount: Math.abs(change) })}
-                </span>
-              )}
-            </p>
-            {removed ? (
-              <span className="text-xs text-muted-foreground">Last price</span>
-            ) : (
-              listing.price.vatDeductible && <Badge variant="secondary">VAT reclaimable</Badge>
-            )}
-          </div>
-          {modelName && <p className="condensed text-lg leading-none font-bold">{modelName}</p>}
-          <h3 className="line-clamp-2 min-h-[2.5em] leading-tight font-medium">{listing.title}</h3>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {/* Year, mileage and power stay at glance level, above the key specs. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <dl className="flex gap-x-3 tabular-nums">
-              <Spec label="First registration" value={formatRegistrationYear(specs.firstRegistration)} />
-              <Spec label="Mileage" value={formatKm(specs.mileageKm)} />
-              {specs.powerKw !== undefined && <Spec label="Power" value={formatPower(specs.powerKw)} />}
-            </dl>
-            <div className="flex gap-1">
-              {fuel && <Badge variant="outline">{fuel}</Badge>}
-              {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge.
-                  "MT" keeps the badges on the specs line, where "Manual" wrapped them. */}
-              {specs.gearbox === "manual" && (
-                <Tooltip>
-                  <TooltipTrigger render={<Badge variant="outline" />}>
-                    <span aria-hidden>MT</span>
-                    <span className="sr-only">Manual</span>
-                  </TooltipTrigger>
-                  <TooltipContent>Manual</TooltipContent>
-                </Tooltip>
-              )}
-              {/* The country is enough to judge the trip at a glance; the place and distance
-                  are on hover and on the car page. */}
-              {country && (
-                <Tooltip>
-                  <TooltipTrigger render={<Badge variant="outline" />}>
-                    <span aria-hidden>{country}</span>
-                    <span className="sr-only">Seller: {place}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>{place}</TooltipContent>
-                </Tooltip>
-              )}
+      </div>
+    );
+  } else if (variant === "index") {
+    card = (
+      // An index row's key specs are one line of named cells, in the ledger's states: they are
+      // why the car was rejected. Wide screens lay them along the row's middle; narrower ones
+      // under its stats, in the room the thumbnail leaves.
+      <div className="grid grid-cols-[6rem_minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-2 lg:grid-cols-[6.5rem_13rem_minmax(0,1fr)_auto_7rem] lg:gap-x-5">
+        <Photo listing={listing} small className="row-span-3 aspect-[4/3] w-24 rounded-xs lg:row-span-1 lg:w-26" />
+        <div className="min-w-0">
+          {lotLine}
+          <h3 className="sr-only text-[0.8125rem] leading-snug lg:not-sr-only lg:mt-0.5 lg:line-clamp-2">{listing.title}</h3>
+        </div>
+        <div className="col-span-2 col-start-2 row-start-3 lg:col-span-1 lg:col-start-auto lg:row-start-auto">
+          {caption}
+          <SpecRow specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} />
+        </div>
+        <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 lg:col-span-1 lg:col-start-auto">
+          <Stats specs={specs} outside={outside} className="text-sm" />
+          {badges}
+        </div>
+        <p className="col-start-3 row-start-1 text-right lg:col-start-auto lg:row-start-auto">
+          {listing.status === "removed" && <span className="mr-1.5 text-xs text-muted-foreground">Last price</span>}
+          <span className="condensed text-[1.3125rem] leading-none font-extrabold tabular-nums lg:text-2xl">
+            {formatPrice(listing.price)}
+          </span>
+        </p>
+      </div>
+    );
+  } else {
+    const compact = variant === "compact";
+    card = (
+      // A lot is two rows: everything down to the stats, then the ledger. In the catalogue they
+      // are its row's tracks (a subgrid), so every ledger in a row starts at one height;
+      // elsewhere the ledger is pinned to the foot, so lots that end together align.
+      <div className={cn("min-w-0 rounded-sm bg-card", subgrid ? "row-span-2 grid grid-rows-subgrid" : "flex h-full flex-col")}>
+        <div className="flex flex-col">
+          <Photo listing={listing} className={cn("rounded-t-sm", compact ? "aspect-[4/3]" : "aspect-[3/2]")}>
+            <PricePlate listing={listing} size={compact ? "sm" : "md"} />
+          </Photo>
+          {tierSlab}
+          <div className={cn("flex flex-col", compact ? "gap-1.5 px-2.5 pt-2.5" : "gap-2 px-3.5 pt-3")}>
+            {lotLine}
+            <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
+            {/* The badges follow the stats, and wrap under them from the left. */}
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
+              {badges}
             </div>
           </div>
-          <KeySpecLedger specs={listing.keySpecs} defs={specDefs} modelId={listing.modelId} className={cn(removed && "opacity-50")} />
-          {dealBreakers.length > 0 && (
-            <p className="flex items-center gap-1 text-xs font-semibold text-destructive">
-              <Ban className="size-3.5 shrink-0" aria-hidden />
-              Deal-breaker: {dealBreakers.map((d) => dealBreakerLabel(d, listing.keySpecs)).join(", ")}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </>
+        </div>
+        <div className={cn(compact ? "px-2.5 pt-1.5 pb-2.5" : "px-3.5 pt-2 pb-3.5", !subgrid && "mt-auto")}>{ledger}</div>
+      </div>
+    );
+  }
+
+  const frame = cn(
+    subgrid ? "row-span-2 grid grid-rows-subgrid" : "block h-full",
+    "w-(--board-card) shrink-0 scroll-mt-14 rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+    lifted && "-rotate-2 bg-card shadow-[0_18px_40px_rgb(0_0_0/0.28),0_2px_6px_rgb(0_0_0/0.2)]",
+    className,
   );
-  // Full height, so cards in one row of a lane end together.
-  const frame = cn("block h-full w-(--board-card) shrink-0 rounded-lg", className);
   return preview ? (
     <div className={frame}>{card}</div>
   ) : (
@@ -223,6 +326,7 @@ export function ListingCard({
       params={{ listingId: listing.listingId }}
       draggable={false}
       onClick={() => openCar(listing.listingId)}
+      data-car={listing.listingId}
       className={frame}
     >
       {card}
@@ -230,22 +334,124 @@ export function ListingCard({
   );
 }
 
-// The title sits right below, so the panel only states what is missing.
-export function NoPhoto({ className }: { className?: string }) {
+// "LOT 2  718 GT4 RS": the lot number to say out loud, then the model when the board shows several.
+function LotLine({ lot, model, large }: { lot?: number; model?: string; large: boolean }) {
+  if (lot === undefined && !model) return null;
   return (
-    <div className={cn("flex size-full items-center justify-center gap-2 text-sm text-muted-foreground", className)}>
-      <ImageOff className="size-4" aria-hidden />
-      No photo saved
+    <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+      {lot !== undefined && (
+        <span
+          className={cn(
+            "condensed font-bold tracking-[0.07em] whitespace-nowrap text-muted-foreground uppercase",
+            large ? "text-sm" : "text-xs",
+          )}
+        >
+          Lot {lot}
+        </span>
+      )}
+      {model && (
+        <span className={cn("condensed leading-tight font-bold", large ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem]")}>
+          {model}
+        </span>
+      )}
+    </p>
+  );
+}
+
+function Figure({ label, value, mark = false }: { label: string; value: string; mark?: Limit | false }) {
+  return (
+    <div>
+      <dt className="text-[0.6875rem] font-bold tracking-[0.07em] text-muted-foreground uppercase">{label}</dt>
+      <dd className="condensed text-[1.6875rem] leading-tight font-bold tabular-nums sm:text-[2rem]">
+        {value}
+        {mark && <InkMark mark={mark} className="ml-1.5 align-middle" />}
+      </dd>
     </div>
   );
 }
 
-// Values are self-explanatory on the card; the labels are there for screen readers.
-function Spec({ label, value }: { label: string; value: string }) {
+type Limit = "year" | "mileage";
+
+// Year, mileage and power stay at glance level, above the key specs. The values explain
+// themselves; the labels are there for screen readers.
+function Stats({
+  specs,
+  outside,
+  className,
+}: {
+  specs: BoardListing["specs"];
+  /** Whether the value is outside the model's limits. */
+  outside: (limit: Limit) => boolean;
+  className?: string;
+}) {
+  const values = [
+    { label: "First registration", value: formatRegistrationYear(specs.firstRegistration), mark: outside("year") && "year" },
+    { label: "Mileage", value: formatKm(specs.mileageKm), mark: outside("mileage") && "mileage" },
+    ...(specs.powerKw !== undefined ? [{ label: "Power", value: formatPower(specs.powerKw), mark: false as const }] : []),
+  ] satisfies { label: string; value: string; mark: Limit | false }[];
   return (
-    <div className="whitespace-nowrap">
-      <dt className="sr-only">{label}</dt>
-      <dd>{value}</dd>
+    <dl className={cn("flex flex-wrap items-baseline gap-x-1.5 font-semibold whitespace-nowrap tabular-nums", className)}>
+      {values.map(({ label, value, mark }, index) => (
+        <div key={label} className="flex items-baseline gap-x-1.5">
+          {index > 0 && (
+            <span aria-hidden className="font-normal text-muted-foreground">
+              ·
+            </span>
+          )}
+          <dt className="sr-only">{label}</dt>
+          <dd>
+            {value}
+            {mark && <InkMark mark={mark} className="ml-1 -translate-y-px align-middle" />}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function Badges({ listing, home }: { listing: BoardListing; home?: Point | null }) {
+  const { specs, country } = listing;
+  const fuel = otherFuel(specs.fuel);
+  const distance = formatDistance(home, listing.geo);
+  const place = [listing.location ?? country, distance && `${distance} away`].filter(Boolean).join(" · ");
+  const vat = listing.status !== "removed" && listing.price.vatDeductible;
+  if (!fuel && specs.gearbox !== "manual" && !country && !vat) return null;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {fuel && <Badge variant="outline">{fuel}</Badge>}
+      {/* Nearly every car is an automatic (PDK), so only a manual is worth a badge.
+          "MT" keeps the badges on the specs line, where "Manual" wrapped them. */}
+      {specs.gearbox === "manual" && (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="outline" />}>
+            <span aria-hidden>MT</span>
+            <span className="sr-only">Manual</span>
+          </TooltipTrigger>
+          <TooltipContent>Manual</TooltipContent>
+        </Tooltip>
+      )}
+      {/* The country is enough to judge the trip at a glance; the place and distance
+          are on hover and on the car page. */}
+      {country && (
+        <Tooltip>
+          <TooltipTrigger render={<Badge variant="outline" />}>
+            <span aria-hidden>{country}</span>
+            <span className="sr-only">Seller: {place}</span>
+          </TooltipTrigger>
+          <TooltipContent>{place}</TooltipContent>
+        </Tooltip>
+      )}
+      {vat && <Badge variant="outline">VAT reclaimable</Badge>}
+    </div>
+  );
+}
+
+// The title sits right below, so the panel only states what is missing.
+export function NoPhoto({ className, label = "No photo saved" }: { className?: string; label?: string }) {
+  return (
+    <div className={cn("flex size-full items-center justify-center gap-2 text-sm text-muted-foreground", className)}>
+      <ImageOff className="size-4" aria-hidden />
+      {label}
     </div>
   );
 }
