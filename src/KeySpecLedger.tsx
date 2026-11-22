@@ -115,7 +115,7 @@ export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs:
         return (
           <Tooltip key={def.id}>
             <TooltipTrigger render={<div className="min-w-0" />}>
-              <SpecCell spec={spec} {...verdict} named />
+              <SpecCell spec={spec} {...verdict} />
             </TooltipTrigger>
             <TooltipContent>{specDescription(spec, verdict.hit)}</TooltipContent>
           </Tooltip>
@@ -125,19 +125,8 @@ export function SpecRow({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs:
   );
 }
 
-// The ledger's four states. A tower column's header names its spec, so its cells leave the
-// name to screen readers; `named` shows it over the value, as the ledger does.
-export function SpecCell({
-  spec,
-  hit,
-  breaker,
-  named = false,
-}: {
-  spec: ResolvedSpec;
-  hit: boolean;
-  breaker: boolean;
-  named?: boolean;
-}) {
+// The ledger's four states, with the spec's name over its value.
+function SpecCell({ spec, hit, breaker }: { spec: ResolvedSpec; hit: boolean; breaker: boolean }) {
   const missing = spec.kind === "check" && spec.value === "no";
   return (
     <div
@@ -147,14 +136,10 @@ export function SpecCell({
         spec.value === null && "font-medium text-muted-foreground",
       )}
     >
-      {named ? (
-        <span className={cn("block text-[0.6875rem] font-normal", hit ? "text-background/75" : "text-muted-foreground")}>
-          {spec.name}
-          <span className="sr-only">: </span>
-        </span>
-      ) : (
-        <span className="sr-only">{spec.name}: </span>
-      )}
+      <span className={cn("block text-[0.6875rem] font-normal", hit ? "text-background/75" : "text-muted-foreground")}>
+        {spec.name}
+        <span className="sr-only">: </span>
+      </span>
       <span className="inline-flex items-start gap-0.5">
         {missing && <X className="mt-px size-2.75 shrink-0" aria-hidden />}
         {specValueText(spec)}
@@ -215,5 +200,44 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
       </TooltipTrigger>
       <TooltipContent>{specDescription(spec, hit)}</TooltipContent>
     </Tooltip>
+  );
+}
+
+/**
+ * The key specs as one wrapping line of small marks, for the phone board's cards: the ledger's
+ * order and states, each mark naming its spec beside its value as the ledger words it (a tick
+ * on a dashed, unconfirmed mark read as verified). Unknown values are left out: on a
+ * narrow row their dashes cost a line and say little, and the car page lists them.
+ */
+export function SpecMarks({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs: KeySpecDef[]; modelId: string | null }) {
+  const marks = defs.slice(0, ledgerSize).flatMap((def) => {
+    const spec = specs.find((s) => s.id === def.id);
+    return spec && spec.value !== null ? [{ spec, ...specVerdict(spec, def, modelId) }] : [];
+  });
+  if (marks.length === 0) return null;
+  return (
+    <span role="group" aria-label="Key specs" className="flex flex-wrap gap-1.5">
+      {marks.map(({ spec, hit, breaker }) => (
+        <span
+          key={spec.id}
+          className={cn(
+            "inline-flex items-center gap-1 px-1.5 py-0.5 text-xs leading-tight font-semibold",
+            specTone(spec, { hit }),
+          )}
+        >
+          <span className={cn("font-normal", hit ? "text-background/75" : "text-muted-foreground")}>
+            {spec.name}
+            <span className="sr-only">: </span>
+          </span>
+          <span className="inline-flex items-center gap-0.5">
+            {spec.kind === "check" && spec.value === "no" && <X className="size-3 shrink-0" aria-hidden />}
+            {specValueText(spec)}
+          </span>
+          {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
+          {hit && <span className="sr-only"> (preferred)</span>}
+          {breaker && <InkMark mark="breaker" />}
+        </span>
+      ))}
+    </span>
   );
 }

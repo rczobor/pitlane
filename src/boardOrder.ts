@@ -67,7 +67,7 @@ export function rankIn(lanes: Lanes, id: string, rankOf: (id: string) => number 
 
 /**
  * Lot numbers: each car's place in the order the board shows it, best first, from 1. The
- * catalogue's lots and the tower's position column read the same numbers.
+ * catalogue's lots and the phone board's cards read the same numbers.
  */
 export function lotNumbers(lanes: Lanes) {
   return new Map(tierOrder.flatMap((tier) => lanes[tier]).map((id, index) => [id, index + 1]));
