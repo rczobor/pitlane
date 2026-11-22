@@ -84,14 +84,15 @@ export function RemovedBand({ removedAt, size = "md" }: { removedAt?: number; si
   );
 }
 
-// The price as a pit board bolted to the photo's corner: opaque ink in both themes.
+// The price as a pit board bolted to the photo's corner: opaque ink in both themes. Kept small
+// (owner's call, 2026-11-22): a big plate hid too much of the car.
 const plateSizes = {
-  sm: { box: "gap-1.5 pt-1.25 pr-2.25 pb-1 pl-2", price: "text-[1.3125rem]", change: "text-[0.6875rem]" },
-  md: { box: "gap-2 pt-1.75 pr-2.75 pb-1.5 pl-2.5", price: "text-[1.6875rem]", change: "text-xs" },
+  sm: { box: "gap-1 pt-1 pr-1.5 pb-0.75 pl-1.5", price: "text-[1.0625rem]", change: "text-[0.625rem]" },
+  md: { box: "gap-1.5 pt-1.25 pr-2 pb-1 pl-2", price: "text-[1.25rem]", change: "text-[0.6875rem]" },
   xl: {
-    box: "gap-3 pt-2 pr-3.5 pb-2 pl-3 lg:pt-2.5 lg:pr-4 lg:pb-2.25 lg:pl-3.5",
-    price: "text-[2.5rem] lg:text-[3.25rem]",
-    change: "text-sm lg:text-[0.9375rem]",
+    box: "gap-2 pt-1.5 pr-2.5 pb-1.25 pl-2.5",
+    price: "text-[1.625rem] lg:text-[1.875rem]",
+    change: "text-xs",
   },
 };
 
