@@ -34,7 +34,7 @@ export function Tower({
   const rowProps = { view, specDefs };
   return (
     <DndContext {...drag.dndProps}>
-      <div data-scroll-restoration-id="tower">
+      <div>
         {sections.map((section) => (
           <TowerSector
             key={section.tier}
@@ -170,7 +170,8 @@ function TowerCard({
       >
         <Photo listing={listing} />
         <span className="flex flex-col gap-2 px-3 pt-2.5 pb-3">
-          <span className="flex items-center gap-2">
+          {/* Wraps rather than clipping the mileage beside a long price and its chip. */}
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {/* The car's lot number, as the catalogue shows it. */}
             <span className="condensed text-base font-bold text-muted-foreground tabular-nums">
               {view.lots.get(listing.listingId)}

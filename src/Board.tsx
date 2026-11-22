@@ -25,7 +25,7 @@ export type BoardSearch = { model?: string; check?: true; removed?: true };
 let lastSearch: BoardSearch = {};
 export const lastBoardSearch = () => lastSearch;
 
-// From 640px up the board is a catalogue of photo lots; under it, a timing tower of rows.
+// From 640px up the board is a catalogue of photo lots; under it, a stack of photo cards.
 const wideQuery = "(min-width: 640px)";
 const subscribeWide = (listener: () => void) => {
   const query = window.matchMedia(wideQuery);
@@ -132,7 +132,7 @@ export function Board() {
       )}
       {(filter || check) && (
         <div className="mb-4">
-          {/* A filtered board names itself; on phones the heading sits on the tower's 2px rule. */}
+          {/* A filtered board names itself; on phones it takes a 2px rule. */}
           <h1 className="condensed border-foreground text-[1.75rem] leading-none font-extrabold max-sm:border-b-2 max-sm:pb-2 sm:text-[2.125rem]">
             {!filter ? "Cars to check" : filter === "none" ? "Cars without a model" : `${filteredModel?.name} tier list`}
           </h1>
@@ -140,7 +140,7 @@ export function Board() {
             <span>
               {visible.length === 1 ? "1 car" : `${visible.length} cars`}
               {check && filter && " to check"}
-              {/* The tower reads its limits against the model's targets; wide screens leave them out (owner's call). */}
+              {/* Phone cards flag mileage against the model's targets; wide screens leave them out (owner's call). */}
               {!wide &&
                 filteredModel &&
                 criteriaLabels(filteredModel).map((label) => <span key={label}> · {label}</span>)}

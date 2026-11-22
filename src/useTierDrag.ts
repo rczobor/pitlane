@@ -59,7 +59,7 @@ class LeftMouseSensor extends MouseSensor {
  * Dragging cars between tiers. While a car is dragged it moves between the lanes it is
  * dragged over, so the section it is heading for makes room for it as its own cars would.
  * `axis` is the direction cars run in a tier: "x" for the catalogue's grids (reading order),
- * "y" for the tower's rows.
+ * "y" for the phone board's cards.
  */
 export function useTierDrag({ lanes: boardLanes, byId, onMove, axis }: Pick<TierViewProps, "lanes" | "byId" | "onMove"> & { axis: "x" | "y" }) {
   const [activeId, setActiveId] = useState<string | null>(null);
