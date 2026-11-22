@@ -239,8 +239,12 @@ function Photo({ listing }: { listing: BoardListing }) {
           className={cn("size-full object-cover", removed && "grayscale")}
         />
       ) : (
-        <span className="flex flex-col items-center gap-1.5 text-[0.8125rem] font-medium">
+        // The card shows no model, so the panel names the car (screen readers hear the title once, below).
+        <span className="flex flex-col items-center gap-1.5 px-8 text-center text-[0.8125rem] font-medium">
           <ImageOff className="size-5.5" aria-hidden />
+          <span aria-hidden className="line-clamp-2 text-sm font-semibold text-foreground">
+            {listing.title}
+          </span>
           No photo saved
         </span>
       )}
