@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { avoidedFor, preferredFor, verdict } from "../shared/fit";
@@ -205,8 +205,8 @@ function LedgerCell({ spec, hit, breaker, size }: { spec: ResolvedSpec; hit: boo
 
 /**
  * The key specs as one wrapping line of small marks, for the phone board's cards: the ledger's
- * order and states, each mark naming its spec beside its value. A yes or no is a tick or a
- * cross, so most marks stay as short as the spec's name. Unknown values are left out: on a
+ * order and states, each mark naming its spec beside its value as the ledger words it (a tick
+ * on a dashed, unconfirmed mark read as verified). Unknown values are left out: on a
  * narrow row their dashes cost a line and say little, and the car page lists them.
  */
 export function SpecMarks({ specs, defs, modelId }: { specs: ResolvedSpec[]; defs: KeySpecDef[]; modelId: string | null }) {
@@ -229,14 +229,10 @@ export function SpecMarks({ specs, defs, modelId }: { specs: ResolvedSpec[]; def
             {spec.name}
             <span className="sr-only">: </span>
           </span>
-          {spec.kind === "check" ? (
-            <>
-              {spec.value === "no" ? <X className="size-3.5 shrink-0" aria-hidden /> : <Check className="size-3.5 shrink-0" aria-hidden />}
-              <span className="sr-only">{specValueText(spec)}</span>
-            </>
-          ) : (
-            specValueText(spec)
-          )}
+          <span className="inline-flex items-center gap-0.5">
+            {spec.kind === "check" && spec.value === "no" && <X className="size-3 shrink-0" aria-hidden />}
+            {specValueText(spec)}
+          </span>
           {spec.source === "listing" && <span className="sr-only"> (from the listing, not confirmed)</span>}
           {hit && <span className="sr-only"> (preferred)</span>}
           {breaker && <InkMark mark="breaker" />}
