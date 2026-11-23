@@ -76,7 +76,7 @@ const cars: FixtureCar[] = [
       title: "Porsche 991.2 GT3 Clubsport, Lift, Approved 09.2027",
       price: { vatDeductible: true, netAmount: 134_453 },
       seller: { name: "Kurvenreich Automobile", location: "80331 München" },
-      details: { model: "911 GT3", firstRegistration: "2018-03", mileageKm: 39_500, gearbox: "manual", powerKw: 368, color: "GT Silver Metallic", options: [...options, "LED headlights incl. PDLS+", "Front axle lift", "Clubsport package"] },
+      details: { model: "911 GT3", firstRegistration: "2018-03", mileageKm: 39_500, gearbox: "manual", powerKw: 368, color: "GTSILBERMETALLIC/SILVER/ARGENT/PLATA", options: [...options, "LED headlights incl. PDLS+", "Front axle lift", "Clubsport package"] },
       description:
         "Porsche Approved Garantie bis 09.2027. Scheckheftgepflegt, unfallfrei. Bremsen und Reifen beim letzten Service neu.\n\nBesichtigung nur nach Terminvereinbarung.",
       descriptionTranslation: {
