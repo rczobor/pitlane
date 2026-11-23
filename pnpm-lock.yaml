@@ -180,10 +180,10 @@ importers:
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@clerk/react':
         specifier: ^6.18.6
-        version: 6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@clerk/ui':
         specifier: ^1.42.4
-        version: 1.44.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 1.44.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -210,16 +210,16 @@ importers:
         version: 0.5.2
       convex:
         specifier: ^1.49.0
-        version: 1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       convex-helpers:
         specifier: ^0.1.134
-        version: 0.1.136(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(hono@4.13.17)(prettier@3.9.10)(react@19.3.1)(typescript@7.0.2)(zod@4.6.7)
+        version: 0.1.136(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(hono@4.13.17)(prettier@3.9.10)(react@19.3.1)(typescript@7.0.2)(zod@4.6.7)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.3.1)
       lucide-react:
         specifier: ^1.70.0
-        version: 1.75.0(@types/react@19.3.0)(react@19.3.1)
+        version: 1.76.0(@types/react@19.3.0)(react@19.3.1)
       mapbox-gl:
         specifier: ^3.34.2
         version: 3.35.1
@@ -231,7 +231,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       react-zoom-pan-pinch:
         specifier: ^4.2.0
-        version: 4.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.4.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       shadcn:
         specifier: ^4.23.0
         version: 4.23.0(babel-plugin-macros@3.1.0)
@@ -250,10 +250,10 @@ importers:
         version: 8.1.2
       '@clerk/chrome-extension':
         specifier: ^3.1.105
-        version: 3.1.110(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)
+        version: 3.1.111(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)
       '@convex-dev/eslint-plugin':
         specifier: ^5.0.1
-        version: 5.0.1(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))
+        version: 5.0.1(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -292,7 +292,7 @@ importers:
         version: 1.0.0
       convex-test:
         specifier: ^0.0.73
-        version: 0.0.73(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))
+        version: 0.0.73(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
@@ -953,8 +953,8 @@ packages:
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
 
-  '@clerk/chrome-extension@3.1.110':
-    resolution: {integrity: sha512-9F2Yn3mRD9E0LrdYRhuLUkdSFDPivpjUco5VASsosFXZfsFXoAlOk03UYUZosPCFa7Cy/EKWZItTx/7f3gSBUw==}
+  '@clerk/chrome-extension@3.1.111':
+    resolution: {integrity: sha512-O37EmvnROw2WRdCnY2CaYmQM+nBXwgXe1h4qOGTkAGBoFi8dUDJFnHsam5rYR+gmYqbeWgQ5bAyW4+FZZmN1mg==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
@@ -968,8 +968,8 @@ packages:
     resolution: {integrity: sha512-tYfbCgHqOyZ1DFK81jYxa+8nrv2VkGQrEfgHGDRECOuK5IvG45wR+egeJrQZGyRSit6Ohi8yT9dRB7tzEQmviA==}
     engines: {node: '>=20.9.0'}
 
-  '@clerk/react@6.19.1':
-    resolution: {integrity: sha512-2QF2lW2bGh8k4vpuVTmqo3Y6VkjR/l1IJqA/FtjzkTY58/IW1/8rcfa1JmOcspVNDpimyCcUWH+oPXOlXEv0bQ==}
+  '@clerk/react@6.19.2':
+    resolution: {integrity: sha512-nYSQk+jNdTz/+eHPA6J3vwwyhxu+5OuDQcLpUjAqQ/m5bb69UIklOY7koRIAwYFDEwWrxWuuHHK8HmTwJNCJVw==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
@@ -987,8 +987,8 @@ packages:
       react-dom:
         optional: true
 
-  '@clerk/ui@1.44.0':
-    resolution: {integrity: sha512-8wJ9lMHdHvyYO8ggcmhU13z8mvrpGFmC8WOQ4u0yKVGi1vM8ysgJ5vu8nIzBpuICQKdCa6M7BshdG3FevJ7HsQ==}
+  '@clerk/ui@1.44.1':
+    resolution: {integrity: sha512-C6z+3HuYRDaH9TuBERjbf0zOXmhqN75GWbvnl8bRNU4oGgu5cSVMBRjwmFSaYpljs28nCKG+Ds8r9Nb/nd7x5Q==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
@@ -3881,8 +3881,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@1.75.0:
-    resolution: {integrity: sha512-piesXAZIXru9d5lHBoM6cPHOBs5+QkMx+3EXwG3xWJ7qdViuz92JtYN0u9jMB6jt+2WbQrwhvJGdMwGnL3EOfA==}
+  lucide-react@1.76.0:
+    resolution: {integrity: sha512-wRVHt2Xf64GXndB4rQOY9+3Wy9oJ59HDMYv6vwhT0hpSwUxQhG/RM9YijnOmvmIQ+VI/n+1V/FKd6gP4XL2aBQ==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -4269,8 +4269,8 @@ packages:
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
-  react-zoom-pan-pinch@4.2.0:
-    resolution: {integrity: sha512-QSw1dvr6QGv5zHCUY7SEIY7EWRDbx1y6plylrWf2Nko9KOMW1MEoPC6oJ+Y/qOSeQjhvbkMV0m5bFF7pBxCH4A==}
+  react-zoom-pan-pinch@4.4.0:
+    resolution: {integrity: sha512-7lMrVmFopsR3KeUNesScTUcc9pNxfEPaqsJfwEH2rkuzLEMqEvwJlPaqEY8gCZ9q2AEpxplZMAZTwr/m7nY05g==}
     engines: {node: '>=8', npm: '>=5'}
     peerDependencies:
       react: '*'
@@ -5861,12 +5861,12 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
-  '@clerk/chrome-extension@3.1.110(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)':
+  '@clerk/chrome-extension@3.1.111(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)':
     dependencies:
       '@clerk/clerk-js': 6.46.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)
-      '@clerk/react': 6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@clerk/react': 6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@clerk/shared': 4.48.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@clerk/ui': 1.44.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@clerk/ui': 1.44.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
       webextension-polyfill: 0.12.0
@@ -5918,7 +5918,7 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@clerk/shared': 4.48.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
@@ -5934,7 +5934,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@clerk/ui@1.44.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@clerk/ui@1.44.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@clerk/localizations': 4.26.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@clerk/shared': 4.48.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -5971,12 +5971,12 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@convex-dev/eslint-plugin@5.0.1(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))':
+  '@convex-dev/eslint-plugin@5.0.1(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))':
     dependencies:
       '@typescript-eslint/parser': 8.58.2(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
       '@typescript-eslint/types': 8.58.2
       '@typescript-eslint/utils': 8.58.2(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
-      convex: 1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+      convex: 1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       typescript: 5.9.3
     transitivePeerDependencies:
       - eslint
@@ -7433,9 +7433,9 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.136(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(hono@4.13.17)(prettier@3.9.10)(react@19.3.1)(typescript@7.0.2)(zod@4.6.7):
+  convex-helpers@0.1.136(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(hono@4.13.17)(prettier@3.9.10)(react@19.3.1)(typescript@7.0.2)(zod@4.6.7):
     dependencies:
-      convex: 1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+      convex: 1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
     optionalDependencies:
       hono: 4.13.17
       prettier: 3.9.10
@@ -7443,17 +7443,17 @@ snapshots:
       typescript: 7.0.2
       zod: 4.6.7
 
-  convex-test@0.0.73(convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)):
+  convex-test@0.0.73(convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)):
     dependencies:
-      convex: 1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+      convex: 1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
 
-  convex@1.51.0(@clerk/react@6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
+  convex@1.51.0(@clerk/react@6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.10
       ws: 8.21.0
     optionalDependencies:
-      '@clerk/react': 6.19.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@clerk/react': 6.19.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react: 19.3.1
     transitivePeerDependencies:
       - bufferutil
@@ -8524,7 +8524,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@1.75.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.76.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
@@ -8886,7 +8886,7 @@ snapshots:
 
   react-is@16.13.1: {}
 
-  react-zoom-pan-pinch@4.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  react-zoom-pan-pinch@4.4.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
