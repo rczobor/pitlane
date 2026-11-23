@@ -232,7 +232,9 @@ export function ListingPage({ listingId }: { listingId: string }) {
 
           {/* As the listing states them; the key specs are where the user's own values live. */}
           <Section title="Listing details" id="listing-details" className="order-6 lg:order-none">
-            <dl className="mb-3.5 grid grid-cols-[7.75rem_1fr] gap-x-3 gap-y-2 sm:grid-cols-[8.75rem_1fr]">
+            {/* minmax(0, …) and break-words: an unspaced value such as a long colour name must
+                wrap, not widen the page past a phone's screen. */}
+            <dl className="mb-3.5 grid grid-cols-[7.75rem_minmax(0,1fr)] gap-x-3 gap-y-2 break-words sm:grid-cols-[8.75rem_minmax(0,1fr)]">
               {specs.map(([label, value]) => (
                 <div key={label} className="contents">
                   <dt className="text-muted-foreground">{label}</dt>
