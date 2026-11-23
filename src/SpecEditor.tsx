@@ -1,9 +1,17 @@
 import { useMutation } from "convex/react";
-import { Check, Plus, RotateCcw, X } from "lucide-react";
+import { Check, ChevronDown, Plus, RotateCcw, X } from "lucide-react";
 import { type CSSProperties, useId, useState } from "react";
 import type { Id } from "../convex/_generated/dataModel";
 import { api } from "../convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -224,8 +232,8 @@ function SpecChips({
   );
 }
 
-// The car's model, beside its price: shown with "Change", since it rarely changes, and
-// the full picker on request.
+// The car's model, beside its price, as a labelled field like the readout's REGISTERED or
+// MILEAGE: a real button (dashed while there is no model) that opens the list of models.
 export function ModelControl({
   listingId,
   modelId,
@@ -236,42 +244,43 @@ export function ModelControl({
   board: BoardData;
 }) {
   const setModel = useMutation(api.board.setModel);
-  const [picking, setPicking] = useState(false);
   if (board.models.length === 0) return null;
   const name = board.models.find((m) => m.id === modelId)?.name;
-  if (!picking) {
-    return (
-      <p className="flex flex-wrap items-center gap-1">
-        {name ? (
-          <span className="condensed text-lg leading-tight font-bold sm:text-xl">{name}</span>
-        ) : (
-          <span className="text-sm text-muted-foreground">No model</span>
-        )}
-        <Button type="button" variant="ghost" size="xs" className="max-sm:h-9" onClick={() => setPicking(true)}>
-          {name ? "Change model" : "Set model"}
-        </Button>
-      </p>
-    );
-  }
   return (
-    <ToggleGroup
-      aria-label="Model"
-      variant="outline"
-      size="sm"
-      value={modelId ? [modelId] : []}
-      onValueChange={(value) => {
-        // Clicking the current model again closes the picker; it never clears the model.
-        if (value[0]) void setModel({ listingId, modelId: value[0] });
-        setPicking(false);
-      }}
-      className="flex-wrap"
-    >
-      {board.models.map((m) => (
-        <ToggleGroupItem key={m.id} value={m.id} className="condensed h-10 text-base font-bold sm:h-8">
-          {m.name}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="condensed text-xs font-bold tracking-wide text-muted-foreground uppercase">Model</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("condensed h-9 text-base font-bold", !name && "border-dashed text-muted-foreground")}
+            />
+          }
+        >
+          {name ?? "Choose model"}
+          <ChevronDown data-icon="inline-end" aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-auto">
+          {/* "" stands for no model: the menu's values are strings. */}
+          <DropdownMenuRadioGroup
+            value={name ? modelId : ""}
+            onValueChange={(value: string) => void setModel({ listingId, modelId: value || null })}
+          >
+            {board.models.map((m) => (
+              <DropdownMenuRadioItem key={m.id} value={m.id} closeOnClick>
+                {m.name}
+              </DropdownMenuRadioItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioItem value="" closeOnClick>
+              No model
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 

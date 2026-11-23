@@ -202,6 +202,9 @@ test("model-specific specs apply only to that model", async () => {
   await me.mutation(api.board.setModel, { listingId, modelId: "gt4" });
   expect((await specsOf()).map((s) => s.id)).toEqual(["pdls", "seats", "cage"]);
   await expect(me.mutation(api.board.setModel, { listingId, modelId: "nope" })).rejects.toThrow(/Unknown model/);
+  // "No model" in the car page's picker clears it again.
+  await me.mutation(api.board.setModel, { listingId, modelId: null });
+  expect((await specsOf()).map((s) => s.id)).toEqual(["pdls", "seats"]);
 });
 
 test("a new choice is added to the spec's list", async () => {
