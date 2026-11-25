@@ -66,7 +66,7 @@ export function useFestive() {
 
 export function DecorationsToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   return (
-    <Button variant="ghost" size="sm" onClick={onToggle} className="relative">
+    <Button variant="ghost" size="sm" onClick={onToggle}>
       <Snowflake data-icon="inline-start" aria-hidden />
       {/* Named by what it does, so it reads as reversible either way. */}
       <span className="max-sm:sr-only">{active ? "Hide decorations" : "Show decorations"}</span>

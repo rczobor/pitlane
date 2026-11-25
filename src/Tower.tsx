@@ -158,7 +158,7 @@ function TowerCard({
       className={cn(
         "group/card relative overflow-hidden rounded-md bg-card select-none [-webkit-touch-callout:none]",
         // The card clips its photo's corners, so its snow lies inside, along the photo's top.
-        snow && "festive-card festive-card-inset",
+        snow && !placeholder && "festive-card festive-card-inset",
         // A removed ad sits on the concrete.
         listing.status === "removed" && "bg-background ring-1 ring-border ring-inset",
         lifted && "-rotate-[0.6deg] shadow-[0_14px_30px_-8px_rgb(0_0_0/0.35),0_0_0_1px_var(--color-input)]",
@@ -203,7 +203,7 @@ function TowerCard({
           listing={listing}
           canMarkRemoved={view.canMarkRemoved}
           onAction={(action) => view.onAction(listing, action)}
-          className="absolute top-2 right-2"
+          className="absolute top-2 right-2 z-2"
         />
       )}
     </div>

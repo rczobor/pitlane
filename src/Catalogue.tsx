@@ -230,7 +230,7 @@ function CatalogueSection({
         className={cn(
           "festive-slab relative mb-4 flex h-14 items-center justify-between rounded-md px-3.5 lg:sticky lg:top-15 lg:mb-0 lg:h-37 lg:flex-col lg:items-start lg:px-3 lg:pt-3 lg:pb-2.5",
           sectionSlabColor(tier),
-          empty && "lg:relative lg:h-19 lg:py-2",
+          empty && "lg:relative lg:top-auto lg:h-19 lg:py-2",
         )}
       >
         {/* Phones and tablets share one label size, so the bars match; letters grow on wide screens. */}
@@ -286,7 +286,7 @@ function SortableLot({ listing, variant, view }: { listing: BoardListing; varian
       // select the card's text, and either cancels the drag.
       className={cn(
         "group/card relative select-none [-webkit-touch-callout:none]",
-        snow && "festive-card",
+        snow && !isDragging && "festive-card",
         variant === "index" && "border-b",
         subgrid && cn("row-span-2 grid grid-rows-subgrid bg-clip-content", lotFoot[variant]),
         // The lot's old place: a flat tinted slot, never dashed (dashed means "from the listing").
@@ -315,7 +315,7 @@ function SortableLot({ listing, variant, view }: { listing: BoardListing; varian
         listing={listing}
         canMarkRemoved={view.canMarkRemoved}
         onAction={(action) => view.onAction(listing, action)}
-        className={cn("absolute", variant === "index" ? "top-1/2 right-0 -translate-y-1/2" : "top-2 right-2")}
+        className={cn("absolute z-2", variant === "index" ? "top-1/2 right-0 -translate-y-1/2" : "top-2 right-2")}
       />
     </div>
   );
