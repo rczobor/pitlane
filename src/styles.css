@@ -168,11 +168,12 @@
   }
 }
 
-/* Over the page, under dialogs (z-50), never taking a click. */
+/* Behind the page's content, so flakes fall on the concrete and never on a number, a field or
+   a photo; never taking a click. */
 .snowfall {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
 }

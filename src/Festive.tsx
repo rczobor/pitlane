@@ -94,7 +94,7 @@ const flakes = (() => {
   });
 })();
 
-/** Snow over the page. It never takes a click, sits under dialogs, and stands still for
+/** Snow behind the page's content. It never takes a click, and stands still for
  *  people who reduce motion (styles.css). */
 export function Snowfall() {
   return (
