@@ -118,12 +118,21 @@ function SignedIn() {
 }
 
 function SignInScreen() {
+  const festive = useFestive();
   return (
-    <main className="grid min-h-svh lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      {/* The pit board: the product's signature, the only yellow on the screen. */}
-      <div className="flex min-h-[28svh] items-end bg-signal px-4 pt-10 pb-6 text-signal-foreground sm:px-8 lg:min-h-svh lg:px-12 lg:pb-12">
+    <main className="relative grid min-h-svh lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      {/* The pit board: the product's signature, the only yellow on the screen. In season it
+          snows on the board itself, behind the wordmark: there is nothing on it to misread. */}
+      <div className="relative isolate flex min-h-[28svh] items-end overflow-hidden bg-signal px-4 pt-10 pb-6 text-signal-foreground sm:px-8 lg:min-h-svh lg:px-12 lg:pb-12">
+        {festive.active && <Snowfall className="snowfall-board" />}
         <p className="condensed text-[clamp(4.5rem,16vw,11rem)] leading-[0.8] font-extrabold tracking-tight">Pitlane</p>
       </div>
+      {festive.active && (
+        <>
+          <Lights />
+          <Snowfall />
+        </>
+      )}
       <div className="px-4 pt-10 pb-12 sm:px-8 lg:px-16 lg:pt-[18svh]">
         {/* Hash routing keeps Clerk's steps out of the app's routes, and signing in
             returns to the page that was opened. Sign-up is invite-only, so invited

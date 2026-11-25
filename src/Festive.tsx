@@ -1,6 +1,7 @@
 import { Snowflake } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { isFestiveSeason } from "./festiveSeason";
 
 // Christmas decorations: falling snow, a string of lights over the header, a tree beside the
@@ -15,6 +16,7 @@ declare module "react" {
     "--rest"?: string;
     "--cap-left"?: string;
     "--cap-width"?: string;
+    "--glow"?: string;
   }
 }
 
@@ -100,9 +102,9 @@ const flakes = (() => {
 /** Snow over the whole page, behind its content: it falls on the ground between the cards,
  *  never over a photo or a card (owner's call: more snow than the header band). It never
  *  takes a click, and stands still for people who reduce motion. */
-export function Snowfall() {
+export function Snowfall({ className }: { className?: string }) {
   return (
-    <div aria-hidden className="snowfall">
+    <div aria-hidden className={cn("snowfall", className)}>
       {flakes.map((style, i) => (
         <i key={i} style={style} />
       ))}
@@ -135,7 +137,10 @@ export function Lights() {
                   // White bulbs take the wire's hairline, so they hold on the pale concrete.
                   stroke={n % bulbColors.length === 3 ? "currentColor" : undefined}
                   strokeWidth="0.75"
-                  style={{ animationDelay: `-${((n * 0.37) % 2.4).toFixed(2)}s` }}
+                  style={{
+                    animationDelay: `-${((n * 0.37) % 2.4).toFixed(2)}s`,
+                    "--glow": bulbColors[n % bulbColors.length],
+                  }}
                 />
               </g>
             );

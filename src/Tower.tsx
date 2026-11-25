@@ -10,6 +10,7 @@ import { type BoardListing, formatKm, formatPrice, type KeySpecDef, type Tier, t
 import { InkMark, SpecMarks } from "./KeySpecLedger";
 import { carPhotoTransition, openCar, priceChange, RemovedBand, useOpenedCar } from "./ListingCard";
 import { PriceChange } from "./PriceChange";
+import { cardSnow } from "./Festive";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
 import { Badge } from "@/components/ui/badge";
@@ -148,12 +149,16 @@ function TowerCard({
     listing.modelId,
   );
   const overMileage = checks.some((c) => c.kind === "mileage" && c.status === "missed");
+  const snow = cardSnow(listing.listingId);
   return (
     <div
       ref={cardRef}
       {...cardProps}
+      style={{ ...cardProps?.style, ...snow }}
       className={cn(
         "group/card relative overflow-hidden rounded-md bg-card select-none [-webkit-touch-callout:none]",
+        // The card clips its photo's corners, so its snow lies inside, along the photo's top.
+        snow && "festive-card festive-card-inset",
         // A removed ad sits on the concrete.
         listing.status === "removed" && "bg-background ring-1 ring-border ring-inset",
         lifted && "-rotate-[0.6deg] shadow-[0_14px_30px_-8px_rgb(0_0_0/0.35),0_0_0_1px_var(--color-input)]",

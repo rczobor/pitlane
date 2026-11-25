@@ -208,8 +208,19 @@
   }
 }
 
+/* On the sign-in board: inside the yellow board, behind the wordmark. */
+.snowfall-board {
+  position: absolute;
+}
+
 .lights {
   color: color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+/* Lit bulbs glow on the dark ground, each in its own colour. */
+@media (prefers-color-scheme: dark) {
+  .lights ellipse {
+    filter: drop-shadow(0 0 3px var(--glow));
+  }
 }
 .lights ellipse {
   animation: twinkle 2.4s ease-in-out infinite;
@@ -222,31 +233,35 @@
 
 /* Snow settled on every pit board (the wordmark, board sections, the car page), with holly
    on its corner. The slab must be positioned. */
-:root[data-festive] .festive-slab::before {
+:root[data-festive] .festive-slab::before,
+:root[data-festive] .festive-card::before {
   content: "";
   position: absolute;
   inset-inline: -3px;
   top: -6px;
-  height: 10px;
-  border-radius: 9px 9px 4px 4px;
-  background: var(--snow-cap);
-  /* A hairline edge, so white snow holds on the pale concrete and the pale Rejected slab. */
-  box-shadow: 0 0 0 1px rgb(35 39 43 / 0.14);
+  /* A 9px bank with two drips hanging under it, drawn as one shape so its hairline follows
+     the drips (a box-shadow would outline the box). */
+  height: 17px;
+  background:
+    linear-gradient(var(--snow-cap), var(--snow-cap)) top / 100% 9px no-repeat,
+    radial-gradient(ellipse 5px 8px at 50% 0, var(--snow-cap) 95%, transparent) 22% 9px / 10px 8px no-repeat,
+    radial-gradient(ellipse 3.5px 5px at 50% 0, var(--snow-cap) 95%, transparent) 70% 9px / 7px 5px no-repeat;
+  border-radius: 9px 9px 0 0;
+  /* A hairline, so white snow holds on the pale concrete and the pale Rejected slab. */
+  filter: drop-shadow(0 0 0.6px rgb(35 39 43 / 0.55));
   pointer-events: none;
 }
 /* Snow settled on some cards (cardSnow in Festive.tsx): a shorter drift at a spot of its own. */
 :root[data-festive] .festive-card::before {
-  content: "";
-  position: absolute;
   z-index: 1;
+  inset-inline: auto;
   left: var(--cap-left);
   width: var(--cap-width);
   top: -5px;
-  height: 9px;
-  border-radius: 9px 9px 4px 4px;
-  background: var(--snow-cap);
-  box-shadow: 0 0 0 1px rgb(35 39 43 / 0.14);
-  pointer-events: none;
+}
+/* A phone card clips its photo's corners, so its drift lies just inside the top edge. */
+:root[data-festive] .festive-card-inset::before {
+  top: 0;
 }
 /* The holly sits on the cap's corner, inside the slab and clear of its lettering. */
 :root[data-festive] .festive-slab::after {
