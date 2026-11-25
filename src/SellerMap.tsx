@@ -3,7 +3,7 @@ import mapboxgl from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 import type { Point } from "../shared/geo";
 import type { Tier } from "./format";
-import { createMap, homeMarker, pinOffset, span } from "./basemap";
+import { createMap, homeMarker, mapUnavailable, pinOffset, span } from "./basemap";
 import { notchClass, pinClass, pinFor } from "./pins";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ export default function SellerMap({
   // than rebuilding the map (a reload, a blank flash and another Mapbox map load). Mapbox
   // owns the marker element's classes, so the pin is a child.
   const [pin] = useState(() => document.createElement("div"));
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const { letter, tone } = pinFor(tier, live);
@@ -46,13 +47,18 @@ export default function SellerMap({
     const points = home ? [geo, home] : [geo];
     const bounds = new mapboxgl.LngLatBounds();
     for (const p of points) bounds.extend(p);
-    const { map, remove } = createMap(container.current!, token, {
+    const created = createMap(container.current!, token, {
       bounds,
       // Room above each place for its pin, which stands on a notch, and enough country
       // around them to see where they are.
       fitBoundsOptions: { padding: { top: 88, bottom: 40, left: 64, right: 64 }, maxZoom: 6 },
       interactive: false,
     });
+    if (!created) {
+      setFailed(true);
+      return;
+    }
+    const { map, remove } = created;
     pin.setAttribute("aria-hidden", "true");
     const markers = [new mapboxgl.Marker({ element: pin, anchor: "bottom", offset: pinOffset }).setLngLat(geo).addTo(map)];
     if (home) {
@@ -72,6 +78,11 @@ export default function SellerMap({
       {/* Sized by its ratio, not by `inset`: Mapbox's stylesheet makes the map `relative`
           (and clips it, so the corners round here and the link's focus ring stays visible). */}
       <div ref={container} className="aspect-[2/1] rounded-lg bg-muted" />
+      {failed && (
+        <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
+          {mapUnavailable}
+        </p>
+      )}
       {/* Beside the map, not around it: Mapbox's attribution button must not sit inside a
           link. Its controls stack above this. */}
       <Link

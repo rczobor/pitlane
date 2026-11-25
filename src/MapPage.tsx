@@ -8,7 +8,7 @@ import { api } from "../convex/_generated/api";
 import type { Point } from "../shared/geo";
 import { type BoardData, type BoardListing, formatDistance, tiers } from "./format";
 import { ListingCard } from "./ListingCard";
-import { createMap, homeMarker, pinOffset, span } from "./basemap";
+import { createMap, homeMarker, mapUnavailable, pinOffset, span } from "./basemap";
 import { mapboxToken } from "./mapbox";
 import { countClass, homeClass, notchClass, pinClass, pinFor } from "./pins";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -167,6 +167,7 @@ function CarMap({
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
+  const [failed, setFailed] = useState(false);
   const markers = useRef(new Map<string, HTMLElement>());
   const framed = useRef(false);
   // Markers are created once per data change; the latest handler is read at click time.
@@ -179,6 +180,10 @@ function CarMap({
       // Scrolling the page over the map should scroll the page.
       cooperativeGestures: true,
     });
+    if (!created) {
+      setFailed(true);
+      return;
+    }
     created.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }));
     setMap(created.map);
     return () => {
@@ -225,7 +230,16 @@ function CarMap({
   }, [map, places, selectedKey]);
 
   // Shorter on phones, so the cars of a picked place are a short scroll away.
-  return <div ref={container} className="h-[50svh] min-h-72 overflow-hidden rounded-lg bg-muted sm:h-[60svh]" />;
+  return (
+    <div className="relative">
+      <div ref={container} className="h-[50svh] min-h-72 overflow-hidden rounded-lg bg-muted sm:h-[60svh]" />
+      {failed && (
+        <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-muted-foreground">
+          {mapUnavailable}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // The pit board in miniature: the best tier's letter (S in signal yellow), a dot for cars

@@ -8,20 +8,33 @@ import { homeClass, notchClass } from "./pins";
 // Its day or night light follows the system theme.
 const lightPreset = (dark: boolean) => (dark ? "night" : "day");
 
+// Shown in place of a map the browser can't draw.
+export const mapUnavailable =
+  "This browser can't draw the map: WebGL is off or blocked. Turning on hardware acceleration usually fixes it.";
+
+// Null when the browser has no WebGL (hardware acceleration off, a blocked GPU, or Chrome
+// disabling WebGL for the site after GPU crashes). Mapbox throws from its constructor then,
+// which would otherwise take down the whole page.
 export function createMap(
   container: HTMLElement,
   token: string,
   options: Omit<MapOptions, "container" | "accessToken" | "style" | "config">,
 ) {
   const dark = window.matchMedia("(prefers-color-scheme: dark)");
-  const map = new mapboxgl.Map({
-    ...options,
-    container,
-    accessToken: token,
-    style: "mapbox://styles/mapbox/standard",
-    // Parks, shops and stations say nothing about where a car is.
-    config: { basemap: { lightPreset: lightPreset(dark.matches), showPointOfInterestLabels: false } },
-  });
+  let map: mapboxgl.Map;
+  try {
+    map = new mapboxgl.Map({
+      ...options,
+      container,
+      accessToken: token,
+      style: "mapbox://styles/mapbox/standard",
+      // Parks, shops and stations say nothing about where a car is.
+      config: { basemap: { lightPreset: lightPreset(dark.matches), showPointOfInterestLabels: false } },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Failed to initialize WebGL")) return null;
+    throw error;
+  }
   const retheme = () => map.setConfigProperty("basemap", "lightPreset", lightPreset(dark.matches));
   dark.addEventListener("change", retheme);
   // Design captures wait for this: Mapbox's network never goes quiet, and its tiles and
