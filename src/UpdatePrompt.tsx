@@ -1,19 +1,22 @@
+import { useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button } from "@/components/ui/button";
 
-// The service worker serves the app from its cache, so a deploy reaches an open app only
-// when it reloads. Reloading on its own could drop a note mid-edit, so the user picks the
-// moment. Other open tabs of the app reload with it, since they all switch to the new worker.
+// A deploy reaches an open app only when it reloads. Reloading on its own could drop a note
+// mid-edit, so the user picks the moment. Other open tabs of the app reload with it, since
+// they all switch to the new worker.
 export function UpdatePrompt() {
-  const {
-    needRefresh: [needRefresh],
-  } = useRegisterSW({
+  const [outdated, setOutdated] = useState(false);
+  useRegisterSW({
     // An installed app can stay open for days; look for a new version every hour.
     onRegisteredSW: (_url, registration) => {
       if (registration) setInterval(() => void registration.update().catch(() => {}), 60 * 60 * 1000);
     },
+    // The browser looks for a new worker on every page load, so the one it finds is often
+    // the version this page already is: a reload fetches the page from the network.
+    onNeedRefresh: () => void isOutdated().then(setOutdated),
   });
-  if (!needRefresh) return null;
+  if (!outdated) return null;
   return (
     <div
       role="status"
@@ -39,11 +42,30 @@ async function activateUpdateAndReload() {
       waiting.addEventListener("statechange", () => {
         if (waiting.state === "activated" || waiting.state === "redundant") resolve();
       });
-      // Reloading before activation loads the old version again, but a dead button is
-      // worse: give up after a few seconds, and the prompt returns if it is still waiting.
+      // The reload loads the new page either way, but the worker should come along: give
+      // it a few seconds, since a dead button is worse.
       setTimeout(resolve, 3000);
       waiting.postMessage({ type: "SKIP_WAITING" });
     });
   }
   location.reload();
+}
+
+// The worker script lists every file its version precaches, and hashed names change with
+// their contents, so this page is older when a script or stylesheet it loaded is not
+// listed. If the script cannot be read, show the prompt: a needless one beats a missed one.
+async function isOutdated() {
+  const files = [...document.querySelectorAll("script[src], link[rel=stylesheet], link[rel=modulepreload]")]
+    .map((element) => new URL(element.getAttribute("src") ?? element.getAttribute("href") ?? "", location.href))
+    .filter((url) => url.origin === location.origin && url.pathname.startsWith("/assets/"))
+    .map((url) => url.pathname.slice(1));
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    const worker = registration?.waiting ?? registration?.active;
+    if (!worker) return true;
+    const script = await fetch(worker.scriptURL, { cache: "no-store" }).then((response) => response.text());
+    return files.some((file) => !script.includes(file));
+  } catch {
+    return true;
+  }
 }

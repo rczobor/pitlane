@@ -11,9 +11,10 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
-    // Installable app. The service worker precaches the app shell so it starts without
-    // waiting on the network; board data still comes live from Convex. A new version
-    // waits until the user reloads (src/UpdatePrompt.tsx), so nothing mid-edit is lost.
+    // Installable app. The service worker precaches the scripts and styles so it starts
+    // quickly; board data still comes live from Convex. The page itself comes from the
+    // network first, so a reload always loads the newest version. An open page never
+    // swaps versions on its own (src/UpdatePrompt.tsx), so nothing mid-edit is lost.
     VitePWA({
       registerType: "prompt",
       // Vercel's deployment protection only lets the manifest through with credentials.
@@ -43,7 +44,31 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
-        navigateFallback: "/index.html",
+        // Served from the precache, index.html would answer every reload with the old version
+        // until the new worker takes over, which only the update prompt makes it do. So pages
+        // come from the network, and the precached copy, which matches the precached scripts,
+        // is only the offline fallback.
+        navigateFallback: null,
+        directoryIndex: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: async ({ request }) => {
+              try {
+                return await fetch(request);
+              } catch {
+                return (await caches.match("/index.html", { ignoreSearch: true })) ?? Response.error();
+              }
+            },
+          },
+          {
+            // A reload can run a page newer than the active worker, whose precache lacks the
+            // page's scripts. The waiting worker has already stored them, and the server drops
+            // them at the next deploy, so look in every cache before the network.
+            urlPattern: ({ url }) => url.pathname.startsWith("/assets/"),
+            handler: async ({ request }) => (await caches.match(request)) ?? fetch(request),
+          },
+        ],
         // The map chunk is close to the 2 MiB default. A chunk left out of the precache would
         // be fetched from a newer deploy that no longer has it, and the map page would break.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,

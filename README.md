@@ -96,8 +96,9 @@ an app (a PWA), and an installed app on Android shows up in the share sheet. A s
 listing that is already on the board opens; a new one waits on the board until an
 agent (`list_pending_captures`) or the extension captures it, since the app never
 fetches the page. iOS has no web share targets, so there it stays a home-screen app.
-Its service worker only precaches the app shell for a quick start; the board itself
-always comes live from Convex, and a new version waits until the user reloads.
+Its service worker only precaches the scripts and styles for a quick start; the board
+itself always comes live from Convex. A reload always loads the newest version, and an
+app left open offers a reload when a new one ships.
 
 **Stack:** TypeScript, pnpm, Convex as the whole backend (data, the MCP server via
 HTTP actions, scheduled jobs, file storage). The web app is Vite, React,
