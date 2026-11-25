@@ -129,6 +129,9 @@ export function Lights() {
                   rx="4.5"
                   ry="6.5"
                   fill={bulbColors[n % bulbColors.length]}
+                  // White bulbs take the wire's hairline, so they hold on the pale concrete.
+                  stroke={n % bulbColors.length === 3 ? "currentColor" : undefined}
+                  strokeWidth="0.75"
                   style={{ animationDelay: `-${((n * 0.37) % 2.4).toFixed(2)}s` }}
                 />
               </g>

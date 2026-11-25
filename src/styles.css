@@ -222,18 +222,20 @@
   inset-inline: -3px;
   top: -6px;
   height: 10px;
-  border-radius: 9px 9px 3px 3px;
+  border-radius: 9px 9px 4px 4px;
   background: var(--snow);
-  box-shadow: 0 1px 0 rgb(35 39 43 / 0.16);
+  /* A hairline edge, so white snow holds on the pale concrete and the pale Rejected slab. */
+  box-shadow: 0 0 0 1px rgb(35 39 43 / 0.14);
   pointer-events: none;
 }
+/* The holly sits on the cap's corner, inside the slab and clear of its lettering. */
 :root[data-festive] .festive-slab::after {
   content: "";
   position: absolute;
-  right: -8px;
-  top: -11px;
-  width: 34px;
-  height: 25px;
+  right: 1px;
+  top: -12px;
+  width: 26px;
+  height: 19px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 34'%3E%3Cpath d='M22 18C14 6 4 10 2 4c6 10 2 16 8 18 4-4 8 0 12-4Z' fill='%231e5b3f'/%3E%3Cpath d='M24 18c8-12 18-8 20-14-6 10-2 16-8 18-4-4-8 0-12-4Z' fill='%232c7350'/%3E%3Ccircle cx='20' cy='21' r='4' fill='%23c0392b'/%3E%3Ccircle cx='27' cy='21' r='4' fill='%23c0392b'/%3E%3Ccircle cx='23.5' cy='26' r='4' fill='%23a8302a'/%3E%3C/svg%3E") no-repeat center / contain;
   pointer-events: none;
 }
