@@ -43,16 +43,23 @@ export default defineConfig({
         },
       },
       workbox: {
-        // No html: a precached index.html would answer every reload with the old version
-        // until the new worker takes over, which only the update prompt makes it do.
-        globPatterns: ["**/*.{js,css,svg,png,ico,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        // Served from the precache, index.html would answer every reload with the old version
+        // until the new worker takes over, which only the update prompt makes it do. So pages
+        // come from the network, and the precached copy, which matches the precached scripts,
+        // is only the offline fallback.
         navigateFallback: null,
+        directoryIndex: null,
         runtimeCaching: [
           {
-            // Offline, the last page this URL loaded.
             urlPattern: ({ request }) => request.mode === "navigate",
-            handler: "NetworkFirst",
-            options: { cacheName: "pages", expiration: { maxEntries: 20 } },
+            handler: async ({ request }) => {
+              try {
+                return await fetch(request);
+              } catch {
+                return (await caches.match("/index.html", { ignoreSearch: true })) ?? Response.error();
+              }
+            },
           },
           {
             // A reload can run a page newer than the active worker, whose precache lacks the
