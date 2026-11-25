@@ -78,25 +78,26 @@ const flakes = (() => {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  return Array.from({ length: 60 }, (): CSSProperties => {
+  return Array.from({ length: 30 }, (): CSSProperties => {
     const size = 3 + random() * 4;
-    const duration = 10 + random() * 10;
+    const duration = 3 + random() * 3;
     return {
       left: `${(random() * 100).toFixed(2)}%`,
       width: `${size.toFixed(1)}px`,
       height: `${size.toFixed(1)}px`,
       opacity: 0.65 + random() * 0.35,
       animationDuration: `${duration.toFixed(1)}s`,
-      // Negative delays start every flake mid-fall, so the screen never fills from the top.
+      // Negative delays start every flake mid-fall, so the band never fills from the top.
       animationDelay: `-${(random() * duration).toFixed(1)}s`,
-      "--drift": `${((random() - 0.5) * 90).toFixed(0)}px`,
-      "--rest": `${(random() * 100).toFixed(1)}vh`,
+      "--drift": `${((random() - 0.5) * 40).toFixed(0)}px`,
+      "--rest": `${(random() * 90).toFixed(1)}%`,
     };
   });
 })();
 
-/** Snow behind the page's content. It never takes a click, and stands still for
- *  people who reduce motion (styles.css). */
+/** Snow falling from the lights through the header, behind its content. It stays out of
+ *  the board, so it never lands on a number, a field or a photo; the slabs carry the
+ *  settled snow. It never takes a click, and stands still for people who reduce motion. */
 export function Snowfall() {
   return (
     <div aria-hidden className="snowfall">

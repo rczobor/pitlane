@@ -168,14 +168,16 @@
   }
 }
 
-/* Behind the page's content, so flakes fall on the concrete and never on a number, a field or
-   a photo; never taking a click. */
+/* Inside the header (isolated), behind its content, fading out by its foot; never taking a
+   click. */
 .snowfall {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+  container-type: size;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 .snowfall i {
   position: absolute;
@@ -192,12 +194,12 @@
 }
 @keyframes snowfall {
   to {
-    transform: translate3d(var(--drift), calc(100vh + 24px), 0);
+    transform: translate3d(var(--drift), calc(100cqh + 24px), 0);
   }
 }
-/* Half the flakes on phones: the same density on a smaller screen. */
+/* Half the flakes on phones: the same density in a narrower band. */
 @media (width < 40rem) {
-  .snowfall i:nth-child(n + 31) {
+  .snowfall i:nth-child(n + 16) {
     display: none;
   }
 }
@@ -244,7 +246,7 @@
 @media (prefers-reduced-motion: reduce) {
   .snowfall i {
     animation: none;
-    transform: translate3d(0, var(--rest), 0);
+    top: var(--rest);
   }
   .lights ellipse {
     animation: none;
