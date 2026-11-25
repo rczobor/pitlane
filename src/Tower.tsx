@@ -70,7 +70,7 @@ function TowerSector({
   return (
     <section ref={setNodeRef} aria-label={`${label} tier`} className="mt-4 first:mt-2.5">
       {/* Every tier label shares one size on phones, so the bars match. */}
-      <div className={cn("flex h-11 items-center justify-between rounded-md px-3", sectionSlabColor(tier))}>
+      <div className={cn("festive-slab relative flex h-11 items-center justify-between rounded-md px-3", sectionSlabColor(tier))}>
         <h2 className="condensed text-[1.875rem] leading-none font-extrabold">{label}</h2>
         <p className="text-[0.78125rem] font-semibold">
           <b className="condensed text-[1.0625rem] font-extrabold">{count}</b> {count === 1 ? "car" : "cars"}

@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { DecorationsToggle, Lights, SlabTree, Snowfall, useFestive } from "./Festive";
 
 export function Root() {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -23,6 +25,7 @@ function SignedIn() {
   useQuery(api.captures.pending);
   const ensureUser = useMutation(api.users.ensureUser);
   const [failed, setFailed] = useState(false);
+  const festive = useFestive();
 
   // A first sign-in has no user or board yet; set them up, then the board query updates.
   useEffect(() => {
@@ -45,13 +48,23 @@ function SignedIn() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8">
-        <Link
-          to="/"
-          className="condensed rounded-md bg-slab px-2 py-1 text-2xl leading-none font-extrabold tracking-tight text-slab-foreground"
-        >
-          Pitlane
-        </Link>
+      <header
+        className={cn(
+          "relative flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8",
+          // The lights hang over the header's top; the wordmark starts under them.
+          festive.active && "pt-10 sm:pt-12",
+        )}
+      >
+        {festive.active && <Lights />}
+        <div className="flex items-end gap-2.5">
+          <Link
+            to="/"
+            className="condensed festive-slab relative rounded-md bg-slab px-2 py-1 text-2xl leading-none font-extrabold tracking-tight text-slab-foreground"
+          >
+            Pitlane
+          </Link>
+          {festive.active && <SlabTree />}
+        </div>
         {/* Phones show the icons only; the labels stay for screen readers. */}
         <nav aria-label="Main" className="flex items-center gap-1">
           <Link
@@ -87,12 +100,14 @@ function SignedIn() {
             <SlidersHorizontal data-icon="inline-start" aria-hidden />
             <span className="max-sm:sr-only">Specs</span>
           </Link>
+          {festive.season && <DecorationsToggle active={festive.active} onToggle={festive.toggle} />}
           <div className="ml-2 flex">
             <UserButton appearance={user && !user.hasImage ? inkAvatar(name.charAt(0).toUpperCase()) : undefined} />
           </div>
         </nav>
       </header>
       <Outlet />
+      {festive.active && <Snowfall />}
     </>
   );
 }

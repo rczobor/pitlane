@@ -206,9 +206,9 @@ function CatalogueSection({
           count is pinned to its foot in every state. */}
       <div
         className={cn(
-          "mb-4 flex h-14 items-center justify-between rounded-md px-3.5 lg:sticky lg:top-15 lg:mb-0 lg:h-37 lg:flex-col lg:items-start lg:px-3 lg:pt-3 lg:pb-2.5",
+          "festive-slab relative mb-4 flex h-14 items-center justify-between rounded-md px-3.5 lg:sticky lg:top-15 lg:mb-0 lg:h-37 lg:flex-col lg:items-start lg:px-3 lg:pt-3 lg:pb-2.5",
           sectionSlabColor(tier),
-          empty && "lg:static lg:h-19 lg:py-2",
+          empty && "lg:relative lg:h-19 lg:py-2",
         )}
       >
         {/* Phones and tablets share one label size, so the bars match; letters grow on wide screens. */}

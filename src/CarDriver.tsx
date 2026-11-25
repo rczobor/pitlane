@@ -49,7 +49,7 @@ export function CarDriver({ car, board, distance }: { car: Car; board: BoardData
       <div className="flex items-stretch gap-4">
         <div
           className={cn(
-            "condensed flex w-21 shrink-0 flex-col justify-between rounded-md px-3 pt-2.5 pb-2 sm:w-27",
+            "condensed festive-slab relative flex w-21 shrink-0 flex-col justify-between rounded-md px-3 pt-2.5 pb-2 sm:w-27",
             sectionSlabColor(car.tier),
           )}
         >
