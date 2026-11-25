@@ -39,12 +39,20 @@ export function Catalogue(view: TierViewProps) {
   const sections = sectionsOf(drag.lanes, view.byId, tiers);
   const total = sections.reduce((sum, s) => sum + s.listings.length, 0);
   const current = useCurrentSection();
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
+  const stuck = useStuck(sentinel);
   const { active } = drag;
   return (
     <DndContext {...drag.dndProps}>
+      <div ref={setSentinel} aria-hidden />
       <nav
         aria-label="Tiers"
-        className="sticky top-0 z-20 -mx-4 flex h-12 items-stretch overflow-x-auto border-b-2 border-foreground bg-background px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8"
+        className={cn(
+          "sticky top-0 z-20 -mx-4 flex h-12 items-stretch overflow-x-auto border-b-2 border-foreground px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8",
+          // Filled only once stuck, to hide the cars scrolling under it; until then the page,
+          // and the season's snow behind it, shows through.
+          stuck && "bg-background",
+        )}
       >
         <span className="mr-3 self-center text-[0.6875rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">Index</span>
         {sections.map(({ tier, label, listings }) => (
@@ -141,6 +149,19 @@ function IndexTab({
 }
 
 // The section whose top has passed under the sticky index: the one being read.
+// True once the element after `sentinel` has stuck to the top: the sentinel has scrolled out
+// of view above it.
+function useStuck(sentinel: HTMLElement | null) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => setStuck(entry.boundingClientRect.top < 0));
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [sentinel]);
+  return stuck;
+}
+
 function useCurrentSection() {
   const [current, setCurrent] = useState<Tier>("S");
   useEffect(() => {
