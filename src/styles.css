@@ -174,16 +174,14 @@
   }
 }
 
-/* Inside the header (isolated), behind its content, fading out by its foot; never taking a
-   click. */
+/* Over the whole screen but behind the page's content (cards and photos hide it); never
+   taking a click. */
 .snowfall {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  container-type: size;
-  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 .snowfall i {
   position: absolute;
@@ -200,12 +198,12 @@
 }
 @keyframes snowfall {
   to {
-    transform: translate3d(var(--drift), calc(100cqh + 24px), 0);
+    transform: translate3d(var(--drift), calc(100vh + 24px), 0);
   }
 }
-/* Half the flakes on phones: the same density in a narrower band. */
+/* Half the flakes on phones: the same density on a narrower screen. */
 @media (width < 40rem) {
-  .snowfall i:nth-child(n + 16) {
+  .snowfall i:nth-child(n + 46) {
     display: none;
   }
 }
@@ -252,7 +250,7 @@
 @media (prefers-reduced-motion: reduce) {
   .snowfall i {
     animation: none;
-    top: var(--rest);
+    transform: translate3d(0, var(--rest), 0);
   }
   .lights ellipse {
     animation: none;

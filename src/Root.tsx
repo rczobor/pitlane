@@ -50,17 +50,12 @@ function SignedIn() {
     <>
       <header
         className={cn(
-          "relative isolate flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8",
+          "relative flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8",
           // The lights hang over the header's top; the wordmark starts under them.
           festive.active && "pt-10 sm:pt-12",
         )}
       >
-        {festive.active && (
-          <>
-            <Snowfall />
-            <Lights />
-          </>
-        )}
+        {festive.active && <Lights />}
         <div className="flex items-end gap-2.5">
           <Link
             to="/"
@@ -112,6 +107,7 @@ function SignedIn() {
         </nav>
       </header>
       <Outlet />
+      {festive.active && <Snowfall />}
     </>
   );
 }
