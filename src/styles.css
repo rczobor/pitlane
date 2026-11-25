@@ -237,9 +237,11 @@
   pointer-events: none;
 }
 
+/* Reduced motion: the snow stands still where it is, and the lights stay lit. */
 @media (prefers-reduced-motion: reduce) {
-  .snowfall {
-    display: none;
+  .snowfall i {
+    animation: none;
+    transform: translate3d(0, var(--rest), 0);
   }
   .lights ellipse {
     animation: none;

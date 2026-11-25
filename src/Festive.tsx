@@ -8,10 +8,11 @@ import { isFestiveSeason } from "./festiveSeason";
 // from 1 December to 6 January, and the header's Decorations button turns them off on this
 // device. VITE_FESTIVE=on shows them out of season (design reviews), =off hides them.
 
-// Flakes drift sideways by a custom property each.
+// Flakes drift sideways, and rest where they stand under reduced motion, by custom properties.
 declare module "react" {
   interface CSSProperties {
     "--drift"?: string;
+    "--rest"?: string;
   }
 }
 
@@ -88,11 +89,12 @@ const flakes = (() => {
       // Negative delays start every flake mid-fall, so the screen never fills from the top.
       animationDelay: `-${(random() * duration).toFixed(1)}s`,
       "--drift": `${((random() - 0.5) * 90).toFixed(0)}px`,
+      "--rest": `${(random() * 100).toFixed(1)}vh`,
     };
   });
 })();
 
-/** Snow over the page. It never takes a click, sits under dialogs, and stays still for
+/** Snow over the page. It never takes a click, sits under dialogs, and stands still for
  *  people who reduce motion (styles.css). */
 export function Snowfall() {
   return (
