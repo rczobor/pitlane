@@ -6,7 +6,7 @@ import { isFestiveSeason } from "./festiveSeason";
 
 // Christmas decorations: falling snow, a string of lights over the header, a tree beside the
 // wordmark, and snow caps and holly on the pit boards (`festive-slab` in styles.css). They show
-// from 1 December to 6 January, and the header's Hide decorations button turns them off on this
+// from 25 November to 6 January, and the header's Hide decorations button turns them off on this
 // device. VITE_FESTIVE=on shows them out of season (design reviews), =off hides them.
 
 // Flakes drift sideways, and rest where they stand under reduced motion, by custom properties.
