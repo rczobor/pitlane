@@ -144,13 +144,14 @@ export function Lights() {
   );
 }
 
-/** A tree of stacked pit boards beside the wordmark, the S yellow on top as its star, hung
+/** A tree of stacked pit boards beside the wordmark, a tiny S slab on top as its star, hung
  *  with the string's lights. */
 export function SlabTree() {
   const rows = [12, 20, 28, 36];
   return (
     <svg aria-hidden viewBox="0 0 40 46" className="h-10 w-9 shrink-0 text-slab">
-      <rect x="15.5" y="1" width="9" height="9" transform="rotate(45 20 5.5)" fill="var(--signal)" />
+      {/* The star is a tiny S slab: the top tier crowns the tree. */}
+      <rect x="15" y="2" width="10" height="8" rx="1.5" fill="var(--signal)" />
       {rows.map((width, i) => (
         <rect key={width} x={20 - width / 2} y={12 + i * 8} width={width} height="6" rx="1.5" fill="currentColor" />
       ))}
