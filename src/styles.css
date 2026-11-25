@@ -151,6 +151,142 @@
 }
 /* End car page. */
 
+/* Christmas decorations (Festive.tsx), only while the root has data-festive. Red and green are
+   seasonal: they appear in the decorations, never on a control or a value. */
+:root {
+  --festive-red: #b8322a;
+  --festive-green: #2c7350;
+  --festive-pine: #1e5b3f;
+  --festive-trunk: #5b4030;
+  --snow: #ffffff;
+  --snow-cap: var(--snow);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --festive-red: #e0554a;
+    --festive-green: #3f9a6b;
+    --festive-pine: #2f7d55;
+    --festive-trunk: #7a5a44;
+    --snow: #eef0ec;
+    /* Softer than the flakes: the dark theme dims its slabs so S stays loudest, and a white cap
+       would relight every slab's top edge. */
+    --snow-cap: #b9bebb;
+  }
+}
+
+/* Over the whole screen but behind the page's content (cards and photos hide it); never
+   taking a click. */
+.snowfall {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.snowfall i {
+  position: absolute;
+  top: -12px;
+  border-radius: 50%;
+  background: var(--snow);
+  /* A hairline and a soft shadow, so white flakes read on the pale concrete too. */
+  box-shadow:
+    0 0 0 1px rgb(35 39 43 / 0.08),
+    0 1px 2px rgb(35 39 43 / 0.28);
+  animation-name: snowfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes snowfall {
+  to {
+    transform: translate3d(var(--drift), calc(100vh + 24px), 0);
+  }
+}
+/* Half the flakes on phones: the same density on a narrower screen. */
+@media (width < 40rem) {
+  .snowfall i:nth-child(n + 46) {
+    display: none;
+  }
+}
+
+/* On the sign-in board: inside the yellow board, behind the wordmark. */
+.snowfall-board {
+  position: absolute;
+}
+
+.lights {
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+}
+/* Lit bulbs glow on the dark ground, each in its own colour. */
+@media (prefers-color-scheme: dark) {
+  .lights ellipse {
+    filter: drop-shadow(0 0 3px var(--glow));
+  }
+}
+.lights ellipse {
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+@keyframes twinkle {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Snow settled on every pit board (the wordmark, board sections, the car page), with holly
+   on its corner. The slab must be positioned. */
+:root[data-festive] .festive-slab::before,
+:root[data-festive] .festive-card::before {
+  content: "";
+  position: absolute;
+  inset-inline: -3px;
+  top: -6px;
+  /* A 9px bank with two drips hanging under it, drawn as one shape so its hairline follows
+     the drips (a box-shadow would outline the box). */
+  height: 17px;
+  background:
+    linear-gradient(var(--snow-cap), var(--snow-cap)) top / 100% 9px no-repeat,
+    radial-gradient(ellipse 5px 8px at 50% 0, var(--snow-cap) 95%, transparent) 22% 9px / 10px 8px no-repeat,
+    radial-gradient(ellipse 3.5px 5px at 50% 0, var(--snow-cap) 95%, transparent) 70% 9px / 7px 5px no-repeat;
+  border-radius: 9px 9px 0 0;
+  /* A hairline, so white snow holds on the pale concrete and the pale Rejected slab. */
+  filter: drop-shadow(0 0 0.6px rgb(35 39 43 / 0.55));
+  pointer-events: none;
+}
+/* Snow settled on some cards (cardSnow in Festive.tsx): a shorter drift at a spot of its own. */
+:root[data-festive] .festive-card::before {
+  z-index: 1;
+  inset-inline: auto;
+  left: var(--cap-left);
+  width: var(--cap-width);
+  top: -5px;
+}
+/* A phone card clips its photo's corners, so its drift lies just inside the top edge. */
+:root[data-festive] .festive-card-inset::before {
+  top: 0;
+}
+/* The holly sits on the cap's corner, inside the slab and clear of its lettering. */
+:root[data-festive] .festive-slab::after {
+  content: "";
+  position: absolute;
+  right: 1px;
+  top: -12px;
+  width: 26px;
+  height: 19px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 34'%3E%3Cpath d='M22 18C14 6 4 10 2 4c6 10 2 16 8 18 4-4 8 0 12-4Z' fill='%231e5b3f'/%3E%3Cpath d='M24 18c8-12 18-8 20-14-6 10-2 16-8 18-4-4-8 0-12-4Z' fill='%232c7350'/%3E%3Ccircle cx='20' cy='21' r='4' fill='%23c0392b'/%3E%3Ccircle cx='27' cy='21' r='4' fill='%23c0392b'/%3E%3Ccircle cx='23.5' cy='26' r='4' fill='%23a8302a'/%3E%3C/svg%3E") no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* Reduced motion: the snow stands still where it is, and the lights stay lit. */
+@media (prefers-reduced-motion: reduce) {
+  .snowfall i {
+    animation: none;
+    transform: translate3d(0, var(--rest), 0);
+  }
+  .lights ellipse {
+    animation: none;
+  }
+}
+/* End Christmas decorations. */
+
 /* The viewer's zoom hint shows for a few seconds, then gets out of the photo's way. */
 @keyframes hint-out {
   to {

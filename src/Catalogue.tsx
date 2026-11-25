@@ -3,6 +3,7 @@ import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sort
 import { CSS } from "@dnd-kit/utilities";
 import { type MouseEvent, useEffect, useState } from "react";
 import { CardMenu } from "./BoardActions";
+import { cardSnow } from "./Festive";
 import { type BoardListing, type Tier, tiers } from "./format";
 import { type CardVariant, ListingCard } from "./ListingCard";
 import { scrollBehavior } from "./Strip";
@@ -39,12 +40,20 @@ export function Catalogue(view: TierViewProps) {
   const sections = sectionsOf(drag.lanes, view.byId, tiers);
   const total = sections.reduce((sum, s) => sum + s.listings.length, 0);
   const current = useCurrentSection();
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
+  const stuck = useStuck(sentinel);
   const { active } = drag;
   return (
     <DndContext {...drag.dndProps}>
+      <div ref={setSentinel} aria-hidden />
       <nav
         aria-label="Tiers"
-        className="sticky top-0 z-20 -mx-4 flex h-12 items-stretch overflow-x-auto border-b-2 border-foreground bg-background px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8"
+        className={cn(
+          "sticky top-0 z-20 -mx-4 flex h-12 items-stretch overflow-x-auto border-b-2 border-foreground px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8",
+          // Filled only once stuck, to hide the cars scrolling under it; until then the page,
+          // and the season's snow behind it, shows through.
+          stuck && "bg-background",
+        )}
       >
         <span className="mr-3 self-center text-[0.6875rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">Index</span>
         {sections.map(({ tier, label, listings }) => (
@@ -141,6 +150,19 @@ function IndexTab({
 }
 
 // The section whose top has passed under the sticky index: the one being read.
+// True once the element after `sentinel` has stuck to the top: the sentinel has scrolled out
+// of view above it.
+function useStuck(sentinel: HTMLElement | null) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => setStuck(entry.boundingClientRect.top < 0));
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [sentinel]);
+  return stuck;
+}
+
 function useCurrentSection() {
   const [current, setCurrent] = useState<Tier>("S");
   useEffect(() => {
@@ -206,9 +228,9 @@ function CatalogueSection({
           count is pinned to its foot in every state. */}
       <div
         className={cn(
-          "mb-4 flex h-14 items-center justify-between rounded-md px-3.5 lg:sticky lg:top-15 lg:mb-0 lg:h-37 lg:flex-col lg:items-start lg:px-3 lg:pt-3 lg:pb-2.5",
+          "festive-slab relative mb-4 flex h-14 items-center justify-between rounded-md px-3.5 lg:sticky lg:top-15 lg:mb-0 lg:h-37 lg:flex-col lg:items-start lg:px-3 lg:pt-3 lg:pb-2.5",
           sectionSlabColor(tier),
-          empty && "lg:static lg:h-19 lg:py-2",
+          empty && "lg:relative lg:top-auto lg:h-19 lg:py-2",
         )}
       >
         {/* Phones and tablets share one label size, so the bars match; letters grow on wide screens. */}
@@ -253,16 +275,18 @@ function CatalogueSection({
 function SortableLot({ listing, variant, view }: { listing: BoardListing; variant: CardVariant; view: TierViewProps }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: listing.listingId });
   const subgrid = variant === "lot" || variant === "compact";
+  const snow = variant === "index" ? undefined : cardSnow(listing.listingId);
   return (
     // Alt+arrow keys arrive here from the focused lot link.
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      style={{ transform: CSS.Translate.toString(transform), transition, ...snow }}
       // The long press that lifts a car on touch would otherwise open iOS's link preview or
       // select the card's text, and either cancels the drag.
       className={cn(
         "group/card relative select-none [-webkit-touch-callout:none]",
+        snow && !isDragging && "festive-card",
         variant === "index" && "border-b",
         subgrid && cn("row-span-2 grid grid-rows-subgrid bg-clip-content", lotFoot[variant]),
         // The lot's old place: a flat tinted slot, never dashed (dashed means "from the listing").
@@ -291,7 +315,7 @@ function SortableLot({ listing, variant, view }: { listing: BoardListing; varian
         listing={listing}
         canMarkRemoved={view.canMarkRemoved}
         onAction={(action) => view.onAction(listing, action)}
-        className={cn("absolute", variant === "index" ? "top-1/2 right-0 -translate-y-1/2" : "top-2 right-2")}
+        className={cn("absolute z-2", variant === "index" ? "top-1/2 right-0 -translate-y-1/2" : "top-2 right-2")}
       />
     </div>
   );

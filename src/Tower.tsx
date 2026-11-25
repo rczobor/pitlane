@@ -10,6 +10,7 @@ import { type BoardListing, formatKm, formatPrice, type KeySpecDef, type Tier, t
 import { InkMark, SpecMarks } from "./KeySpecLedger";
 import { carPhotoTransition, openCar, priceChange, RemovedBand, useOpenedCar } from "./ListingCard";
 import { PriceChange } from "./PriceChange";
+import { cardSnow } from "./Festive";
 import { sectionSlabColor } from "./TierSlab";
 import { keyStep, sectionsOf, type TierViewProps, useTierDrag } from "./useTierDrag";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +71,7 @@ function TowerSector({
   return (
     <section ref={setNodeRef} aria-label={`${label} tier`} className="mt-4 first:mt-2.5">
       {/* Every tier label shares one size on phones, so the bars match. */}
-      <div className={cn("flex h-11 items-center justify-between rounded-md px-3", sectionSlabColor(tier))}>
+      <div className={cn("festive-slab relative flex h-11 items-center justify-between rounded-md px-3", sectionSlabColor(tier))}>
         <h2 className="condensed text-[1.875rem] leading-none font-extrabold">{label}</h2>
         <p className="text-[0.78125rem] font-semibold">
           <b className="condensed text-[1.0625rem] font-extrabold">{count}</b> {count === 1 ? "car" : "cars"}
@@ -148,12 +149,16 @@ function TowerCard({
     listing.modelId,
   );
   const overMileage = checks.some((c) => c.kind === "mileage" && c.status === "missed");
+  const snow = cardSnow(listing.listingId);
   return (
     <div
       ref={cardRef}
       {...cardProps}
+      style={{ ...cardProps?.style, ...snow }}
       className={cn(
         "group/card relative overflow-hidden rounded-md bg-card select-none [-webkit-touch-callout:none]",
+        // The card clips its photo's corners, so its snow lies inside, along the photo's top.
+        snow && !placeholder && "festive-card festive-card-inset",
         // A removed ad sits on the concrete.
         listing.status === "removed" && "bg-background ring-1 ring-border ring-inset",
         lifted && "-rotate-[0.6deg] shadow-[0_14px_30px_-8px_rgb(0_0_0/0.35),0_0_0_1px_var(--color-input)]",
@@ -198,7 +203,7 @@ function TowerCard({
           listing={listing}
           canMarkRemoved={view.canMarkRemoved}
           onAction={(action) => view.onAction(listing, action)}
-          className="absolute top-2 right-2"
+          className="absolute top-2 right-2 z-2"
         />
       )}
     </div>
