@@ -3,6 +3,7 @@ import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sort
 import { CSS } from "@dnd-kit/utilities";
 import { type MouseEvent, useEffect, useState } from "react";
 import { CardMenu } from "./BoardActions";
+import { cardSnow } from "./Festive";
 import { type BoardListing, type Tier, tiers } from "./format";
 import { type CardVariant, ListingCard } from "./ListingCard";
 import { scrollBehavior } from "./Strip";
@@ -274,16 +275,18 @@ function CatalogueSection({
 function SortableLot({ listing, variant, view }: { listing: BoardListing; variant: CardVariant; view: TierViewProps }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: listing.listingId });
   const subgrid = variant === "lot" || variant === "compact";
+  const snow = variant === "index" ? undefined : cardSnow(listing.listingId);
   return (
     // Alt+arrow keys arrive here from the focused lot link.
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      style={{ transform: CSS.Translate.toString(transform), transition, ...snow }}
       // The long press that lifts a car on touch would otherwise open iOS's link preview or
       // select the card's text, and either cancels the drag.
       className={cn(
         "group/card relative select-none [-webkit-touch-callout:none]",
+        snow && "festive-card",
         variant === "index" && "border-b",
         subgrid && cn("row-span-2 grid grid-rows-subgrid bg-clip-content", lotFoot[variant]),
         // The lot's old place: a flat tinted slot, never dashed (dashed means "from the listing").

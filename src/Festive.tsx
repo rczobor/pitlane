@@ -13,6 +13,8 @@ declare module "react" {
   interface CSSProperties {
     "--drift"?: string;
     "--rest"?: string;
+    "--cap-left"?: string;
+    "--cap-width"?: string;
   }
 }
 
@@ -158,6 +160,27 @@ export function Tree() {
       <circle cx="26" cy="38" r="2.3" fill="var(--festive-red)" />
       <circle cx="12" cy="42" r="2.3" fill="var(--signal)" />
       <circle cx="23" cy="24" r="2" fill="#fff" />
+    </svg>
+  );
+}
+
+/** Snow settled on about one card in four, at a spot and width of its own: the same cards and
+ *  spots on every visit, since they follow the car's id. Undefined for the rest. */
+export function cardSnow(id: string): CSSProperties | undefined {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  if (hash % 4 !== 0) return undefined;
+  return { "--cap-left": `${4 + ((hash >>> 2) % 30)}%`, "--cap-width": `${35 + ((hash >>> 7) % 35)}%` };
+}
+
+/** A snow bank along the foot of the page. */
+export function SnowBank() {
+  return (
+    <svg aria-hidden viewBox="0 0 1440 48" preserveAspectRatio="none" className="block h-10 w-full sm:h-12">
+      <path
+        d="M0 22 C120 8 220 26 360 16 C500 6 620 24 760 14 C900 4 1020 26 1160 16 C1280 8 1380 18 1440 12 V48 H0 Z"
+        fill="var(--snow-cap)"
+      />
     </svg>
   );
 }

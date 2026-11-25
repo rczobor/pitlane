@@ -7,7 +7,7 @@ import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DecorationsToggle, Lights, Snowfall, Tree, useFestive } from "./Festive";
+import { DecorationsToggle, Lights, SnowBank, Snowfall, Tree, useFestive } from "./Festive";
 
 export function Root() {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -107,7 +107,12 @@ function SignedIn() {
         </nav>
       </header>
       <Outlet />
-      {festive.active && <Snowfall />}
+      {festive.active && (
+        <>
+          <SnowBank />
+          <Snowfall />
+        </>
+      )}
     </>
   );
 }

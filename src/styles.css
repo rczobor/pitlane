@@ -234,6 +234,20 @@
   box-shadow: 0 0 0 1px rgb(35 39 43 / 0.14);
   pointer-events: none;
 }
+/* Snow settled on some cards (cardSnow in Festive.tsx): a shorter drift at a spot of its own. */
+:root[data-festive] .festive-card::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: var(--cap-left);
+  width: var(--cap-width);
+  top: -5px;
+  height: 9px;
+  border-radius: 9px 9px 4px 4px;
+  background: var(--snow-cap);
+  box-shadow: 0 0 0 1px rgb(35 39 43 / 0.14);
+  pointer-events: none;
+}
 /* The holly sits on the cap's corner, inside the slab and clear of its lettering. */
 :root[data-festive] .festive-slab::after {
   content: "";
