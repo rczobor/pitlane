@@ -7,7 +7,7 @@ import { api } from "../convex/_generated/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DecorationsToggle, Lights, SlabTree, Snowfall, useFestive } from "./Festive";
+import { DecorationsToggle, Lights, Snowfall, Tree, useFestive } from "./Festive";
 
 export function Root() {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -68,7 +68,7 @@ function SignedIn() {
           >
             Pitlane
           </Link>
-          {festive.active && <SlabTree />}
+          {festive.active && <Tree />}
         </div>
         {/* Phones show the icons only; the labels stay for screen readers. */}
         <nav aria-label="Main" className="flex items-center gap-1">

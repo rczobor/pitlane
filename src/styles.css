@@ -156,14 +156,16 @@
 :root {
   --festive-red: #b8322a;
   --festive-green: #2c7350;
-  --festive-green-light: #3d8f63;
+  --festive-pine: #1e5b3f;
+  --festive-trunk: #5b4030;
   --snow: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --festive-red: #e0554a;
     --festive-green: #3f9a6b;
-    --festive-green-light: #5bb585;
+    --festive-pine: #2f7d55;
+    --festive-trunk: #7a5a44;
     --snow: #eef0ec;
   }
 }

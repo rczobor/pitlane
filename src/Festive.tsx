@@ -144,25 +144,20 @@ export function Lights() {
   );
 }
 
-/** A tree of stacked pit boards beside the wordmark, a tiny S slab on top as its star, hung
- *  with the string's lights. */
-export function SlabTree() {
-  const rows = [12, 20, 28, 36];
+/** A pine beside the wordmark, star on top and baubles in the lights' colours (user's call
+ *  over a tree of stacked pit boards, 2026-11-25). */
+export function Tree() {
   return (
-    <svg aria-hidden viewBox="0 0 40 46" className="h-10 w-9 shrink-0 text-slab">
-      {/* The star is a tiny S slab: the top tier crowns the tree. */}
-      <rect x="15" y="2" width="10" height="8" rx="1.5" fill="var(--signal)" />
-      {rows.map((width, i) => (
-        <rect key={width} x={20 - width / 2} y={12 + i * 8} width={width} height="6" rx="1.5" fill="currentColor" />
-      ))}
-      <rect x="17" y="44" width="6" height="2" fill="currentColor" />
-      <circle cx="17" cy="15" r="1.3" fill="var(--festive-red)" />
-      <circle cx="24" cy="23" r="1.3" fill="#fff" />
-      <circle cx="13" cy="31" r="1.3" fill="var(--festive-green-light)" />
-      <circle cx="28" cy="31" r="1.3" fill="var(--festive-red)" />
-      <circle cx="9" cy="39" r="1.3" fill="#fff" />
-      <circle cx="21" cy="39" r="1.3" fill="var(--festive-red)" />
-      <circle cx="33" cy="39" r="1.3" fill="var(--festive-green-light)" />
+    <svg aria-hidden viewBox="0 0 40 52" className="h-11 w-8.5 shrink-0">
+      <path d="M20 2 L22.4 7.2 L28 7.6 L23.6 11 L25 16.4 L20 13.4 L15 16.4 L16.4 11 L12 7.6 L17.6 7.2 Z" fill="var(--signal)" />
+      <path d="M20 12 L30 25 H10 Z" fill="var(--festive-pine)" />
+      <path d="M20 19 L34 35 H6 Z" fill="var(--festive-pine)" />
+      <path d="M20 27 L38 46 H2 Z" fill="var(--festive-pine)" />
+      <rect x="17" y="46" width="6" height="6" fill="var(--festive-trunk)" />
+      <circle cx="15" cy="30" r="2.3" fill="var(--festive-red)" />
+      <circle cx="26" cy="38" r="2.3" fill="var(--festive-red)" />
+      <circle cx="12" cy="42" r="2.3" fill="var(--signal)" />
+      <circle cx="23" cy="24" r="2" fill="#fff" />
     </svg>
   );
 }
