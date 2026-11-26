@@ -193,12 +193,6 @@
     0 0 0 1px rgb(35 39 43 / 0.08),
     0 1px 2px rgb(35 39 43 / 0.28);
 }
-/* Half the flakes on phones: the same density on a narrower screen. */
-@media (width < 40rem) {
-  .snowfall i:nth-child(n + 46) {
-    display: none;
-  }
-}
 
 /* On the sign-in board: inside the yellow board, behind the wordmark. */
 .snowfall-board {

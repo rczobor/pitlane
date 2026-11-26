@@ -52,7 +52,9 @@ export function Catalogue(view: TierViewProps) {
           "sticky top-0 z-20 -mx-4 flex h-12 items-stretch overflow-x-auto border-b-2 border-foreground px-4 [scrollbar-width:none] sm:-mx-8 sm:px-8",
           // Filled only once stuck, to hide the cars scrolling under it; until then the page,
           // and the season's snow behind it, shows through.
-          stuck && "bg-background",
+          // Out of season it stays filled, as it always was: text on a transparent sticky bar loses
+          // subpixel anti-aliasing.
+          stuck ? "bg-background" : "[:root:not([data-festive])_&]:bg-background",
         )}
       >
         <span className="mr-3 self-center text-[0.6875rem] font-bold tracking-[0.08em] text-muted-foreground uppercase">Index</span>

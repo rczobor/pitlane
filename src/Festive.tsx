@@ -73,28 +73,37 @@ export function DecorationsToggle({ active, onToggle }: { active: boolean; onTog
   );
 }
 
-const reducedMotion = "(prefers-reduced-motion: reduce)";
-const subscribeMotion = (onChange: () => void) => {
-  const query = matchMedia(reducedMotion);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-};
+function useMedia(query: string) {
+  return useSyncExternalStore(
+    (onChange) => {
+      const list = matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    () => matchMedia(query).matches,
+  );
+}
 
 /** Loops `animate` on each element under the returned ref that matches `selector`, while the
- *  viewer allows motion. Web Animations rather than CSS ones: React listens for CSS animation
+ *  viewer allows motion. `count` is how many there are; the loops restart when it changes. Web Animations rather than CSS ones: React listens for CSS animation
  *  events on its root, and Chrome then wakes the main thread whenever any CSS animation loops,
  *  which for 150 of them was most frames, all day. Web Animations fire no such events, so they
- *  run on the compositor alone. */
-function useLoops<T extends Element>(selector: string, animate: (element: Element, index: number) => Animation) {
+ *  run on the compositor alone, as long as their element is shown: Chrome ticks an animation
+ *  on a hidden element on the main thread. */
+function useLoops<T extends Element>(
+  selector: string,
+  animate: (element: Element, index: number) => Animation,
+  count: number,
+) {
   const ref = useRef<T>(null);
-  const reduced = useSyncExternalStore(subscribeMotion, () => matchMedia(reducedMotion).matches);
+  const reduced = useMedia("(prefers-reduced-motion: reduce)");
   useEffect(() => {
     if (reduced || !ref.current) return;
     const animations = [...ref.current.querySelectorAll(selector)].map(animate);
     return () => {
       for (const animation of animations) animation.cancel();
     };
-  }, [reduced, selector, animate]);
+  }, [reduced, selector, animate, count]);
   return ref;
 }
 
@@ -137,10 +146,12 @@ const fall = (flake: Element, i: number) => {
  *  never over a photo or a card (owner's call: more snow than the header band). It never
  *  takes a click, and stands still for people who reduce motion. */
 export function Snowfall({ className }: { className?: string }) {
-  const ref = useLoops<HTMLDivElement>("i", fall);
+  // Half the flakes on phones: the same density on a narrower screen.
+  const shown = useMedia("(width < 40rem)") ? flakes.slice(0, 45) : flakes;
+  const ref = useLoops<HTMLDivElement>("i", fall, shown.length);
   return (
     <div ref={ref} aria-hidden className={cn("snowfall", className)}>
-      {flakes.map(({ style }, i) => (
+      {shown.map(({ style }, i) => (
         <i key={i} style={style} />
       ))}
     </div>
@@ -161,11 +172,12 @@ const twinkle = (bulb: Element, n: number) =>
 /** A string of lights across the top of the header, hung in 240px swags: enough for a 3840px
  *  screen. */
 export function Lights() {
-  const ref = useLoops<HTMLDivElement>("ellipse", twinkle);
+  const swags = 16;
   const bulbs = [0.12, 0.31, 0.5, 0.69, 0.88];
+  const ref = useLoops<HTMLDivElement>("ellipse", twinkle, swags * bulbs.length);
   return (
     <div ref={ref} aria-hidden className="lights pointer-events-none absolute inset-x-0 top-0 flex overflow-hidden">
-      {Array.from({ length: 16 }, (_, swag) => (
+      {Array.from({ length: swags }, (_, swag) => (
         <svg key={swag} viewBox="0 0 240 44" className="w-40 shrink-0 sm:w-60">
           <path d="M0 3 Q120 59 240 3" fill="none" stroke="currentColor" strokeWidth="1.5" />
           {bulbs.map((t, i) => {
