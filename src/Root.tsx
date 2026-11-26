@@ -50,7 +50,9 @@ function SignedIn() {
     <>
       <header
         className={cn(
-          "relative flex items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8",
+          // Wraps the nav under the wordmark when both do not fit: in season the tree and the
+          // decorations button need more room than a narrow phone has.
+          "relative flex flex-wrap items-center justify-between gap-4 px-4 pt-6 pb-4 sm:px-8",
           // The lights hang over the header's top; the wordmark starts under them.
           festive.active && "pt-10 sm:pt-12",
         )}
@@ -66,7 +68,7 @@ function SignedIn() {
           {festive.active && <Tree />}
         </div>
         {/* Phones show the icons only; the labels stay for screen readers. */}
-        <nav aria-label="Main" className="flex items-center gap-1">
+        <nav aria-label="Main" className="ml-auto flex items-center gap-1">
           <Link
             to="/add"
             className={buttonVariants({ variant: "ghost", size: "sm", className: "relative" })}

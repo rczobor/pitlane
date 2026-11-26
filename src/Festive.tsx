@@ -1,5 +1,5 @@
 import { Snowflake } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isFestiveSeason } from "./festiveSeason";
@@ -9,10 +9,9 @@ import { isFestiveSeason } from "./festiveSeason";
 // from 25 November to 6 January, and the header's Hide decorations button turns them off on this
 // device. VITE_FESTIVE=on shows them out of season (design reviews), =off hides them.
 
-// Flakes drift sideways, and rest where they stand under reduced motion, by custom properties.
+// Flakes rest where they stand under reduced motion, by a custom property.
 declare module "react" {
   interface CSSProperties {
-    "--drift"?: string;
     "--rest"?: string;
     "--cap-left"?: string;
     "--cap-width"?: string;
@@ -74,6 +73,40 @@ export function DecorationsToggle({ active, onToggle }: { active: boolean; onTog
   );
 }
 
+function useMedia(query: string) {
+  return useSyncExternalStore(
+    (onChange) => {
+      const list = matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    () => matchMedia(query).matches,
+  );
+}
+
+/** Loops `animate` on each element under the returned ref that matches `selector`, while the
+ *  viewer allows motion. `count` is how many there are; the loops restart when it changes. Web Animations rather than CSS ones: React listens for CSS animation
+ *  events on its root, and Chrome then wakes the main thread whenever any CSS animation loops,
+ *  which for 150 of them was most frames, all day. Web Animations fire no such events, so they
+ *  run on the compositor alone, as long as their element is shown: Chrome ticks an animation
+ *  on a hidden element on the main thread. */
+function useLoops<T extends Element>(
+  selector: string,
+  animate: (element: Element, index: number) => Animation,
+  count: number,
+) {
+  const ref = useRef<T>(null);
+  const reduced = useMedia("(prefers-reduced-motion: reduce)");
+  useEffect(() => {
+    if (reduced || !ref.current) return;
+    const animations = [...ref.current.querySelectorAll(selector)].map(animate);
+    return () => {
+      for (const animation of animations) animation.cancel();
+    };
+  }, [reduced, selector, animate, count]);
+  return ref;
+}
+
 // A fixed field of flakes; each falls on its own speed, start and drift. Seeded, so every
 // render and every capture lays them out alike.
 const flakes = (() => {
@@ -82,30 +115,43 @@ const flakes = (() => {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  return Array.from({ length: 90 }, (): CSSProperties => {
+  return Array.from({ length: 90 }, () => {
     const size = 3 + random() * 4;
-    const duration = 10 + random() * 10;
-    return {
-      left: `${(random() * 100).toFixed(2)}%`,
+    const duration = Math.round((10 + random() * 10) * 10) * 100;
+    const left = `${(random() * 100).toFixed(2)}%`;
+    const opacity = 0.65 + random() * 0.35;
+    // A negative delay starts every flake mid-fall, so the screen never fills from the top.
+    const delay = -Math.round(random() * duration);
+    const drift = Math.round((random() - 0.5) * 90);
+    const style: CSSProperties = {
+      left,
       width: `${size.toFixed(1)}px`,
       height: `${size.toFixed(1)}px`,
-      opacity: 0.65 + random() * 0.35,
-      animationDuration: `${duration.toFixed(1)}s`,
-      // Negative delays start every flake mid-fall, so the screen never fills from the top.
-      animationDelay: `-${(random() * duration).toFixed(1)}s`,
-      "--drift": `${((random() - 0.5) * 90).toFixed(0)}px`,
+      opacity,
       "--rest": `${(random() * 100).toFixed(1)}vh`,
     };
+    return { style, duration, delay, drift };
   });
 })();
+
+const fall = (flake: Element, i: number) => {
+  const { duration, delay, drift } = flakes[i];
+  return flake.animate(
+    [{ transform: "translate3d(0, 0, 0)" }, { transform: `translate3d(${drift}px, calc(100vh + 24px), 0)` }],
+    { duration, delay, iterations: Infinity },
+  );
+};
 
 /** Snow over the whole page, behind its content: it falls on the ground between the cards,
  *  never over a photo or a card (owner's call: more snow than the header band). It never
  *  takes a click, and stands still for people who reduce motion. */
 export function Snowfall({ className }: { className?: string }) {
+  // Half the flakes on phones: the same density on a narrower screen.
+  const shown = useMedia("(width < 40rem)") ? flakes.slice(0, 45) : flakes;
+  const ref = useLoops<HTMLDivElement>("i", fall, shown.length);
   return (
-    <div aria-hidden className={cn("snowfall", className)}>
-      {flakes.map((style, i) => (
+    <div ref={ref} aria-hidden className={cn("snowfall", className)}>
+      {shown.map(({ style }, i) => (
         <i key={i} style={style} />
       ))}
     </div>
@@ -115,12 +161,23 @@ export function Snowfall({ className }: { className?: string }) {
 const bulbColors = ["var(--festive-red)", "var(--festive-green)", "var(--signal)", "#fff"];
 const sag = (t: number) => 2 * (1 - t) * t * 28 + 3;
 
-/** A string of lights across the top of the header, hung in 240px swags. */
+// Each bulb dims and brightens on a phase of its own.
+const twinkle = (bulb: Element, n: number) =>
+  bulb.animate([{ opacity: 1, easing: "ease-in-out" }, { opacity: 0.5, easing: "ease-in-out" }, { opacity: 1 }], {
+    duration: 2400,
+    delay: -Math.round(((n * 0.37) % 2.4) * 1000),
+    iterations: Infinity,
+  });
+
+/** A string of lights across the top of the header, hung in 240px swags: enough for a 3840px
+ *  screen. */
 export function Lights() {
+  const swags = 16;
   const bulbs = [0.12, 0.31, 0.5, 0.69, 0.88];
+  const ref = useLoops<HTMLDivElement>("ellipse", twinkle, swags * bulbs.length);
   return (
-    <div aria-hidden className="lights pointer-events-none absolute inset-x-0 top-0 flex overflow-hidden">
-      {Array.from({ length: 12 }, (_, swag) => (
+    <div ref={ref} aria-hidden className="lights pointer-events-none absolute inset-x-0 top-0 flex overflow-hidden">
+      {Array.from({ length: swags }, (_, swag) => (
         <svg key={swag} viewBox="0 0 240 44" className="w-40 shrink-0 sm:w-60">
           <path d="M0 3 Q120 59 240 3" fill="none" stroke="currentColor" strokeWidth="1.5" />
           {bulbs.map((t, i) => {
@@ -137,10 +194,7 @@ export function Lights() {
                   // White bulbs take the wire's hairline, so they hold on the pale concrete.
                   stroke={n % bulbColors.length === 3 ? "currentColor" : undefined}
                   strokeWidth="0.75"
-                  style={{
-                    animationDelay: `-${((n * 0.37) % 2.4).toFixed(2)}s`,
-                    "--glow": bulbColors[n % bulbColors.length],
-                  }}
+                  style={{ "--glow": bulbColors[n % bulbColors.length] }}
                 />
               </g>
             );
