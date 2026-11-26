@@ -126,7 +126,7 @@ export function CheckMode({
       <section aria-label="Check key specs" aria-live="polite" className="space-y-6">
         <div>
           <p className="text-sm text-muted-foreground">Checking key specs of</p>
-          <h1 className="text-xl leading-snug font-semibold">{title}</h1>
+          <h1 className="text-xl leading-snug font-semibold wrap-anywhere">{title}</h1>
         </div>
         {step(false)}
         <Button type="button" variant="outline" onClick={onDone}>

@@ -248,7 +248,7 @@ export function ListingCard({
         </Photo>
         <div className="flex min-w-0 flex-col gap-4 p-4 sm:px-7 sm:py-6 lg:pb-7">
           {lotLine}
-          <h3 className="text-base leading-snug">{listing.title}</h3>
+          <h3 className="text-base leading-snug wrap-anywhere">{listing.title}</h3>
           <dl className="flex flex-wrap gap-x-7 gap-y-2">
             <Figure label="Year" value={formatRegistrationYear(specs.firstRegistration)} mark={outside("year") && "year"} />
             <Figure label="Mileage" value={formatKm(specs.mileageKm)} mark={outside("mileage") && "mileage"} />
@@ -268,7 +268,7 @@ export function ListingCard({
         <Photo listing={listing} small className="row-span-3 aspect-[4/3] w-24 rounded-xs lg:row-span-1 lg:w-26" />
         <div className="min-w-0">
           {lotLine}
-          <h3 className="sr-only text-[0.8125rem] leading-snug lg:not-sr-only lg:mt-0.5 lg:line-clamp-2">{listing.title}</h3>
+          <h3 className="sr-only text-[0.8125rem] leading-snug wrap-anywhere lg:not-sr-only lg:mt-0.5 lg:line-clamp-2">{listing.title}</h3>
         </div>
         <div className="col-span-2 col-start-2 row-start-3 lg:col-span-1 lg:col-start-auto lg:row-start-auto">
           {caption}
@@ -300,7 +300,11 @@ export function ListingCard({
           {tierSlab}
           <div className={cn("flex flex-col", compact ? "gap-1.5 px-2.5 pt-2.5" : "gap-2 px-3.5 pt-3")}>
             {lotLine}
-            <h3 className={cn("line-clamp-2 leading-snug", compact ? "text-xs" : "text-[0.8125rem]")}>{listing.title}</h3>
+            {/* wrap-anywhere: a title with no spaces ("GT3|PDLS|APPROVED") would otherwise set the
+                column's minimum width and stretch the photo past the card. */}
+            <h3 className={cn("line-clamp-2 leading-snug wrap-anywhere", compact ? "text-xs" : "text-[0.8125rem]")}>
+              {listing.title}
+            </h3>
             {/* The badges follow the stats, and wrap under them from the left. */}
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <Stats specs={specs} outside={outside} className={compact ? "text-[0.8125rem]" : "text-[0.9375rem]"} />
