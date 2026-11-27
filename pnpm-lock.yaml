@@ -262,8 +262,8 @@ importers:
         specifier: ^3.1.105
         version: 3.1.113(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2)(use-sync-external-store@1.7.0(react@19.3.1))(zod@4.6.7)
       '@convex-dev/eslint-plugin':
-        specifier: ^5.0.1
-        version: 5.0.1(convex@1.51.0(@clerk/react@6.19.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))
+        specifier: ^6.0.0
+        version: 6.0.0(convex@1.51.0(@clerk/react@6.19.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -1007,8 +1007,8 @@ packages:
   '@coinbase/wallet-sdk@4.3.7':
     resolution: {integrity: sha512-z6e5XDw6EF06RqkeyEa+qD0dZ2ZbLci99vx3zwDY//XO8X7166tqKJrR2XlQnzVmtcUuJtCd5fCvr9Cu6zzX7w==}
 
-  '@convex-dev/eslint-plugin@5.0.1':
-    resolution: {integrity: sha512-/zW1ihbthQ+ZRJhzjKVLosmQaLmsbayXu05o7JAKrWMZveBmMX/IuJo1XGZBlhEWL3cBBc1s6uI2XXDar/Pw1A==}
+  '@convex-dev/eslint-plugin@6.0.0':
+    resolution: {integrity: sha512-dVF2+gkdDQAyuN0u4YtsO95qrmH0U0TN2cEiJQ8qaMsPsvlhCW7JhJBi7s28p4iHNFbecP0E0PjegilLoGzcAQ==}
     peerDependencies:
       convex: ^1.43.0
 
@@ -5985,7 +5985,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@convex-dev/eslint-plugin@5.0.1(convex@1.51.0(@clerk/react@6.19.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))':
+  '@convex-dev/eslint-plugin@6.0.0(convex@1.51.0(@clerk/react@6.19.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1))(eslint@10.14.0(jiti@2.7.0))':
     dependencies:
       '@typescript-eslint/parser': 8.58.2(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
       '@typescript-eslint/types': 8.58.2
